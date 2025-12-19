@@ -1,0 +1,30 @@
+[Unit]
+Description=Node Switch - 硬件通信服务 (UDP/TCP)
+After=network.target
+
+[Service]
+Type=simple
+User=orangepi
+Group=orangepi
+WorkingDirectory=/opt/node-switch
+ExecStart=/usr/bin/node dist/index.js
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# 环境变量
+Environment=NODE_ENV=production
+
+# 日志配置
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=node-switch
+
+# 进程管理
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
