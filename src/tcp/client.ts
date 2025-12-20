@@ -23,6 +23,7 @@ export class TCPClient {
     this.config = {
       timeout: 5000,
       retries: 3,
+      framing: true, // Default to true for backward compatibility
       ...config,
     };
   }
@@ -84,7 +85,7 @@ export class TCPClient {
     }
 
     const data = typeof message === 'string' ? Buffer.from(message, 'utf-8') : Buffer.from(message);
-    const framedMessage = this.frameMessage(data);
+    const framedMessage = this.config.framing ? this.frameMessage(data) : data;
     const messageId = this.generateMessageId();
 
     return new Promise((resolve, reject) => {
@@ -116,7 +117,7 @@ export class TCPClient {
     }
 
     const data = typeof message === 'string' ? Buffer.from(message, 'utf-8') : Buffer.from(message);
-    const framedMessage = this.frameMessage(data);
+    const framedMessage = this.config.framing ? this.frameMessage(data) : data;
 
     return new Promise((resolve, reject) => {
       this.socket!.write(framedMessage, (error) => {
@@ -138,6 +139,14 @@ export class TCPClient {
     this.messageBuffer = Buffer.concat([this.messageBuffer, data]);
 
     // 尝试从缓冲区中提取完整的消息
+    if (!this.config.framing) {
+      // If framing is disabled, process all data immediately
+      const messageData = this.messageBuffer;
+      this.messageBuffer = Buffer.alloc(0);
+      this.processMessage(messageData);
+      return;
+    }
+
     while (this.messageBuffer.length >= 4) {
       const messageLength = this.messageBuffer.readUInt32BE(0);
 

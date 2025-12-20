@@ -30,7 +30,7 @@ export class HardwareCommunicationManager {
    */
   async initialize(configs: {
     udpClients?: { id: string; targetHost: string; targetPort: number; timeout?: number; retries?: number }[];
-    tcpClients?: { id: string; localPort: number; targetHost: string; targetPort: number; timeout?: number; retries?: number }[];
+    tcpClients?: { id: string; localPort?: number; targetHost: string; targetPort: number; timeout?: number; retries?: number; framing?: boolean }[];
     udpPort?: number;
     globalTimeout?: number;
     globalRetries?: number;
@@ -82,6 +82,7 @@ export class HardwareCommunicationManager {
           port: clientConfig.targetPort,
           timeout: clientConfig.timeout || configs.globalTimeout,
           retries: clientConfig.retries || configs.globalRetries,
+          framing: clientConfig.framing,
         };
         const tcpClient = new TCPClient(netConfig);
         this.clients.tcp.set(clientConfig.id, tcpClient);
@@ -185,7 +186,7 @@ export class HardwareCommunicationManager {
       }
 
       const promises = Array.from(clientsToSend.entries()).map(async ([id, client]) => {
-        this.log.info(`正在发送 TCP 命令到 ${id}`, {
+        this.log.debug(`正在发送 TCP 命令到 ${id}`, {
           clientId: id,
           command: Buffer.isBuffer(command) ? '<Buffer>' : command,
           rawCommand: commandBuffer.toString('utf8')

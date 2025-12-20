@@ -10,19 +10,19 @@ async function startApp() {
   const manager = new HardwareCommunicationManager();
   const appLogger = createModuleLogger('App');
 
-  // 1. 打印配置摘要
+  // 打印配置摘要
   appLogger.info('正在启动 Node Switch 应用程序');
   appLogger.info('配置信息:', getConfigSummary());
 
   try {
-    // 2. 初始化业务逻辑
+    // 初始化业务逻辑
     const businessLogic = new BusinessLogicManager(manager, appLogger);
     await businessLogic.initialize();
 
-    // 3. 启动查询循环
+    // 启动查询循环
     businessLogic.startLoop();
 
-    // 4. 关闭处理
+    // 关闭处理
     process.on('SIGINT', async () => {
       appLogger.info('\n正在关闭...');
       businessLogic.stop();

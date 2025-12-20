@@ -23,7 +23,6 @@ declare global {
       HARDWARE_TIMEOUT: string
       HARDWARE_RETRY_ATTEMPTS: string
 
-
     }
   }
 }

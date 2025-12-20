@@ -7,6 +7,7 @@ export interface NetworkConfig {
   port: number;
   timeout?: number;
   retries?: number;
+  framing?: boolean; // Default true
 }
 
 export interface MessagePayload {

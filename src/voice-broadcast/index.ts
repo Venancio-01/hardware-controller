@@ -7,11 +7,14 @@ import { HardwareCommunicationManager } from '../hardware/manager.js';
  * 基于 TCP/IP 协议 (自由协议)
  */
 export class VoiceBroadcastController {
+  private static instance: VoiceBroadcastController | null = null;
+  private static initialized = false;
+
   private log = createModuleLogger('VoiceBroadcastController');
   private clientId = 'voice-broadcast';
   private hardwareManager: HardwareCommunicationManager;
 
-  constructor(
+  private constructor(
     hardwareManager: HardwareCommunicationManager,
     config: { host: string; port: number }
   ) {
@@ -126,5 +129,49 @@ export class VoiceBroadcastController {
       this.log.error('设置缓存模式失败', error as Error);
       return false;
     }
+  }
+
+  /**
+   * 初始化单例实例
+   * @param hardwareManager 硬件通信管理器
+   * @param config 语音播报模块配置
+   */
+  static initialize(hardwareManager: HardwareCommunicationManager, config: { host: string; port: number }): void {
+    if (VoiceBroadcastController.instance) {
+      const log = createModuleLogger('VoiceBroadcastController');
+      log.warn('语音播报控制器已经初始化，跳过重复初始化');
+      return;
+    }
+
+    VoiceBroadcastController.instance = new VoiceBroadcastController(hardwareManager, config);
+    VoiceBroadcastController.initialized = true;
+  }
+
+  /**
+   * 获取单例实例
+   * @returns VoiceBroadcastController 实例
+   * @throws 如果未初始化则抛出错误
+   */
+  static getInstance(): VoiceBroadcastController {
+    if (!VoiceBroadcastController.instance) {
+      throw new Error('语音播报控制器未初始化，请先调用 VoiceBroadcastController.initialize()');
+    }
+    return VoiceBroadcastController.instance;
+  }
+
+  /**
+   * 检查是否已初始化
+   * @returns 是否已初始化
+   */
+  static isInitialized(): boolean {
+    return VoiceBroadcastController.initialized && VoiceBroadcastController.instance !== null;
+  }
+
+  /**
+   * 销毁单例实例
+   */
+  static destroy(): void {
+    VoiceBroadcastController.instance = null;
+    VoiceBroadcastController.initialized = false;
   }
 }

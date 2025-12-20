@@ -1,49 +1,4 @@
-import { config as dotenvConfig } from 'dotenv'
 import { z } from 'zod'
-
-import * as path from 'node:path'
-import * as fs from 'node:fs'
-import { fileURLToPath } from 'node:url'
-
-/**
- * 动态加载 .env 文件
- * 尝试从多个位置查找 .env 文件，以支持开发、构建和不同的运行目录
- */
-function loadEnv() {
-  const __filename = fileURLToPath(import.meta.url)
-  const __dirname = path.dirname(__filename)
-
-  // 候选路径列表（优先级从高到低）
-  const candidates = [
-    // 1. 当前工作目录下的 .env.local (开发覆盖)
-    path.join(process.cwd(), '.env.local'),
-    // 2. 当前工作目录下的 .env
-    path.join(process.cwd(), '.env'),
-    // 3. 脚本所在目录的上级目录 (针对 dist/index.js -> dist/../.env)
-    path.join(__dirname, '..', '.env'),
-    // 4. 脚本所在目录的上上级目录 (针对 src/config/index.ts -> src/config/../../.env)
-    path.join(__dirname, '..', '..', '.env'),
-  ]
-
-  let envLoaded = false
-  for (const envPath of candidates) {
-    if (fs.existsSync(envPath)) {
-      dotenvConfig({ path: envPath })
-      // console.log(`Loaded env from: ${envPath}`)
-      envLoaded = true
-      // 如果找到 .env.local，继续查找基础 .env (dotenv 不会覆盖已存在的 key)
-      if (envPath.endsWith('.env.local')) continue
-      break
-    }
-  }
-
-  // 如果没有找到明确的 path，最后尝试默认加载（通常是 cwd/.env）
-  if (!envLoaded) {
-    dotenvConfig()
-  }
-}
-
-loadEnv()
 
 /**
  * 客户端连接配置 Schema

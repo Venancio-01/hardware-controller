@@ -1,6 +1,5 @@
 import pino, { type Logger, type Level } from 'pino';
-import * as os from 'node:os';
-import { type LoggerConfig, type LogWriter, type LogFormatter, LogLevel, LOG_LEVEL_NAMES } from './types.js';
+import { type LoggerConfig, LogLevel, LOG_LEVEL_NAMES } from './types.js';
 
 /**
  * Pino 日志级别映射
@@ -12,15 +11,6 @@ const PINO_LEVEL_MAPPING: Record<LogLevel, Level> = {
   [LogLevel.ERROR]: 'error',
 };
 
-/**
- * Pino 日志级别反向映射
- */
-const REVERSE_PINO_LEVEL_MAPPING: Record<string, LogLevel> = {
-  debug: LogLevel.DEBUG,
-  info: LogLevel.INFO,
-  warn: LogLevel.WARN,
-  error: LogLevel.ERROR,
-};
 
 /**
  * 默认日志配置
@@ -72,7 +62,7 @@ export class StructuredLogger {
         target: 'pino-pretty',
         options: {
           colorize: this.config.enableColors,
-          translateTime: 'yyyy-mm-dd HH:MM:ss Z',
+          translateTime: 'SYS:yyyy-mm-dd HH:MM:ss',
           ignore: 'pid,hostname',
           messageFormat: '{tag} {msg}',
         },
@@ -229,26 +219,6 @@ export class StructuredLogger {
     this.pinoLogger.level = PINO_LEVEL_MAPPING[level];
   }
 
-  /**
-   * 获取 Pino 时间戳格式化器
-   */
-  private getPinoTimestampFormatter(): () => string {
-    switch (this.config.timestampFormat) {
-      case 'iso':
-        return () => new Date().toISOString();
-      case 'unix':
-        return () => String(Date.now());
-      case 'custom':
-        return () => {
-          if (this.config.customTimestampFormatter) {
-            return this.config.customTimestampFormatter(new Date());
-          }
-          return new Date().toISOString();
-        };
-      default:
-        return () => new Date().toISOString();
-    }
-  }
 
   /**
    * 获取原始 Pino Logger 实例（用于高级配置）

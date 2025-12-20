@@ -2,6 +2,7 @@ import { config } from './config/index.js';
 import { type HardwareCommunicationManager } from './hardware/manager.js';
 import { type StructuredLogger } from './logger/index.js';
 import { RelayCommandBuilder, parseStatusResponse } from './relay/controller.js';
+import { VoiceBroadcastController } from './voice-broadcast/index.js';
 
 export class BusinessLogicManager {
   private ac: AbortController | null = null;
@@ -14,7 +15,7 @@ export class BusinessLogicManager {
   ) { }
 
   /**
-   * 初始化业务逻辑（Step 2）
+   * 初始化业务逻辑
    * - 配置 UDP 客户端
    * - 初始化硬件管理器
    * - 设置数据处理回调
@@ -36,8 +37,19 @@ export class BusinessLogicManager {
       }
     ];
 
+    const tcpClientsConfig = [
+      {
+        id: 'voice-broadcast',
+        targetHost: config.VOICE_BROADCAST_HOST,
+        targetPort: config.VOICE_BROADCAST_PORT,
+        framing: false,
+        description: '语音播报模块'
+      }
+    ];
+
     await this.manager.initialize({
       udpClients: udpClientsConfig,
+      tcpClients: tcpClientsConfig,
       udpPort: config.UDP_LOCAL_PORT,
       globalTimeout: config.HARDWARE_TIMEOUT,
       globalRetries: config.HARDWARE_RETRY_ATTEMPTS,
@@ -45,6 +57,21 @@ export class BusinessLogicManager {
 
     this.logger.info('硬件通信已初始化');
     this.logger.info('UDP 客户端状态:', this.manager.getAllConnectionStatus().udp);
+    this.logger.info('TCP 客户端状态:', this.manager.getAllConnectionStatus().tcp);
+
+    //  初始化并测试语音模块
+    try {
+      VoiceBroadcastController.initialize(this.manager, {
+        host: config.VOICE_BROADCAST_HOST,
+        port: config.VOICE_BROADCAST_PORT
+      });
+
+      const voiceController = VoiceBroadcastController.getInstance();
+      this.logger.info('正在发送启动语音: "你好"...');
+      await voiceController.broadcast('你好');
+    } catch (err) {
+      this.logger.warn('语音模块初始化或发送广播失败', { error: err });
+    }
 
     //设置数据处理
     this.setupDataHandler();
@@ -59,7 +86,7 @@ export class BusinessLogicManager {
         try {
           const status = parseStatusResponse(rawStr, 'dostatus');
           const statusDisplay = status.channels.map((on, i) => `CH${i + 1}:${on ? '闭合' : '断开'}`).join(' | ');
-          this.logger.info(`[${clientId}] 继电器状态: ${statusDisplay}`);
+          this.logger.info(`[${clientId}] (${remote.address}) 继电器状态: ${statusDisplay}`);
 
           // 检测变化
           const lastStatus = this.lastRelayStatus.get(clientId);
@@ -87,7 +114,7 @@ export class BusinessLogicManager {
   }
 
   /**
-   * 启动查询循环（Step 3）
+   * 启动查询循环
    */
   startLoop() {
     this.logger.info(`开始 UDP 查询循环 (${config.QUERY_INTERVAL}ms 间隔)`);
@@ -103,9 +130,7 @@ export class BusinessLogicManager {
         // 柜体端 -> 查询继电器状态
         await this.manager.sendCommand('udp', relayStatusCmd, undefined, 'cabinet', false);
 
-        // 控制端 -> 查询继电器状态 (maybe also input?)
-        // Let's stick to relay status for now unless requested otherwise, but "Control" implies inputs.
-        // However, without specific instruction on commands, I will keep it simple or send relay status to both to match previous behavior but split by ID.
+        // 控制端 -> 查询继电器状态
         await this.manager.sendCommand('udp', relayStatusCmd, undefined, 'control', false);
       } catch (error) {
         this.logger.error('查询循环出错', error as Error);
