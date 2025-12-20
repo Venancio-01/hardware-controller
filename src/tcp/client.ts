@@ -23,7 +23,7 @@ export class TCPClient {
     this.config = {
       timeout: 5000,
       retries: 3,
-      framing: true, // Default to true for backward compatibility
+      framing: true,
       ...config,
     };
   }
@@ -36,44 +36,69 @@ export class TCPClient {
       return;
     }
 
-    this.isConnecting = true;
-    this.status = 'connecting';
+    const maxRetries = this.config.retries || 0;
+    let attempt = 0;
 
-    return new Promise((resolve, reject) => {
-      try {
-        this.socket = connect(this.config.port, this.config.host);
+    const tryConnect = (): Promise<void> => {
+      this.isConnecting = true;
+      this.status = 'connecting';
+      attempt++;
 
-        this.socket.on('connect', () => {
-          this.status = 'connected';
+      return new Promise((resolve, reject) => {
+        try {
+          this.log.debug(`尝试连接到 ${this.config.host}:${this.config.port} (第 ${attempt} 次尝试)`);
+          this.socket = connect(this.config.port, this.config.host);
+
+          this.socket.on('connect', () => {
+            this.status = 'connected';
+            this.isConnecting = false;
+            this.log.info(`成功连接到 ${this.config.host}:${this.config.port}`);
+            resolve();
+          });
+
+          this.socket.on('error', (error: Error) => {
+            this.status = 'error';
+            this.stats.errors++;
+            this.isConnecting = false;
+            
+            if (attempt <= maxRetries) {
+                this.log.warn(`连接失败，准备重试 (${attempt}/${maxRetries}): ${error.message}`);
+                // 延迟一小段时间重试
+                setTimeout(() => {
+                    tryConnect().then(resolve).catch(reject);
+                }, 100 * attempt);
+            } else {
+                this.handleRejection(reject, error);
+            }
+          });
+
+          this.socket.on('close', () => {
+            this.status = 'disconnected';
+            this.isConnecting = false;
+          });
+
+          this.socket.on('data', this.handleData.bind(this));
+
+          this.socket.setTimeout(this.config.timeout!, () => {
+            this.socket?.destroy(new Error('Connection timeout'));
+            this.isConnecting = false;
+            // Timeout also triggers 'error' or we can handle it here
+          });
+
+        } catch (error) {
           this.isConnecting = false;
-          resolve();
-        });
+          if (attempt <= maxRetries) {
+              setTimeout(() => {
+                  tryConnect().then(resolve).catch(reject);
+              }, 100 * attempt);
+          } else {
+              this.handleRejection(reject, error as Error);
+          }
+        }
+      });
+    };
 
-        this.socket.on('error', (error: Error) => {
-          this.status = 'error';
-          this.stats.errors++;
-          this.isConnecting = false;
-          this.handleRejection(reject, error);
-        });
-
-        this.socket.on('close', () => {
-          this.status = 'disconnected';
-          this.isConnecting = false;
-        });
-
-        this.socket.on('data', this.handleData.bind(this));
-
-        this.socket.setTimeout(this.config.timeout!, () => {
-          this.socket?.destroy(new Error('Connection timeout'));
-          this.isConnecting = false;
-          reject(new Error('Connection timeout'));
-        });
-
-      } catch (error) {
-        this.isConnecting = false;
-        this.handleRejection(reject, error as Error);
-      }
-    });
+    return tryConnect();
   }
 
   /**
@@ -140,7 +165,6 @@ export class TCPClient {
 
     // 尝试从缓冲区中提取完整的消息
     if (!this.config.framing) {
-      // If framing is disabled, process all data immediately
       const messageData = this.messageBuffer;
       this.messageBuffer = Buffer.alloc(0);
       this.processMessage(messageData);
@@ -151,7 +175,6 @@ export class TCPClient {
       const messageLength = this.messageBuffer.readUInt32BE(0);
 
       if (this.messageBuffer.length < 4 + messageLength) {
-        // 数据不完整，等待更多数据
         break;
       }
 
@@ -285,10 +308,9 @@ export class TCPClient {
   }
 
   /**
-   * 从数据中提取消息ID（简化版本）
+   * 从数据中提取消息ID
    */
   private extractMessageId(data: Buffer): string | null {
-    // 这里可以根据实际协议来实现ID提取逻辑
     return null;
   }
 
