@@ -59,6 +59,9 @@ export class BusinessLogicManager {
     this.logger.info('UDP 客户端状态:', this.manager.getAllConnectionStatus().udp);
     this.logger.info('TCP 客户端状态:', this.manager.getAllConnectionStatus().tcp);
 
+    // 在进入主循环前重置所有继电器状态为断开 (0)
+    await this.resetAllRelays();
+
     //  初始化并测试语音模块
     try {
       VoiceBroadcastController.initialize(this.manager, {
@@ -75,6 +78,28 @@ export class BusinessLogicManager {
 
     //设置数据处理
     this.setupDataHandler();
+  }
+
+  /**
+   * 重置所有注册设备的继电器状态为断开
+   * 采用非阻塞方式，记录错误但不中止启动流程
+   */
+  private async resetAllRelays() {
+    this.logger.info('正在初始化重置所有继电器状态 (全部置为 0)...');
+    const resetCmd = RelayCommandBuilder.open('all'); // dooff99
+
+    const targets = ['cabinet', 'control'];
+
+    const promises = targets.map(async (target) => {
+      try {
+        await this.manager.sendCommand('udp', resetCmd, undefined, target, false);
+        this.logger.info(`[${target}] 继电器初始化重置成功`);
+      } catch (err) {
+        this.logger.error(`[${target}] 继电器初始化重置失败: ${(err as Error).message}`);
+      }
+    });
+
+    await Promise.all(promises);
   }
 
   private setupDataHandler() {
