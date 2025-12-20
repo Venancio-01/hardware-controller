@@ -29,8 +29,9 @@ export interface RelayStrategy {
    * 执行策略业务逻辑
    * @param state 16路组合状态
    * @param logger 日志记录器
+   * @param previousState 上一次的16路组合状态 (可能为空)
    */
-  execute(state: CombinedRelayState, logger: StructuredLogger): Promise<void>;
+  execute(state: CombinedRelayState, logger: StructuredLogger, previousState?: CombinedRelayState): Promise<void>;
 }
 
 /**
@@ -43,6 +44,9 @@ export class RelayContext {
   // 内部维护两个客户端的状态
   private cabinetState: boolean[] = new Array(8).fill(false);
   private controlState: boolean[] = new Array(8).fill(false);
+  
+  // 记录上一次的完整组合状态
+  private lastCombinedState: CombinedRelayState | undefined;
 
   constructor(private logger: StructuredLogger) { }
 
@@ -80,11 +84,15 @@ export class RelayContext {
       try {
         if (strategy.match(fullState)) {
           this.logger.info(`Strategy matched: ${strategy.name}`);
-          await strategy.execute(fullState, this.logger);
+          // 传递当前状态、日志记录器和上一次状态
+          await strategy.execute(fullState, this.logger, this.lastCombinedState);
         }
       } catch (error) {
         this.logger.error(`Error executing strategy ${strategy.name}`, error as Error);
       }
     }
+    
+    // 更新上一次状态记录 (深拷贝)
+    this.lastCombinedState = [...fullState];
   }
 }
