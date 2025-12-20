@@ -1,10 +1,11 @@
 # Track Plan: 建立核心测试套件并完善硬件协议校验
 
 ## Phase 1: 基础设施与 Mock 准备
-- [ ] Task: 配置 Bun 测试环境并建立测试目录结构
-- [ ] Task: 实现 UDP 通信模拟器 (UDPSocketMock)
-- [ ] Task: 实现 TCP 通信模拟器 (TCPSocketMock)
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: 基础设施与 Mock 准备' (Protocol in workflow.md)
+- [x] Task: 配置 Bun 测试环境并建立测试目录结构
+- [x] Task: 实现 UDP 通信模拟器 (UDPSocketMock)
+- [x] Task: 实现 TCP 通信模拟器 (TCPSocketMock)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: 基础设施与 Mock 准备' (Protocol in workflow.md)
+## Phase 1 Checkpoint: [checkpoint: 0da566d]
 
 ## Phase 2: 协议校验增强
 - [ ] Task: 继电器控制协议校验
