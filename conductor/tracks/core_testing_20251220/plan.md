@@ -8,13 +8,14 @@
 ## Phase 1 Checkpoint: [checkpoint: 0da566d]
 
 ## Phase 2: 协议校验增强
-- [ ] Task: 继电器控制协议校验
-    - [ ] Write Tests: 编写继电器协议的 Zod 校验单元测试
-    - [ ] Implement Feature: 完善 `src/relay` 中的 Zod schema 和解析逻辑
-- [ ] Task: 语音播报协议校验
-    - [ ] Write Tests: 编写语音播报协议的 Zod 校验单元测试
-    - [ ] Implement Feature: 完善 `src/voice-broadcast` 中的 Zod schema 和解析逻辑
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: 协议校验增强' (Protocol in workflow.md)
+- [x] Task: 继电器控制协议校验
+    - [x] Write Tests: 编写继电器协议的 Zod 校验单元测试
+    - [x] Implement Feature: 完善 `src/relay` 中的 Zod schema 和解析逻辑
+- [~] Task: 语音播报协议校验
+    - [x] Write Tests: 编写语音播报协议的 Zod 校验单元测试
+    - [x] Implement Feature: 完善 `src/voice-broadcast` 中的 Zod schema 和解析逻辑
+- [x] Task: Conductor - User Manual Verification 'Phase 2: 协议校验增强' (Protocol in workflow.md)
+## Phase 2 Checkpoint: [checkpoint: 949002a]
 
 ## Phase 3: 核心逻辑测试与重试机制验证
 - [ ] Task: 继电器控制器单元测试
