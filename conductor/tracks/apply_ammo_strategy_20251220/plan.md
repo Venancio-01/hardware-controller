@@ -11,7 +11,7 @@
     - [ ] Implement `execute` logic with edge detection:
         - Detect rising edge of Cabinet 1 -> Broadcast "已申请...".
         - Detect change of Control 4 (while Cabinet 1 is high) -> Broadcast "授权通过...".
-- [ ] Task: Register Strategy
+- [x] Task: Register Strategy [f1758cf]
     - [ ] Update `src/business-logic.ts` to register `ApplyAmmoStrategy` into `RelayContext`.
 
 ## Phase 2: Testing
