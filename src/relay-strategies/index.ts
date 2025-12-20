@@ -80,7 +80,6 @@ export class RelayContext {
       try {
         if (strategy.match(fullState)) {
           this.logger.info(`Strategy matched: ${strategy.name}`);
-          // 可以在这里加锁防止重复执行，或者由策略内部控制
           await strategy.execute(fullState, this.logger);
         }
       } catch (error) {

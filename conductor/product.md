@@ -11,6 +11,7 @@ A hardware communication service using Node.js/Bun + TypeScript for relay contro
 ## 3. 核心功能
 - **实时监控与轮询**：自动轮询硬件设备状态，并对状态变化进行实时记录与异常告警。
 - **高可靠控制**：通过 UDP/TCP 协议实现对 8 路继电器的开闭、延时控制，并集成语音播报模块。
+- **协议安全校验**：所有硬件交互指令均通过 Zod Schema 进行严格校验，确保通信的稳健性。
 - **深度可观察性**：基于 Pino 的结构化日志系统，提供详尽的运行轨迹，辅助快速定位故障。
 
 ## 4. 关键衡量指标 (KPI)

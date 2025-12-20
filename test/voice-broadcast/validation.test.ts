@@ -9,7 +9,7 @@ describe("Voice Broadcast Validation", () => {
         speed: 5,
         voice: 3,
         repeat: 1
-      };
+      } as const;
       expect(VoiceSchemas.BroadcastOptions.parse(options)).toEqual(options);
     });
 

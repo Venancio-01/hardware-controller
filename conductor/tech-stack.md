@@ -3,6 +3,7 @@
 ## 核心运行时与语言
 - **TypeScript**: 强类型编程语言，确保硬件协议处理的准确性。
 - **Bun**: 高性能 JavaScript 运行时，用于替代 Node.js，内置对 TypeScript 的原生支持。
+- **Bun Test**: Bun 内置的测试运行器，用于实现高性能的单元测试和集成测试。
 
 ## 框架与库
 - **Zod**: 用于环境变量和硬件通信协议的模式验证（Schema Validation），确保数据的强一致性。

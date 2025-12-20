@@ -66,11 +66,11 @@ export class BusinessLogicManager {
         port: config.VOICE_BROADCAST_PORT
       });
 
-      const voiceController = VoiceBroadcastController.getInstance();
-      this.logger.info('正在发送启动语音: "你好"...');
-      await voiceController.broadcast('你好');
+      // const voiceController = VoiceBroadcastController.getInstance();
+      // this.logger.info('正在发送启动语音: "你好"...');
+      // await voiceController.broadcast('你好');
     } catch (err) {
-      this.logger.warn('语音模块初始化或发送广播失败', { error: err });
+      this.logger.warn('语音模块初始化失败', { error: err });
     }
 
     //设置数据处理
@@ -105,8 +105,6 @@ export class BusinessLogicManager {
         }
         return;
       }
-
-
 
       // 其他响应
       this.logger.info(`[${protocol.toUpperCase()}] Response from ${clientId}:`, { raw: rawStr, ...parsedResponse });
