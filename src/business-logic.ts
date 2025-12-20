@@ -3,16 +3,21 @@ import { type HardwareCommunicationManager } from './hardware/manager.js';
 import { type StructuredLogger } from './logger/index.js';
 import { RelayCommandBuilder, parseStatusResponse } from './relay/controller.js';
 import { VoiceBroadcastController } from './voice-broadcast/index.js';
+import { RelayContext } from './relay-strategies/index.js';
+import { ApplyAmmoStrategy } from './relay-strategies/apply-ammo.js';
 
 export class BusinessLogicManager {
   private ac: AbortController | null = null;
   private queryLoop: NodeJS.Timeout | null = null;
   private lastRelayStatus = new Map<string, string>();
+  private relayContext: RelayContext;
 
   constructor(
     private manager: HardwareCommunicationManager,
     private logger: StructuredLogger
-  ) { }
+  ) {
+    this.relayContext = new RelayContext(logger);
+  }
 
   /**
    * 初始化业务逻辑
@@ -21,6 +26,9 @@ export class BusinessLogicManager {
    * - 设置数据处理回调
    */
   async initialize() {
+    // 注册业务策略
+    this.relayContext.registerStrategy(new ApplyAmmoStrategy());
+
     // 2. 初始化硬件通信 - 从 config 加载
     const udpClientsConfig = [
       {
@@ -59,7 +67,7 @@ export class BusinessLogicManager {
     this.logger.info('UDP 客户端状态:', this.manager.getAllConnectionStatus().udp);
     this.logger.info('TCP 客户端状态:', this.manager.getAllConnectionStatus().tcp);
 
-    // 在进入主循环前重置所有继电器状态为断开 (0)
+    // 在进入主循环前重置所有继电器状态为断开
     await this.resetAllRelays();
 
     //  初始化并测试语音模块
@@ -82,11 +90,10 @@ export class BusinessLogicManager {
 
   /**
    * 重置所有注册设备的继电器状态为断开
-   * 采用非阻塞方式，记录错误但不中止启动流程
    */
   private async resetAllRelays() {
-    this.logger.info('正在初始化重置所有继电器状态 (全部置为 0)...');
-    const resetCmd = RelayCommandBuilder.open('all'); // dooff99
+    this.logger.info('初始化所有继电器状态 (全部置为断开)...');
+    const resetCmd = RelayCommandBuilder.open('all');
 
     const targets = ['cabinet', 'control'];
 
@@ -103,15 +110,18 @@ export class BusinessLogicManager {
   }
 
   private setupDataHandler() {
-    this.manager.onIncomingData = (protocol, clientId, data, remote, parsedResponse) => {
+    this.manager.onIncomingData = async (protocol, clientId, data, remote, parsedResponse) => {
       const rawStr = data.toString('utf8').trim();
 
       // 解析继电器状态响应 (dostatus)
       if (rawStr.startsWith('dostatus')) {
         try {
           const status = parseStatusResponse(rawStr, 'dostatus');
-          const statusDisplay = status.channels.map((on, i) => `CH${i + 1}:${on ? '闭合' : '断开'}`).join(' | ');
-          this.logger.info(`[${clientId}] (${remote.address}) 继电器状态: ${statusDisplay}`);
+
+          // 更新策略上下文
+          if (clientId === 'cabinet' || clientId === 'control') {
+            await this.relayContext.updateState(clientId, status.channels);
+          }
 
           // 检测变化
           const lastStatus = this.lastRelayStatus.get(clientId);
