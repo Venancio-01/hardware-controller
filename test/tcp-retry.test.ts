@@ -8,7 +8,7 @@ mock.module("node:net", () => ({
 }));
 
 describe("TCPClient Retry Logic", () => {
-  const config = { host: '127.0.0.1', port: 8888, timeout: 100, retries: 3 };
+  const config = { host: '127.0.0.1', port: 8888, timeout: 100, retries: 3, reconnectDelay: 10 };
 
   it("should retry connection on failure", async () => {
     const { connect } = await import("node:net");
@@ -21,6 +21,8 @@ describe("TCPClient Retry Logic", () => {
         const socket = new (require("events").EventEmitter)();
         (socket as any).setTimeout = mock();
         (socket as any).destroy = mock();
+        (socket as any).setKeepAlive = mock();
+        (socket as any).setNoDelay = mock();
         
         process.nextTick(() => {
             if (callCount <= 2) {
@@ -33,9 +35,15 @@ describe("TCPClient Retry Logic", () => {
     });
 
     const client = new TCPClient(config);
-    // Note: The current TCPClient doesn't have retry logic in connect().
-    // We expect this to fail if we want it to retry.
-    await client.connect();
+    try {
+        await client.connect();
+    } catch (e) {
+        // Expected initial failure
+    }
+    
+    // Wait for retries
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     expect(callCount).toBe(3);
   });
 });

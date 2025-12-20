@@ -2,8 +2,14 @@ import { connect, Socket } from 'node:net';
 import { createModuleLogger } from '../logger/index.js';
 import type { NetworkConfig, MessagePayload, ConnectionStatus, CommunicationStats } from '../types/index.js';
 
+interface ResponseHandler {
+  resolve: (data: MessagePayload) => void;
+  reject: (error: Error) => void;
+  timeout: NodeJS.Timeout;
+}
+
 /**
- * TCP 客户端类 - 支持现代异步语法和消息分帧
+ * TCP 客户端类
  */
 export class TCPClient {
   private socket: Socket | null = null;
@@ -12,93 +18,142 @@ export class TCPClient {
   private stats: CommunicationStats = { messagesSent: 0, messagesReceived: 0, errors: 0 };
   private messageBuffer: Buffer = Buffer.alloc(0);
   private log = createModuleLogger('TCPClient');
-  private responseHandlers = new Map<string, {
-    resolve: (data: MessagePayload) => void;
-    reject: (error: Error) => void;
-    timeout: NodeJS.Timeout;
-  }>();
+  private responseHandlers = new Map<string, ResponseHandler>();
   private isConnecting = false;
+  private heartbeatInterval: NodeJS.Timeout | null = null;
+  private reconnectInterval: NodeJS.Timeout | null = null;
+  private shouldReconnect = false;
+  private heartbeatTimer: NodeJS.Timeout | null = null;
+  private lastHeartbeatResponse = 0;
+
+  /**
+   * 自定义消息事件处理器
+   */
+  public onMessage?: (data: Buffer) => void;
 
   constructor(config: NetworkConfig) {
     this.config = {
       timeout: 5000,
       retries: 3,
       framing: true,
+      heartbeatInterval: 30000, // 心跳间隔30秒
+      heartbeatTimeout: 5000,   // 心跳超时5秒
+      reconnectDelay: 5000,     // 重连延迟5秒
       ...config,
     };
   }
 
   /**
-   * 连接到 TCP 服务器
+   * 连接到 TCP 服务器（长连接模式）
    */
   async connect(): Promise<void> {
-    if (this.status === 'connected' || this.isConnecting) {
+    if (this.status === 'connected') {
       return;
     }
 
-    const maxRetries = this.config.retries || 0;
-    let attempt = 0;
-
-    const tryConnect = (): Promise<void> => {
-      this.isConnecting = true;
-      this.status = 'connecting';
-      attempt++;
-
+    if (this.isConnecting) {
       return new Promise((resolve, reject) => {
-        try {
-          this.log.debug(`尝试连接到 ${this.config.host}:${this.config.port} (第 ${attempt} 次尝试)`);
-          this.socket = connect(this.config.port, this.config.host);
-
-          this.socket.on('connect', () => {
-            this.status = 'connected';
-            this.isConnecting = false;
-            this.log.info(`成功连接到 ${this.config.host}:${this.config.port}`);
-            resolve();
-          });
-
-          this.socket.on('error', (error: Error) => {
-            this.status = 'error';
-            this.stats.errors++;
-            this.isConnecting = false;
-            
-            if (attempt <= maxRetries) {
-                this.log.warn(`连接失败，准备重试 (${attempt}/${maxRetries}): ${error.message}`);
-                // 延迟一小段时间重试
-                setTimeout(() => {
-                    tryConnect().then(resolve).catch(reject);
-                }, 100 * attempt);
+        const checkInterval = setInterval(() => {
+          if (!this.isConnecting) {
+            clearInterval(checkInterval);
+            if (this.status === 'connected') {
+              resolve();
             } else {
-                this.handleRejection(reject, error);
+              reject(new Error('Connection failed'));
             }
-          });
-
-          this.socket.on('close', () => {
-            this.status = 'disconnected';
-            this.isConnecting = false;
-          });
-
-          this.socket.on('data', this.handleData.bind(this));
-
-          this.socket.setTimeout(this.config.timeout!, () => {
-            this.socket?.destroy(new Error('Connection timeout'));
-            this.isConnecting = false;
-            // Timeout also triggers 'error' or we can handle it here
-          });
-
-        } catch (error) {
-          this.isConnecting = false;
-          if (attempt <= maxRetries) {
-              setTimeout(() => {
-                  tryConnect().then(resolve).catch(reject);
-              }, 100 * attempt);
-          } else {
-              this.handleRejection(reject, error as Error);
           }
-        }
+        }, 100);
       });
-    };
+    }
 
-    return tryConnect();
+    this.shouldReconnect = true;
+    return this.doConnect();
+  }
+
+  /**
+   * 执行实际连接
+   */
+  private async doConnect(): Promise<void> {
+    if (this.isConnecting) return;
+
+    this.isConnecting = true;
+    this.status = 'connecting';
+
+    return new Promise((resolve, reject) => {
+      try {
+        this.log.debug(`连接到 ${this.config.host}:${this.config.port}`);
+        this.socket = connect(this.config.port, this.config.host);
+
+        this.socket.on('connect', () => {
+          this.status = 'connected';
+          this.isConnecting = false;
+
+          // 启用 TCP KeepAlive
+          this.socket!.setKeepAlive(true, 30000);
+          this.log.debug(`TCP KeepAlive 已启用 (initialDelay: 30000ms)`);
+
+          // 清除连接超时 - 长连接模式下不需要自动超时
+          this.socket!.setTimeout(0);
+
+          // 启动心跳
+          this.startHeartbeat();
+
+          // 停止重连定时器
+          if (this.reconnectInterval) {
+            clearInterval(this.reconnectInterval);
+            this.reconnectInterval = null;
+          }
+
+          this.log.info(`成功连接到 ${this.config.host}:${this.config.port}`);
+          resolve();
+        });
+
+        this.socket.on('error', (error: Error) => {
+          this.status = 'error';
+          this.stats.errors++;
+          this.isConnecting = false;
+          this.stopHeartbeat();
+          this.log.error(`连接错误: ${error.message}`);
+
+          // 如果应该重连，启动重连机制
+          if (this.shouldReconnect) {
+            this.scheduleReconnect();
+          }
+
+          reject(error);
+        });
+
+        this.socket.on('close', () => {
+          this.status = 'disconnected';
+          this.isConnecting = false;
+          this.stopHeartbeat();
+          this.log.warn('连接已关闭');
+
+          // 如果应该重连，启动重连机制
+          if (this.shouldReconnect) {
+            this.scheduleReconnect();
+          }
+        });
+
+        this.socket.on('data', this.handleData.bind(this));
+
+        // 只在连接阶段设置超时，连接成功后会清除
+        this.socket.setTimeout(this.config.timeout!, () => {
+          this.socket?.destroy(new Error('Connection timeout'));
+          this.isConnecting = false;
+        });
+
+      } catch (error) {
+        this.isConnecting = false;
+        this.log.error('连接失败:', error as Error);
+
+        if (this.shouldReconnect) {
+          this.scheduleReconnect();
+        }
+
+        reject(error);
+      }
+    });
   }
 
   /**
@@ -193,6 +248,21 @@ export class TCPClient {
     this.stats.messagesReceived++;
     this.stats.lastActivity = Date.now();
 
+    const messageStr = data.toString('utf8').trim();
+
+    // 检查是否是心跳响应
+    if (messageStr === 'HEARTBEAT_ACK' || messageStr.includes('HEARTBEAT')) {
+      this.log.debug('收到心跳响应');
+      this.lastHeartbeatResponse = Date.now();
+
+      // 清除心跳超时定时器
+      if (this.heartbeatTimer) {
+        clearTimeout(this.heartbeatTimer);
+        this.heartbeatTimer = null;
+      }
+      return;
+    }
+
     const messageId = this.extractMessageId(data);
 
     if (messageId && this.responseHandlers.has(messageId)) {
@@ -207,7 +277,7 @@ export class TCPClient {
     }
 
     // 触发消息事件
-    this.emitMessage?.(data);
+    this.onMessage?.(data);
   }
 
   /**
@@ -220,44 +290,17 @@ export class TCPClient {
   }
 
   /**
-   * 自定义消息事件处理器
-   */
-  public onMessage?: (data: Buffer) => void;
-  private emitMessage?: (data: Buffer) => void;
-
-  /**
-   * 关闭连接
-   */
-  async disconnect(): Promise<void> {
-    if (this.socket) {
-      // 清理所有等待中的处理器
-      for (const [id, handler] of this.responseHandlers) {
-        clearTimeout(handler.timeout);
-        handler.reject(new Error('Connection closed'));
-      }
-      this.responseHandlers.clear();
-
-      return new Promise((resolve) => {
-        if (this.socket!.destroyed) {
-          this.socket = null;
-          this.status = 'disconnected';
-          resolve();
-          return;
-        }
-
-        this.socket!.end(() => {
-          this.socket = null;
-          this.status = 'disconnected';
-          resolve();
-        });
-      });
-    }
-  }
-
-  /**
    * 强制关闭连接（立即关闭）
    */
   forceDisconnect(): void {
+    this.shouldReconnect = false;
+    this.stopHeartbeat();
+
+    if (this.reconnectInterval) {
+      clearTimeout(this.reconnectInterval);
+      this.reconnectInterval = null;
+    }
+
     if (this.socket && !this.socket.destroyed) {
       // 清理所有等待中的处理器
       for (const [id, handler] of this.responseHandlers) {
@@ -294,6 +337,29 @@ export class TCPClient {
   }
 
   /**
+   * 获取详细的连接状态信息
+   */
+  getConnectionInfo(): {
+    status: ConnectionStatus;
+    isConnected: boolean;
+    isConnecting: boolean;
+    shouldReconnect: boolean;
+    hasHeartbeat: boolean;
+    remoteAddress?: { address: string; port: number };
+    lastActivity?: number;
+  } {
+    return {
+      status: this.status,
+      isConnected: this.isConnected(),
+      isConnecting: this.isConnecting,
+      shouldReconnect: this.shouldReconnect,
+      hasHeartbeat: this.heartbeatInterval !== null,
+      remoteAddress: this.getRemoteAddress() || undefined,
+      lastActivity: this.stats.lastActivity,
+    };
+  }
+
+  /**
    * 重置统计信息
    */
   resetStats(): void {
@@ -312,20 +378,6 @@ export class TCPClient {
    */
   private extractMessageId(data: Buffer): string | null {
     return null;
-  }
-
-  /**
-   * 错误处理辅助方法
-   */
-  private handleRejection(reject: (reason?: unknown) => void, error: Error): void {
-    if (this.responseHandlers.size > 0) {
-      for (const [id, handler] of this.responseHandlers) {
-        clearTimeout(handler.timeout);
-        handler.reject(error);
-      }
-      this.responseHandlers.clear();
-    }
-    reject(error);
   }
 
   /**
@@ -371,5 +423,109 @@ export class TCPClient {
       };
     }
     return null;
+  }
+
+  /**
+   * 启动心跳检测
+   */
+  private startHeartbeat(): void {
+    this.stopHeartbeat(); // 确保没有重复的心跳
+
+    this.heartbeatInterval = setInterval(async () => {
+      if (this.status !== 'connected' || !this.socket) {
+        return;
+      }
+
+      try {
+        // 发送心跳包
+        const heartbeatMsg = Buffer.from('HEARTBEAT', 'utf8');
+        await this.sendNoWait(heartbeatMsg);
+        this.log.debug('发送心跳包');
+
+        // 设置心跳超时检查
+        this.lastHeartbeatResponse = Date.now();
+        this.heartbeatTimer = setTimeout(() => {
+          const elapsed = Date.now() - this.lastHeartbeatResponse;
+          if (elapsed > this.config.heartbeatTimeout!) {
+            this.log.warn('心跳超时，主动断开连接');
+            this.socket?.destroy(new Error('Heartbeat timeout'));
+          }
+        }, this.config.heartbeatTimeout);
+
+      } catch (error) {
+        this.log.error('心跳发送失败:', error as Error);
+      }
+    }, this.config.heartbeatInterval);
+  }
+
+  /**
+   * 停止心跳检测
+   */
+  private stopHeartbeat(): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+    if (this.heartbeatTimer) {
+      clearTimeout(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+  }
+
+  /**
+   * 安排重连
+   */
+  private scheduleReconnect(): void {
+    if (this.reconnectInterval || !this.shouldReconnect) {
+      return;
+    }
+
+    this.log.info(`${this.config.reconnectDelay}ms 后尝试重连...`);
+
+    this.reconnectInterval = setTimeout(async () => {
+      this.reconnectInterval = null;
+      try {
+        await this.doConnect();
+      } catch (error) {
+        this.log.error('重连失败:', error as Error);
+      }
+    }, this.config.reconnectDelay);
+  }
+
+  /**
+   * 停止长连接模式（不再重连）
+   */
+  async disconnect(): Promise<void> {
+    this.shouldReconnect = false;
+    this.stopHeartbeat();
+
+    if (this.reconnectInterval) {
+      clearTimeout(this.reconnectInterval);
+      this.reconnectInterval = null;
+    }
+
+    if (this.socket) {
+      // 清理所有等待中的处理器
+      for (const [id, handler] of this.responseHandlers) {
+        clearTimeout(handler.timeout);
+        handler.reject(new Error('Connection closed'));
+      }
+      this.responseHandlers.clear();
+
+      return new Promise((resolve) => {
+        if (this.socket!.destroyed) {
+          this.socket = null;
+          this.status = 'disconnected';
+          resolve();
+          return;
+        }
+
+        this.socket!.end(() => {
+          this.socket = null;
+          this.status = 'disconnected';
+          resolve();
+        });
+      });
+    }
   }
 }
