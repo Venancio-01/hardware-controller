@@ -3,33 +3,24 @@ import { type HardwareCommunicationManager } from './hardware/manager.js';
 import { type StructuredLogger } from './logger/index.js';
 import { RelayCommandBuilder, parseStatusResponse } from './relay/controller.js';
 import { VoiceBroadcastController } from './voice-broadcast/index.js';
-import { RelayContext } from './relay-strategies/index.js';
-import { ApplyAmmoStrategy } from './relay-strategies/apply-ammo.js';
+import { ApplyAmmoFlow } from './business-logic/apply-ammo-flow.js';
+import { RelayStatusAggregator, type RelayClientId } from './business-logic/relay-status-aggregator.js';
 
 export class BusinessLogicManager {
   private ac: AbortController | null = null;
   private queryLoop: NodeJS.Timeout | null = null;
-  private lastRelayStatus = new Map<string, string>();
-  private relayContext: RelayContext;
+  private relayAggregator = new RelayStatusAggregator();
+  private applyAmmoFlow: ApplyAmmoFlow;
 
   constructor(
     private manager: HardwareCommunicationManager,
     private logger: StructuredLogger
   ) {
-    this.relayContext = new RelayContext(logger);
+    this.applyAmmoFlow = new ApplyAmmoFlow(logger);
   }
 
-  /**
-   * 初始化业务逻辑
-   * - 配置 UDP 客户端
-   * - 初始化硬件管理器
-   * - 设置数据处理回调
-   */
   async initialize() {
-    // 注册业务策略
-    this.relayContext.registerStrategy(new ApplyAmmoStrategy());
-
-    // 2. 初始化硬件通信 - 从 config 加载
+    //  初始化硬件通信
     const udpClientsConfig = [
       {
         id: 'cabinet',
@@ -45,15 +36,54 @@ export class BusinessLogicManager {
       }
     ];
 
-    const tcpClientsConfig = [
-      {
-        id: 'voice-broadcast',
-        targetHost: config.VOICE_BROADCAST_HOST,
-        targetPort: config.VOICE_BROADCAST_PORT,
+    const tcpClientsConfig: {
+      id: string;
+      targetHost: string;
+      targetPort: number;
+      framing: boolean;
+      heartbeatStrict: boolean;
+      description: string;
+    }[] = [];
+
+    const voiceClients: { id: string; host: string; port: number; description: string }[] = [];
+
+    if (config.VOICE_BROADCAST_CABINET_HOST && config.VOICE_BROADCAST_CABINET_PORT) {
+      tcpClientsConfig.push({
+        id: 'voice-broadcast-cabinet',
+        targetHost: config.VOICE_BROADCAST_CABINET_HOST,
+        targetPort: config.VOICE_BROADCAST_CABINET_PORT,
         framing: false,
-        description: '语音播报模块'
-      }
-    ];
+        heartbeatStrict: false,
+        description: '柜体端语音播报模块'
+      });
+      voiceClients.push({
+        id: 'voice-broadcast-cabinet',
+        host: config.VOICE_BROADCAST_CABINET_HOST,
+        port: config.VOICE_BROADCAST_CABINET_PORT,
+        description: '柜体端语音播报模块'
+      });
+    } else {
+      this.logger.warn('柜体端语音播报配置缺失，已跳过初始化');
+    }
+
+    if (config.VOICE_BROADCAST_CONTROL_HOST && config.VOICE_BROADCAST_CONTROL_PORT) {
+      tcpClientsConfig.push({
+        id: 'voice-broadcast-control',
+        targetHost: config.VOICE_BROADCAST_CONTROL_HOST,
+        targetPort: config.VOICE_BROADCAST_CONTROL_PORT,
+        framing: false,
+        heartbeatStrict: false,
+        description: '控制端语音播报模块'
+      });
+      voiceClients.push({
+        id: 'voice-broadcast-control',
+        host: config.VOICE_BROADCAST_CONTROL_HOST,
+        port: config.VOICE_BROADCAST_CONTROL_PORT,
+        description: '控制端语音播报模块'
+      });
+    } else if (config.VOICE_BROADCAST_CONTROL_HOST || config.VOICE_BROADCAST_CONTROL_PORT) {
+      this.logger.warn('控制端语音播报配置不完整，已跳过初始化');
+    }
 
     await this.manager.initialize({
       udpClients: udpClientsConfig,
@@ -67,22 +97,27 @@ export class BusinessLogicManager {
     this.logger.info('UDP 客户端状态:', this.manager.getAllConnectionStatus().udp);
     this.logger.info('TCP 客户端状态:', this.manager.getAllConnectionStatus().tcp);
 
-    // 在进入主循环前重置所有继电器状态为断开
+    // 重置所有继电器状态为断开
     await this.resetAllRelays();
 
     //  初始化并测试语音模块
-    try {
-      VoiceBroadcastController.initialize(this.manager, {
-        host: config.VOICE_BROADCAST_HOST,
-        port: config.VOICE_BROADCAST_PORT
-      });
+    if (voiceClients.length > 0) {
+      try {
+        VoiceBroadcastController.initialize(this.manager, {
+          clients: voiceClients,
+          defaultClientId: voiceClients[0]?.id
+        });
 
-      // const voiceController = VoiceBroadcastController.getInstance();
-      // this.logger.info('正在发送启动语音: "你好"...');
-      // await voiceController.broadcast('你好');
-    } catch (err) {
-      this.logger.warn('语音模块初始化失败', { error: err });
+        // const voiceController = VoiceBroadcastController.getInstance();
+        // await voiceController.broadcast('你好');
+      } catch (err) {
+        this.logger.warn('语音模块初始化失败', { error: err });
+      }
+    } else {
+      this.logger.warn('未检测到可用的语音播报配置，已跳过语音模块初始化');
     }
+
+    this.applyAmmoFlow.start();
 
     //设置数据处理
     this.setupDataHandler();
@@ -118,23 +153,26 @@ export class BusinessLogicManager {
         try {
           const status = parseStatusResponse(rawStr, 'dostatus');
 
-          // 更新策略上下文
           if (clientId === 'cabinet' || clientId === 'control') {
-            await this.relayContext.updateState(clientId, status.channels);
-          }
+            const combinedUpdate = this.relayAggregator.update(
+              clientId as RelayClientId,
+              status
+            );
 
-          // 检测变化
-          const lastStatus = this.lastRelayStatus.get(clientId);
-          if (lastStatus && lastStatus !== rawStr) {
-            const oldStatus = parseStatusResponse(lastStatus, 'dostatus');
-            const changes = status.channels
-              .map((on, i) => oldStatus.channels[i] !== on ? `CH${i + 1}: ${oldStatus.channels[i] ? '闭合' : '断开'} → ${on ? '闭合' : '断开'}` : null)
-              .filter(Boolean);
-            if (changes.length > 0) {
-              this.logger.info(`[${clientId}] 继电器状态变化: ${changes.join(', ')}`);
+            if (combinedUpdate && combinedUpdate.changed) {
+              this.applyAmmoFlow.handleCombinedChange(
+                combinedUpdate.previousCombined,
+                combinedUpdate.combinedState
+              );
+
+              if (combinedUpdate.changeDescriptions.length > 0) {
+                this.logger.info(`[combined] 继电器状态变化: ${combinedUpdate.changeDescriptions.join(', ')}`);
+                this.logger.info(
+                  `[combined] 当前全部十六路状态: ${combinedUpdate.allStatusText} (raw: cabinet=${combinedUpdate.raw.cabinet} control=${combinedUpdate.raw.control})`
+                );
+              }
             }
           }
-          this.lastRelayStatus.set(clientId, rawStr);
         } catch (err) {
           this.logger.error(`解析继电器状态失败: ${rawStr}`, err as Error);
         }
@@ -142,7 +180,7 @@ export class BusinessLogicManager {
       }
 
       // 其他响应
-      this.logger.info(`[${protocol.toUpperCase()}] Response from ${clientId}:`, { raw: rawStr, ...parsedResponse });
+      this.logger.debug(`[${protocol.toUpperCase()}] Response from ${clientId}:`, { raw: rawStr, ...parsedResponse });
     };
   }
 
@@ -183,5 +221,6 @@ export class BusinessLogicManager {
       this.ac.abort();
       this.ac = null;
     }
+    this.applyAmmoFlow.stop();
   }
 }

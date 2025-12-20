@@ -30,7 +30,19 @@ export class HardwareCommunicationManager {
    */
   async initialize(configs: {
     udpClients?: { id: string; targetHost: string; targetPort: number; timeout?: number; retries?: number }[];
-    tcpClients?: { id: string; localPort?: number; targetHost: string; targetPort: number; timeout?: number; retries?: number; framing?: boolean }[];
+    tcpClients?: {
+      id: string;
+      localPort?: number;
+      targetHost: string;
+      targetPort: number;
+      timeout?: number;
+      retries?: number;
+      framing?: boolean;
+      heartbeatInterval?: number;
+      heartbeatTimeout?: number;
+      reconnectDelay?: number;
+      heartbeatStrict?: boolean;
+    }[];
     udpPort?: number;
     globalTimeout?: number;
     globalRetries?: number;
@@ -83,6 +95,10 @@ export class HardwareCommunicationManager {
           timeout: clientConfig.timeout || configs.globalTimeout,
           retries: clientConfig.retries || configs.globalRetries,
           framing: clientConfig.framing,
+          heartbeatInterval: clientConfig.heartbeatInterval,
+          heartbeatTimeout: clientConfig.heartbeatTimeout,
+          reconnectDelay: clientConfig.reconnectDelay,
+          heartbeatStrict: clientConfig.heartbeatStrict,
         };
         const tcpClient = new TCPClient(netConfig);
         this.clients.tcp.set(clientConfig.id, tcpClient);

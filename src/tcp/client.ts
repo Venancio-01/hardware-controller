@@ -39,6 +39,7 @@ export class TCPClient {
       heartbeatInterval: 30000, // 心跳间隔30秒
       heartbeatTimeout: 5000,   // 心跳超时5秒
       reconnectDelay: 5000,     // 重连延迟5秒
+      heartbeatStrict: true,
       ...config,
     };
   }
@@ -431,6 +432,11 @@ export class TCPClient {
   private startHeartbeat(): void {
     this.stopHeartbeat(); // 确保没有重复的心跳
 
+    if (!this.config.heartbeatInterval || this.config.heartbeatInterval <= 0) {
+      this.log.debug('心跳已禁用');
+      return;
+    }
+
     this.heartbeatInterval = setInterval(async () => {
       if (this.status !== 'connected' || !this.socket) {
         return;
@@ -447,8 +453,13 @@ export class TCPClient {
         this.heartbeatTimer = setTimeout(() => {
           const elapsed = Date.now() - this.lastHeartbeatResponse;
           if (elapsed > this.config.heartbeatTimeout!) {
-            this.log.warn('心跳超时，主动断开连接');
-            this.socket?.destroy(new Error('Heartbeat timeout'));
+            if (this.config.heartbeatStrict) {
+              this.log.warn('心跳超时，主动断开连接');
+              this.socket?.destroy(new Error('Heartbeat timeout'));
+              return;
+            }
+
+            this.log.warn('心跳超时，保持连接');
           }
         }, this.config.heartbeatTimeout);
 

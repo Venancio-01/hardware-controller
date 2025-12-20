@@ -8,6 +8,12 @@ export interface NetworkConfig {
   timeout?: number;
   retries?: number;
   framing?: boolean; // Default true
+
+  // 长连接配置
+  heartbeatInterval?: number;  // 心跳间隔，默认30000ms
+  heartbeatTimeout?: number;    // 心跳超时，默认5000ms
+  reconnectDelay?: number;      // 重连延迟，默认5000ms
+  heartbeatStrict?: boolean;    // 心跳超时是否断开连接，默认 true
 }
 
 export interface MessagePayload {

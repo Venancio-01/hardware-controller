@@ -12,18 +12,26 @@ export class VoiceBroadcastController {
   private static initialized = false;
 
   private log = createModuleLogger('VoiceBroadcastController');
-  private clientId = 'voice-broadcast';
   private hardwareManager: HardwareCommunicationManager;
+  private clientIds: Set<string>;
+  private defaultClientId?: string;
 
   private constructor(
     hardwareManager: HardwareCommunicationManager,
-    config: { host: string; port: number }
+    config: { clients: { id: string; host: string; port: number; description?: string }[]; defaultClientId?: string }
   ) {
     this.hardwareManager = hardwareManager;
+    this.clientIds = new Set(config.clients.map((client) => client.id));
+    this.defaultClientId = config.defaultClientId;
 
-    this.log.info('语音播报控制器已初始化', {
-      host: config.host,
-      port: config.port
+    this.log.debug('语音播报控制器已初始化', {
+      clients: config.clients.map((client) => ({
+        id: client.id,
+        host: client.host,
+        port: client.port,
+        description: client.description
+      })),
+      defaultClientId: this.defaultClientId
     });
   }
 
@@ -32,19 +40,31 @@ export class VoiceBroadcastController {
    * @param text 要播报的文本
    * @param options 播报选项
    */
-  async broadcast(text: string, options: {
+  async broadcast(
+    text: string,
+    options: {
     volume?: number; // 0-10
     speed?: number; // 0-10
     voice?: 3 | 51; // 3:女, 51:男
     sound?: string; // 预设提示音 ID, e.g. 'sound108'
     repeat?: number; // 播报次数，默认 1
-  } = {}): Promise<boolean> {
+    } = {},
+    targetClientId?: string
+  ): Promise<boolean> {
     try {
+      const resolvedClientId = targetClientId ?? this.defaultClientId;
+
+      if (resolvedClientId && !this.clientIds.has(resolvedClientId)) {
+        this.log.warn('未找到指定的语音播报客户端，取消发送', {
+          targetClientId: resolvedClientId
+        });
+        return false;
+      }
+
       // 验证选项
       const validatedOptions = VoiceSchemas.BroadcastOptions.parse(options);
 
-      // 使用验证后的选项 (Note: Zod returns the parsed object, but TS might need type assertion if types don't match perfectly,
-      // but here they should match or be compatible)
+      // 使用验证后的选项
       const opts = validatedOptions;
 
       let cmdPrefix = '#';
@@ -55,8 +75,8 @@ export class VoiceBroadcastController {
       let cmdBody = '';
 
       // 添加控制标识符
-      if (opts.volume !== undefined) cmdBody += `[v${opts.volume}]`; // 已由 Zod 验证范围
-      if (opts.speed !== undefined) cmdBody += `[s${opts.speed}]`;   // 已由 Zod 验证范围
+      if (opts.volume !== undefined) cmdBody += `[v${opts.volume}]`;
+      if (opts.speed !== undefined) cmdBody += `[s${opts.speed}]`;
       if (opts.voice !== undefined) cmdBody += `[m${opts.voice}]`;
 
       // 添加提示音
@@ -69,31 +89,41 @@ export class VoiceBroadcastController {
       // 编码为 GB2312
       const encodedCommand = iconv.encode(fullCommandStr, 'gb2312');
 
-      this.log.info('发送语音播报命令', {
+      this.log.debug('发送语音播报命令', {
         text,
         command: fullCommandStr,
-        hex: encodedCommand.toString('hex')
+        hex: encodedCommand.toString('hex'),
+        clientId: resolvedClientId ?? 'all'
       });
 
       const result = await this.hardwareManager.sendCommand(
         'tcp',
         encodedCommand,
         undefined,
-        this.clientId
+        resolvedClientId,
+        false
       );
 
-      const response = result[this.clientId];
-      if (response && response.success) {
-        const data = response.data;
-        if (typeof data === 'string' && data.includes('OK')) {
-          this.log.info('语音播报指令已接收 (OK)');
-          return true;
+      if (resolvedClientId) {
+        const response = result[resolvedClientId];
+        if (response && response.success === false) {
+          this.log.error('语音播报指令发送失败', {
+            error: response.error,
+            clientId: resolvedClientId
+          });
+          return false;
         }
-        return true;
       } else {
-        this.log.error('语音播报指令发送失败或未收到确认', { error: response?.error });
-        return false;
+        const failedClients = Object.entries(result)
+          .filter(([, response]) => response && response.success === false)
+          .map(([clientId]) => clientId);
+        if (failedClients.length > 0) {
+          this.log.error('语音播报指令发送失败', { failedClients });
+          return false;
+        }
       }
+
+      return true;
 
     } catch (error) {
       this.log.error('播报过程发生错误', error as Error);
@@ -115,7 +145,7 @@ export class VoiceBroadcastController {
   async setInterruptMode(): Promise<boolean> {
     const cmd = Buffer.from([0xCC, 0xDD, 0xF3, 0x00]);
     try {
-      await this.hardwareManager.sendCommand('tcp', cmd, undefined, this.clientId);
+      await this.hardwareManager.sendCommand('tcp', cmd, undefined, this.defaultClientId);
       this.log.info('已设置为打断模式');
       return true;
     } catch (error) {
@@ -130,7 +160,7 @@ export class VoiceBroadcastController {
   async setCacheMode(): Promise<boolean> {
     const cmd = Buffer.from([0xCC, 0xDD, 0xF3, 0x01]);
     try {
-      await this.hardwareManager.sendCommand('tcp', cmd, undefined, this.clientId);
+      await this.hardwareManager.sendCommand('tcp', cmd, undefined, this.defaultClientId);
       this.log.info('已设置为缓存模式');
       return true;
     } catch (error) {
@@ -144,7 +174,10 @@ export class VoiceBroadcastController {
    * @param hardwareManager 硬件通信管理器
    * @param config 语音播报模块配置
    */
-  static initialize(hardwareManager: HardwareCommunicationManager, config: { host: string; port: number }): void {
+  static initialize(
+    hardwareManager: HardwareCommunicationManager,
+    config: { clients: { id: string; host: string; port: number; description?: string }[]; defaultClientId?: string }
+  ): void {
     if (VoiceBroadcastController.instance) {
       const log = createModuleLogger('VoiceBroadcastController');
       log.warn('语音播报控制器已经初始化，跳过重复初始化');

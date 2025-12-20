@@ -74,16 +74,33 @@ const envSchema = z.object({
     .default(8000),
 
   // 语音播报模块配置
-  VOICE_BROADCAST_HOST: z
+  VOICE_BROADCAST_CABINET_HOST: z
     .string()
     .regex(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^localhost$/, 'Invalid IP address format')
     .default('192.168.1.103'),
 
-  VOICE_BROADCAST_PORT: z
+  VOICE_BROADCAST_CABINET_PORT: z
     .string()
     .transform(Number)
     .pipe(z.number().int().positive().min(1).max(65535))
     .default(50000),
+
+  VOICE_BROADCAST_CONTROL_HOST: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z
+      .string()
+      .regex(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^localhost$/, 'Invalid IP address format')
+      .optional()
+  ),
+
+  VOICE_BROADCAST_CONTROL_PORT: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z
+      .string()
+      .transform(Number)
+      .pipe(z.number().int().positive().min(1).max(65535))
+      .optional()
+  ),
 
   // 全局硬件配置（保持向后兼容）
   HARDWARE_TIMEOUT: z
@@ -179,8 +196,14 @@ export function getConfigSummary(): Record<string, unknown> {
         port: config.CONTROL_TARGET_PORT,
       },
       voiceBroadcast: {
-        host: config.VOICE_BROADCAST_HOST,
-        port: config.VOICE_BROADCAST_PORT,
+        cabinet: {
+          host: config.VOICE_BROADCAST_CABINET_HOST,
+          port: config.VOICE_BROADCAST_CABINET_PORT,
+        },
+        control: {
+          host: config.VOICE_BROADCAST_CONTROL_HOST,
+          port: config.VOICE_BROADCAST_CONTROL_PORT,
+        },
       },
       timeout: config.HARDWARE_TIMEOUT,
       retryAttempts: config.HARDWARE_RETRY_ATTEMPTS,
