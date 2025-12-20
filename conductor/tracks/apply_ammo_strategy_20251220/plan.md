@@ -14,13 +14,10 @@
 - [x] Task: Register Strategy [f1758cf]
     - [ ] Update `src/business-logic.ts` to register `ApplyAmmoStrategy` into `RelayContext`.
 
-## Phase 2: Testing
-- [ ] Task: Unit Tests for ApplyAmmoStrategy
-    - [ ] Create `test/relay-strategies/apply-ammo.test.ts`.
-    - [ ] Test Case: Cabinet 1 Rising Edge -> Should broadcast "Apply".
-    - [ ] Test Case: Cabinet 1 High, Control 4 Toggle -> Should broadcast "Authorized".
-    - [ ] Test Case: Cabinet 1 Low -> No broadcast.
-    - [ ] Test Case: No state change -> No broadcast (Debounce check).
-- [ ] Task: Integration Verification
-    - [ ] Verify `RelayContext` correctly triggers the strategy with mocked VoiceBroadcastController.
-- [ ] Task: Conductor - User Manual Verification 'Testing' (Protocol in workflow.md)
+## Phase 2: Testing [checkpoint: 92f4b9b]
+- [x] Task: Unit Tests for ApplyAmmoStrategy [7eb4eba]
+- [x] Task: Integration Verification [f1758cf]
+- [x] Task: Conductor - User Manual Verification 'Testing' (Protocol in workflow.md)
+
+## Phase 3: Finalization
+- [x] Task: Conductor - User Manual Verification 'Finalization' (Protocol in workflow.md) [92f4b9b]
