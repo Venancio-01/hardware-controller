@@ -5,7 +5,7 @@
     - [ ] Modify `src/relay-strategies/index.ts` to support passing `previousState` (or manage state within context).
     - [ ] Update `RelayContext.updateState` to maintain `lastCombinedState` and pass it to `strategy.execute` (or `match`).
     - [ ] Update existing strategy implementations (if any) to match new interface signature.
-- [ ] Task: Create ApplyAmmoStrategy
+- [x] Task: Create ApplyAmmoStrategy [7eb4eba]
     - [ ] Create `src/relay-strategies/apply-ammo.ts`.
     - [ ] Implement `match` logic (Cabinet 1 closed).
     - [ ] Implement `execute` logic with edge detection:
