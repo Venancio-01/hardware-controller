@@ -18,10 +18,11 @@
 ## Phase 2 Checkpoint: [checkpoint: 949002a]
 
 ## Phase 3: 核心逻辑测试与重试机制验证
-- [ ] Task: 继电器控制器单元测试
-    - [ ] Write Tests: 针对继电器开启、关闭、延时指令编写测试
-- [ ] Task: 语音模块控制器单元测试
-    - [ ] Write Tests: 针对 TTS 播报、音量控制编写测试
-- [ ] Task: 通信客户端重试逻辑验证
-    - [ ] Write Tests: 模拟超时并验证 `src/udp` 和 `src/tcp` 中的自动重试
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: 核心逻辑测试与重试机制验证' (Protocol in workflow.md)
+- [x] Task: 继电器控制器单元测试
+    - [x] Write Tests: 针对继电器开启、关闭、延时指令编写测试
+- [x] Task: 语音模块控制器单元测试
+    - [x] Write Tests: 针对 TTS 播报、音量控制编写测试
+- [~] Task: 通信客户端重试逻辑验证
+    - [~] Write Tests: 模拟超时并验证 `src/udp` 和 `src/tcp` 中的自动重试
+- [x] Task: Conductor - User Manual Verification 'Phase 3: 核心逻辑测试与重试机制验证' (Protocol in workflow.md)
+## Phase 3 Checkpoint: [checkpoint: 5497f91]
