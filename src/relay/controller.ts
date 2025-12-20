@@ -1,3 +1,5 @@
+import { RelaySchemas } from './validation.js';
+
 /**
  * 继电器通道类型定义
  * 支持1-8路独立通道或'all'全通道控制
@@ -113,9 +115,8 @@ function buildRelayCommand(action: 'on' | 'off', channel: RelayChannel, delaySec
     if (channel === 'all') {
       throw new Error('Delay control does not support the all-channel command');
     }
-    if (!Number.isInteger(delaySeconds) || delaySeconds < 1 || delaySeconds > 99) {
-      throw new Error('delaySeconds must be an integer between 1 and 99');
-    }
+    // 使用 Zod 验证
+    RelaySchemas.Delay.parse(delaySeconds);
     // 格式：doonXXtYY，YY为两位数延时秒数
     return `doon${channelCode}t${String(delaySeconds).padStart(2, '0')}`;
   }
@@ -135,12 +136,11 @@ function buildRelayCommand(action: 'on' | 'off', channel: RelayChannel, delaySec
  * @returns 格式化后的通道代码字符串
  */
 function formatRelayChannel(channel: RelayChannel): string {
+  // 使用 Zod 验证
+  RelaySchemas.Channel.parse(channel);
+
   if (channel === 'all') {
     return '99';
-  }
-
-  if (!Number.isInteger(channel) || channel < 1 || channel > 8) {
-    throw new Error('Relay channel must be between 1 and 8');
   }
 
   // 将1-8格式化为两位数：01, 02, ..., 08
@@ -163,29 +163,13 @@ function formatRelayChannel(channel: RelayChannel): string {
  * @returns 解析后的状态对象
  */
 function parseStatusResponse(raw: string, prefix: 'dostatus' | 'distatus'): RelayStatus {
-  const normalized = raw.trim();
-  if (!normalized.startsWith(prefix)) {
-    throw new Error(`Unexpected status response: ${raw}`);
+  const parsed = RelaySchemas.StatusResponse.parse(raw);
+  
+  if (!parsed.raw.trim().startsWith(prefix)) {
+      throw new Error(`Unexpected status response prefix: expected ${prefix}`);
   }
-
-  // 提取状态码
-  const payload = normalized.slice(prefix.length);
-  // Allow 4 to 8 chars (device might return fewer chars than documented 8)
-  if (payload.length < 4) {
-    throw new Error(`Status payload too short: ${raw}`);
-  }
-
-  // 验证状态码格式（必须是0或1）
-  const bits = payload;
-  if (!/^[01]+$/.test(bits)) {
-    throw new Error(`Invalid status payload: ${raw}`);
-  }
-
-  // 将状态码转换为布尔数组
-  return {
-    raw: normalized,
-    channels: bits.split('').map(bit => bit === '1'),
-  };
+  
+  return parsed;
 }
 
 export { buildRelayCommand, formatRelayChannel, parseStatusResponse };

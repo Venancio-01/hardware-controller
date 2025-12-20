@@ -1,6 +1,7 @@
 import iconv from 'iconv-lite';
 import { createModuleLogger } from '../logger/index.js';
 import { HardwareCommunicationManager } from '../hardware/manager.js';
+import { VoiceSchemas } from './validation.js';
 
 /**
  * 语音播报模块控制器
@@ -39,20 +40,27 @@ export class VoiceBroadcastController {
     repeat?: number; // 播报次数，默认 1
   } = {}): Promise<boolean> {
     try {
+      // 验证选项
+      const validatedOptions = VoiceSchemas.BroadcastOptions.parse(options);
+
+      // 使用验证后的选项 (Note: Zod returns the parsed object, but TS might need type assertion if types don't match perfectly,
+      // but here they should match or be compatible)
+      const opts = validatedOptions;
+
       let cmdPrefix = '#';
-      if (options.repeat && options.repeat > 1) {
-        cmdPrefix = '#'.repeat(Math.min(options.repeat, 10));
+      if (opts.repeat && opts.repeat > 1) {
+        cmdPrefix = '#'.repeat(Math.min(opts.repeat, 10));
       }
 
       let cmdBody = '';
 
       // 添加控制标识符
-      if (options.volume !== undefined) cmdBody += `[v${Math.min(Math.max(options.volume, 0), 10)}]`;
-      if (options.speed !== undefined) cmdBody += `[s${Math.min(Math.max(options.speed, 0), 10)}]`;
-      if (options.voice !== undefined) cmdBody += `[m${options.voice}]`;
+      if (opts.volume !== undefined) cmdBody += `[v${opts.volume}]`; // 已由 Zod 验证范围
+      if (opts.speed !== undefined) cmdBody += `[s${opts.speed}]`;   // 已由 Zod 验证范围
+      if (opts.voice !== undefined) cmdBody += `[m${opts.voice}]`;
 
       // 添加提示音
-      if (options.sound) cmdBody += `${options.sound} `;
+      if (opts.sound) cmdBody += `${opts.sound} `;
 
       cmdBody += text;
 
