@@ -1,6 +1,6 @@
 # Implementation Plan - Apply for Ammo Strategy
 
-## Phase 1: Infrastructure & Core Logic
+## Phase 1: Infrastructure & Core Logic [checkpoint: a478310]
 - [x] Task: Update `RelayStrategy` Interface [5cb9f4a]
     - [ ] Modify `src/relay-strategies/index.ts` to support passing `previousState` (or manage state within context).
     - [ ] Update `RelayContext.updateState` to maintain `lastCombinedState` and pass it to `strategy.execute` (or `match`).
