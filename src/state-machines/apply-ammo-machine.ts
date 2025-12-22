@@ -5,6 +5,7 @@ import { type StructuredLogger } from '../logger/index.js';
 type ApplyAmmoEvent =
   | { type: 'APPLY' }
   | { type: 'AUTHORIZED' }
+  | { type: 'REFUSE' }
   | { type: 'FINISHED' };
 
 export function createApplyAmmoActor(logger: StructuredLogger) {
@@ -38,7 +39,25 @@ export function createApplyAmmoActor(logger: StructuredLogger) {
         }
 
         const voiceController = VoiceBroadcastController.getInstance();
-        void voiceController.broadcast('供蛋完毕');
+        void voiceController.broadcast('供弹完毕');
+      },
+      broadcastCancelled: () => {
+        if (!VoiceBroadcastController.isInitialized()) {
+          logger.warn('语音播报未初始化，跳过供弹结束播报');
+          return;
+        }
+
+        const voiceController = VoiceBroadcastController.getInstance();
+        void voiceController.broadcast('供弹结束');
+      },
+      broadcastRefused: () => {
+        if (!VoiceBroadcastController.isInitialized()) {
+          logger.warn('语音播报未初始化，跳过授权未通过播报');
+          return;
+        }
+
+        const voiceController = VoiceBroadcastController.getInstance();
+        void voiceController.broadcast('授权未通过，请取消供弹');
       }
     }
   }).createMachine({
@@ -54,7 +73,13 @@ export function createApplyAmmoActor(logger: StructuredLogger) {
       applying: {
         on: {
           AUTHORIZED: { target: 'idle', actions: 'broadcastAuthorized' },
-          FINISHED: { target: 'idle', actions: 'broadcastFinished' }
+          REFUSE: { target: 'refused', actions: 'broadcastRefused' },
+          FINISHED: { target: 'idle', actions: 'broadcastCancelled' }
+        }
+      },
+      refused: {
+        on: {
+          FINISHED: { target: 'idle', actions: 'broadcastCancelled' }
         }
       }
     }
