@@ -17,7 +17,7 @@
 - [ ] **Task: Conductor - User Manual Verification 'Phase 2: 类型重构与修复' (Protocol in workflow.md)**
 
 ## Phase 3: 最终验证与交付
-- [ ] **Task 1: 全量测试与覆盖率检查**
+- [~] **Task 1: 全量测试与覆盖率检查**
   - 运行所有测试用例，确保类型修复未引入回归。
   - 检查代码覆盖率，确保相关代码仍被充分覆盖。
 - [ ] **Task 2: 代码清理与提交**
