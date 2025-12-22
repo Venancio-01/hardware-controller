@@ -3,6 +3,7 @@ import { createApplyAmmoActor } from '../state-machines/apply-ammo-machine.js';
 
 const CABINET1_INDEX = 0;
 const CONTROL4_INDEX = 10;
+const CONTROL5_INDEX = 12;
 
 export class ApplyAmmoFlow {
   private actor: ReturnType<typeof createApplyAmmoActor>;
@@ -28,6 +29,8 @@ export class ApplyAmmoFlow {
     const cabinet1Current = currentCombined[CABINET1_INDEX];
     const control4Prev = previousCombined[CONTROL4_INDEX];
     const control4Current = currentCombined[CONTROL4_INDEX];
+    const control5Prev = previousCombined[CONTROL5_INDEX];
+    const control5Current = currentCombined[CONTROL5_INDEX];
 
     if (cabinet1Current && !cabinet1Prev) {
       this.actor.send({ type: 'APPLY' });
@@ -39,8 +42,12 @@ export class ApplyAmmoFlow {
       return;
     }
 
-    if (cabinet1Current && cabinet1Prev && control4Prev !== control4Current) {
-      this.actor.send({ type: 'AUTHORIZED' });
+    if (cabinet1Current && cabinet1Prev) {
+      if (control4Prev !== control4Current) {
+        this.actor.send({ type: 'AUTHORIZED' });
+      } else if (control5Prev !== control5Current) {
+        this.actor.send({ type: 'REFUSE' });
+      }
     }
   }
 }
