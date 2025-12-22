@@ -18,12 +18,12 @@
 ## Phase 2: Business Logic Integration
 **Goal**: Update the `ApplyAmmoFlow` class to detect new signals and drive the updated state machine.
 
-- [ ] Task: Create integration test for signal mapping
+- [x] Task: Create integration test for signal mapping [2c4533b]
     -   Create `test/business-logic/apply-ammo-flow-enhanced.test.ts`.
     -   Mock `VoiceBroadcastController`.
     -   Test `CONTROL5_INDEX` change triggers `REFUSE` event.
     -   Test `CABINET1_INDEX` drop triggers `FINISHED` event (mapped correctly in machine).
-- [ ] Task: Implement signal handling in `ApplyAmmoFlow`
+- [x] Task: Implement signal handling in `ApplyAmmoFlow` [2c4533b]
     -   Add detection for `CONTROL5_INDEX` changes.
     -   Ensure `CABINET1_INDEX` drop sends `FINISHED` (verify existing logic covers this, ensuring machine handles context).
 - [ ] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
