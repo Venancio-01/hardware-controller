@@ -1,6 +1,6 @@
 # Implementation Plan - Fix Type Errors in Poller Machine
 
-## Phase 1: 现状分析与基线确认
+## Phase 1: 现状分析与基线确认 [checkpoint: b96d9d1]
 - [x] **Task 1: 确定所有类型错误** 322939c
   - 运行 `bun x tsc --noEmit` 并记录 `src/state-machines/poller-machine.ts` 中的所有报错信息。
 - [x] **Task 2: 验证现有测试基线** 5cd918b
