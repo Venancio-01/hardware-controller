@@ -14,7 +14,8 @@ type PollerEvent =
 export const pollerMachine = setup({
   types: {
     context: {} as PollerContext,
-    events: {} as PollerEvent
+    events: {} as PollerEvent,
+    input: {} as { hardware: HardwareCommunicationManager }
   },
   actions: {
     queryRelayStatus: async ({ context }) => {
