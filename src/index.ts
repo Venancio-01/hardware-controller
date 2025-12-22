@@ -26,16 +26,17 @@ async function startApp() {
   appLogger.info('配置信息:', getConfigSummary());
 
   try {
-    // 1. 初始化硬件通信
+    //  初始化硬件通信
     await initializeHardware(manager, appLogger);
 
-    // 2. 重置继电器状态
-    await resetAllRelays(manager, appLogger);
-
-    // 3. 初始化语音播报
+    // 初始化语音播报
     await initializeVoiceBroadcast(manager, appLogger);
 
-    // 4. 设置数据处理逻辑
+    // 重置继电器状态
+    await resetAllRelays(manager, appLogger);
+
+
+    // 设置数据处理逻辑
     manager.onIncomingData = async (protocol, clientId, data, remote, parsedResponse) => {
       const rawStr = data.toString('utf8').trim();
 
@@ -74,10 +75,10 @@ async function startApp() {
       appLogger.debug(`[${protocol.toUpperCase()}] Response from ${clientId}:`, { raw: rawStr, ...parsedResponse });
     };
 
-    // 5. 启动业务流
+    // 启动业务流
     applyAmmoFlow.start();
 
-    // 6. 启动查询循环 (Poller)
+    // 启动查询循环 (Poller)
     pollerActor.start();
     pollerActor.send({ type: 'START' });
 

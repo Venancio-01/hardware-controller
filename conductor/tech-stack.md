@@ -8,6 +8,7 @@
 ## 框架与库
 - **Zod**: 用于环境变量和硬件通信协议的模式验证（Schema Validation），确保数据的强一致性。
 - **Strategy Pattern**: 采用策略模式解耦复杂的硬件交互逻辑，通过 RelayContext 统一调度。
+- **XState**: 用于管理复杂的硬件轮询（PollerMachine）和业务流程（ApplyAmmoMachine）状态机。
 - **Pino**: 高性能、低开销的结构化日志库，适用于资源受限或高性能要求的工业环境。
 - **iconv-lite**: 用于处理硬件模块可能使用的非 UTF-8 编码（如 GBK）。
 

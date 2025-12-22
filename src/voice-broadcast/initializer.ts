@@ -39,8 +39,8 @@ export async function initializeVoiceBroadcast(manager: HardwareCommunicationMan
         defaultClientId: voiceClients[0]?.id
       });
 
-      const voiceController = VoiceBroadcastController.getInstance();
-      await voiceController.broadcast('测试');
+      // const voiceController = VoiceBroadcastController.getInstance();
+      // await voiceController.broadcast('测试');
     } catch (err) {
       logger.warn('语音模块初始化失败', { error: err });
     }

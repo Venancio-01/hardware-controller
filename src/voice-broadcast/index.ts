@@ -99,7 +99,6 @@ export class VoiceBroadcastController {
       cmdBody += text;
 
       const fullCommandStr = `${cmdPrefix}${cmdBody}`;
-      console.log('🚀 - VoiceBroadcastController - broadcast - fullCommandStr:', fullCommandStr)
 
       // 编码为 GB2312
       const encodedCommand = iconv.encode(fullCommandStr, 'gb2312');

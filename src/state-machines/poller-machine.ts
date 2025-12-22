@@ -25,9 +25,7 @@ export const pollerMachine = setup({
           context.hardware.sendCommand('udp', cmd, undefined, 'control', false)
         ]);
       } catch (error) {
-         // Silently fail or log if logger was available.
-         // In production, we'd probably want a logger in context.
-         // For now, minimal implementation.
+
       }
     }
   }
