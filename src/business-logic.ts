@@ -45,7 +45,7 @@ export class BusinessLogicManager {
       description: string;
     }[] = [];
 
-    const voiceClients: { id: string; host: string; port: number; description: string }[] = [];
+    const voiceClients: { id: string; host: string; port: number; description: string; volume?: number; speed?: number }[] = [];
 
     if (config.VOICE_BROADCAST_CABINET_HOST && config.VOICE_BROADCAST_CABINET_PORT) {
       tcpClientsConfig.push({
@@ -60,7 +60,9 @@ export class BusinessLogicManager {
         id: 'voice-broadcast-cabinet',
         host: config.VOICE_BROADCAST_CABINET_HOST,
         port: config.VOICE_BROADCAST_CABINET_PORT,
-        description: '柜体端语音播报模块'
+        description: '柜体端语音播报模块',
+        volume: config.VOICE_BROADCAST_CABINET_VOLUME,
+        speed: config.VOICE_BROADCAST_CABINET_SPEED
       });
     } else {
       this.logger.warn('柜体端语音播报配置缺失，已跳过初始化');
@@ -79,7 +81,9 @@ export class BusinessLogicManager {
         id: 'voice-broadcast-control',
         host: config.VOICE_BROADCAST_CONTROL_HOST,
         port: config.VOICE_BROADCAST_CONTROL_PORT,
-        description: '控制端语音播报模块'
+        description: '控制端语音播报模块',
+        volume: config.VOICE_BROADCAST_CONTROL_VOLUME,
+        speed: config.VOICE_BROADCAST_CONTROL_SPEED
       });
     } else if (config.VOICE_BROADCAST_CONTROL_HOST || config.VOICE_BROADCAST_CONTROL_PORT) {
       this.logger.warn('控制端语音播报配置不完整，已跳过初始化');
