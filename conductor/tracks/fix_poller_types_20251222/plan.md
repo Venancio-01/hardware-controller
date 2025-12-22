@@ -7,7 +7,7 @@
   - 运行 `bun test test/state-machines/poller-machine.test.ts` 确保在修复类型前逻辑测试是正常通过的。
 - [ ] **Task: Conductor - User Manual Verification 'Phase 1: 现状分析与基线确认' (Protocol in workflow.md)**
 
-## Phase 2: 类型重构与修复 (TDD 模式)
+## Phase 2: 类型重构与修复 (TDD 模式) [checkpoint: 579e958]
 - [x] **Task 1: 定义状态机类型契约 (Red Phase)** 4702b2e
 - [x] **Task 2: 实施类型修复 (Green Phase)**
   - 修正状态机内部 `context` 初始化和 `input` 处理的逻辑，使其符合定义的接口。
