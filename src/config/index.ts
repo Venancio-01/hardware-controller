@@ -85,6 +85,18 @@ const envSchema = z.object({
     .pipe(z.number().int().positive().min(1).max(65535))
     .default(50000),
 
+  VOICE_BROADCAST_CABINET_VOLUME: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(10))
+    .default(10),
+
+  VOICE_BROADCAST_CABINET_SPEED: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(10))
+    .default(5),
+
   VOICE_BROADCAST_CONTROL_HOST: z.preprocess(
     (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
     z
@@ -101,6 +113,18 @@ const envSchema = z.object({
       .pipe(z.number().int().positive().min(1).max(65535))
       .optional()
   ),
+
+  VOICE_BROADCAST_CONTROL_VOLUME: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(10))
+    .default(10),
+
+  VOICE_BROADCAST_CONTROL_SPEED: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(10))
+    .default(5),
 
   // 全局硬件配置（保持向后兼容）
   HARDWARE_TIMEOUT: z
@@ -199,10 +223,14 @@ export function getConfigSummary(): Record<string, unknown> {
         cabinet: {
           host: config.VOICE_BROADCAST_CABINET_HOST,
           port: config.VOICE_BROADCAST_CABINET_PORT,
+          volume: config.VOICE_BROADCAST_CABINET_VOLUME,
+          speed: config.VOICE_BROADCAST_CABINET_SPEED,
         },
         control: {
           host: config.VOICE_BROADCAST_CONTROL_HOST,
           port: config.VOICE_BROADCAST_CONTROL_PORT,
+          volume: config.VOICE_BROADCAST_CONTROL_VOLUME,
+          speed: config.VOICE_BROADCAST_CONTROL_SPEED,
         },
       },
       timeout: config.HARDWARE_TIMEOUT,
