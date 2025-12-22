@@ -6,12 +6,12 @@
 - [x] Task: Update `src/types/index.ts` or relevant type files to define the `BroadcastOptions` and `VoiceClientConfig`.
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Configuration & Type Definitions' (Protocol in workflow.md)
 
-## Phase 2: Core Controller Enhancement (TDD)
-- [ ] Task: Create/Update unit tests in `test/voice-broadcast/controller.test.ts` for independent module settings.
-- [ ] Task: Update `VoiceBroadcastController` to store and manage independent `volume` and `speed` for each client.
-- [ ] Task: Create/Update unit tests for the `broadcast` method with optional overrides.
-- [ ] Task: Implement the tag injection and override logic in `VoiceBroadcastController.broadcast`.
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Core Controller Enhancement' (Protocol in workflow.md)
+## Phase 2: Core Controller Enhancement (TDD) [checkpoint: ea97cbe]
+- [x] Task: Create/Update unit tests in `test/voice-broadcast/controller.test.ts` for independent module settings.
+- [x] Task: Update `VoiceBroadcastController` to store and manage independent `volume` and `speed` for each client.
+- [x] Task: Create/Update unit tests for the `broadcast` method with optional overrides.
+- [x] Task: Implement the tag injection and override logic in `VoiceBroadcastController.broadcast`.
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Core Controller Enhancement' (Protocol in workflow.md)
 
 ## Phase 3: Business Logic Integration
 - [ ] Task: Update `src/business-logic.ts` to pass the new configuration values during `VoiceBroadcastController.initialize`.
