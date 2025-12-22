@@ -13,11 +13,11 @@
 - [x] Task: Implement the tag injection and override logic in `VoiceBroadcastController.broadcast`.
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Core Controller Enhancement' (Protocol in workflow.md)
 
-## Phase 3: Business Logic Integration
-- [ ] Task: Update `src/business-logic.ts` to pass the new configuration values during `VoiceBroadcastController.initialize`.
-- [ ] Task: Verify that `BusinessLogicManager.initialize` correctly triggers the setup for both modules.
-- [ ] Task: Add an integration test in `test/integration/business-logic-relay.test.ts` (or a new one) to verify end-to-end configuration application.
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Business Logic Integration' (Protocol in workflow.md)
+## Phase 3: Business Logic Integration [checkpoint: 3ef133c]
+- [x] Task: Update `src/business-logic.ts` to pass the new configuration values during `VoiceBroadcastController.initialize`.
+- [x] Task: Verify that `BusinessLogicManager.initialize` correctly triggers the setup for both modules.
+- [x] Task: Add an integration test in `test/integration/business-logic-relay.test.ts` (or a new one) to verify end-to-end configuration application.
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Business Logic Integration' (Protocol in workflow.md)
 
 ## Phase 4: Final Verification & Cleanup
 - [ ] Task: Run all tests to ensure no regressions in relay or other voice functions.
