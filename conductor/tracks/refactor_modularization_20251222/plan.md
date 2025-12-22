@@ -21,7 +21,7 @@
     - [x] Unit tests ensuring it sends correct commands to all targets
 - [ ] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
 
-## Phase 3: Orchestration & Cleanup
+## Phase 3: Orchestration & Cleanup [checkpoint: 1f79598]
 - [x] Task: Update `src/index.ts` [a84123b]
     - [x] Import and instantiate new initializers
     - [x] Instantiate `HardwareCommunicationManager`
@@ -35,4 +35,4 @@
 - [x] Task: Delete `src/business-logic.ts` [a84123b]
     - [x] Remove file
     - [x] Remove references in `package.json` or other config if any
-- [ ] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md) [1f79598]
