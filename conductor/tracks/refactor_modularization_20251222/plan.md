@@ -1,6 +1,6 @@
 # Implementation Plan - Refactor & Modularization
 
-## Phase 1: Preparation & Poller Machine
+## Phase 1: Preparation & Poller Machine [checkpoint: 4900329]
 - [x] Task: Create `PollerMachine` in `src/state-machines/poller-machine.ts` [a9c757b]
     - [x] Create `PollerMachine` using XState
     - [x] Define states: `idle`, `polling`, `waiting`
