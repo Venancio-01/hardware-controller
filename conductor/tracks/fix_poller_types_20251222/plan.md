@@ -8,13 +8,11 @@
 - [ ] **Task: Conductor - User Manual Verification 'Phase 1: 现状分析与基线确认' (Protocol in workflow.md)**
 
 ## Phase 2: 类型重构与修复 (TDD 模式)
-- [ ] **Task 1: 定义状态机类型契约 (Red Phase)**
-  - 在 `poller-machine.ts` 中根据 `src/types/index.ts` 定义 `Context` 和 `Input` 的接口。
-  - 应用这些类型到状态机定义中，此时 `tsc` 应该报告更多关于不匹配的错误。
-- [ ] **Task 2: 实施类型修复 (Green Phase)**
+- [x] **Task 1: 定义状态机类型契约 (Red Phase)** 4702b2e
+- [x] **Task 2: 实施类型修复 (Green Phase)**
   - 修正状态机内部 `context` 初始化和 `input` 处理的逻辑，使其符合定义的接口。
   - 确保所有动作（actions）和赋值（assign）均符合类型安全要求。
-- [ ] **Task 3: 验证修复结果**
+- [~] **Task 3: 验证修复结果**
   - 再次运行 `bun x tsc --noEmit` 确认该文件已无类型错误。
 - [ ] **Task: Conductor - User Manual Verification 'Phase 2: 类型重构与修复' (Protocol in workflow.md)**
 
