@@ -112,8 +112,8 @@ export class BusinessLogicManager {
           defaultClientId: voiceClients[0]?.id
         });
 
-        // const voiceController = VoiceBroadcastController.getInstance();
-        // await voiceController.broadcast('你好');
+        const voiceController = VoiceBroadcastController.getInstance();
+        await voiceController.broadcast('测试');
       } catch (err) {
         this.logger.warn('语音模块初始化失败', { error: err });
       }

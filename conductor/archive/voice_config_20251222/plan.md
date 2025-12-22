@@ -20,6 +20,6 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 3: Business Logic Integration' (Protocol in workflow.md)
 
 ## Phase 4: Final Verification & Cleanup
-- [ ] Task: Run all tests to ensure no regressions in relay or other voice functions.
+- [~] Task: Run all tests to ensure no regressions in relay or other voice functions.
 - [ ] Task: Verify log output for correct initialization messages.
 - [ ] Task: Conductor - User Manual Verification 'Phase 4: Final Verification & Cleanup' (Protocol in workflow.md)

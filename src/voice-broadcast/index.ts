@@ -66,7 +66,7 @@ export class VoiceBroadcastController {
 
       // 获取客户端默认配置
       const clientConfig = resolvedClientId ? this.clientConfigs.get(resolvedClientId) : undefined;
-      
+
       // 合并配置：选项 > 默认配置
       const finalVolume = options.volume !== undefined ? options.volume : clientConfig?.volume;
       const finalSpeed = options.speed !== undefined ? options.speed : clientConfig?.speed;
@@ -99,6 +99,7 @@ export class VoiceBroadcastController {
       cmdBody += text;
 
       const fullCommandStr = `${cmdPrefix}${cmdBody}`;
+      console.log('🚀 - VoiceBroadcastController - broadcast - fullCommandStr:', fullCommandStr)
 
       // 编码为 GB2312
       const encodedCommand = iconv.encode(fullCommandStr, 'gb2312');

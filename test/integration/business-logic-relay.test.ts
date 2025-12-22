@@ -42,14 +42,18 @@ describe('BusinessLogic & Relay Strategy Integration', () => {
   it('should trigger "Apply" broadcast when Cabinet sends Index 0 closed', async () => {
     // Correct format: dostatus + 8 chars of 0/1
     // Channel 1 (Index 0) Closed = '1', others '0'
-    const cabinetResponse = 'dostatus10000000'; 
-    
-    // Simulate incoming data from 'cabinet'
+    // 1. Initialize states (all open)
+    if (manager.onIncomingData) {
+        manager.onIncomingData('udp', 'control', Buffer.from('dostatus00000000'), { address: '127.0.0.1', port: 1235, family: 'IPv4', size: 10 }, {});
+        manager.onIncomingData('udp', 'cabinet', Buffer.from('dostatus00000000'), { address: '127.0.0.1', port: 1234, family: 'IPv4', size: 10 }, {});
+    }
+
+    // 2. Trigger change (Cabinet Index 0 closed)
     if (manager.onIncomingData) {
         manager.onIncomingData(
             'udp', 
             'cabinet', 
-            Buffer.from(cabinetResponse), 
+            Buffer.from('dostatus10000000'), 
             { address: '127.0.0.1', port: 1234, family: 'IPv4', size: 10 }, 
             {}
         );
