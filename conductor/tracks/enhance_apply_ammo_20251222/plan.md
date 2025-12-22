@@ -26,4 +26,4 @@
 - [x] Task: Implement signal handling in `ApplyAmmoFlow` [2c4533b]
     -   Add detection for `CONTROL5_INDEX` changes.
     -   Ensure `CABINET1_INDEX` drop sends `FINISHED` (verify existing logic covers this, ensuring machine handles context).
-- [ ] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md) [35c3248]
