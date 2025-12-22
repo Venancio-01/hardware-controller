@@ -11,7 +11,7 @@
     - [x] Verify action invocations (mocking hardware manager)
 - [ ] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
 
-## Phase 2: Refactor Components
+## Phase 2: Refactor Components [checkpoint: 2728905]
 - [x] Task: Extract Hardware & Voice Initialization [3a3b4a8]
     - [x] Create `src/hardware/initializer.ts` (or similar) to handle config-driven setup
     - [x] Create `src/voice-broadcast/initializer.ts`
