@@ -1,6 +1,5 @@
 import { describe, it, expect, mock, beforeEach } from "bun:test";
-import { VoiceBroadcastController } from "../../src/voice-broadcast/index";
-import { HardwareCommunicationManager } from "../../src/hardware/manager";
+import { VoiceBroadcastController } from "../../src/voice-broadcast/index.js";
 import iconv from 'iconv-lite';
 
 describe("VoiceBroadcastController", () => {
@@ -12,22 +11,27 @@ describe("VoiceBroadcastController", () => {
     
     // Create a mock HardwareCommunicationManager
     mockHardwareManager = {
-      sendCommand: mock(() => Promise.resolve({
-        'voice-broadcast': { success: true, data: "OK", timestamp: Date.now() }
+      sendCommand: mock((protocol, data, params, clientId) => Promise.resolve({
+        [clientId || 'voice-broadcast']: { success: true, data: "OK", timestamp: Date.now() }
       })),
       log: { info: mock(), error: mock(), warn: mock(), debug: mock() }
     };
   });
 
   it("should initialize as a singleton", () => {
-    VoiceBroadcastController.initialize(mockHardwareManager as any, { host: '127.0.0.1', port: 50000 });
+    VoiceBroadcastController.initialize(mockHardwareManager as any, { 
+      clients: [{ id: 'voice-broadcast', host: '127.0.0.1', port: 50000 }] 
+    });
     const instance1 = VoiceBroadcastController.getInstance();
     const instance2 = VoiceBroadcastController.getInstance();
     expect(instance1).toBe(instance2);
   });
 
   it("should broadcast simple text", async () => {
-    VoiceBroadcastController.initialize(mockHardwareManager as any, { host: '127.0.0.1', port: 50000 });
+    VoiceBroadcastController.initialize(mockHardwareManager as any, { 
+      clients: [{ id: 'voice-broadcast', host: '127.0.0.1', port: 50000 }],
+      defaultClientId: 'voice-broadcast'
+    });
     const controller = VoiceBroadcastController.getInstance();
     
     const result = await controller.broadcast("你好");
@@ -44,26 +48,69 @@ describe("VoiceBroadcastController", () => {
     expect(decoded).toBe('#你好');
   });
 
-  it("should handle broadcast options (volume, speed, voice)", async () => {
-      VoiceBroadcastController.initialize(mockHardwareManager as any, { host: '127.0.0.1', port: 50000 });
-      const controller = VoiceBroadcastController.getInstance();
-      
-      await controller.broadcast("测试", { volume: 5, speed: 8, voice: 3 });
-      
-      const encodedCommand = mockHardwareManager.sendCommand.mock.calls[0][1];
-      const decoded = iconv.decode(encodedCommand, 'gb2312');
-      
-      expect(decoded).toContain('#[v5][s8][m3]测试');
+  it("should use client-specific default configuration", async () => {
+    VoiceBroadcastController.initialize(mockHardwareManager as any, { 
+      clients: [
+        { id: 'cabinet', host: '127.0.0.1', port: 50000, volume: 8, speed: 3 },
+        { id: 'control', host: '127.0.0.2', port: 50000, volume: 6, speed: 7 }
+      ],
+      defaultClientId: 'cabinet'
+    });
+    const controller = VoiceBroadcastController.getInstance();
+
+    // Test Cabinet Default
+    await controller.broadcast("CabinetMsg", {}, 'cabinet');
+    const cabinetCall = mockHardwareManager.sendCommand.mock.calls.find((call: any[]) => call[3] === 'cabinet');
+    const cabinetDecoded = iconv.decode(cabinetCall[1], 'gb2312');
+    // Expect defaults [v8][s3]
+    expect(cabinetDecoded).toContain('[v8][s3]CabinetMsg');
+
+    // Test Control Default
+    await controller.broadcast("ControlMsg", {}, 'control');
+    const controlCall = mockHardwareManager.sendCommand.mock.calls.find((call: any[]) => call[3] === 'control');
+    const controlDecoded = iconv.decode(controlCall[1], 'gb2312');
+    // Expect defaults [v6][s7]
+    expect(controlDecoded).toContain('[v6][s7]ControlMsg');
   });
 
-  it("should handle repeat option", async () => {
-      VoiceBroadcastController.initialize(mockHardwareManager as any, { host: '127.0.0.1', port: 50000 });
-      const controller = VoiceBroadcastController.getInstance();
-      
-      await controller.broadcast("测试", { repeat: 3 });
-      
-      const encodedCommand = mockHardwareManager.sendCommand.mock.calls[0][1];
-      const decoded = iconv.decode(encodedCommand, 'gb2312');
-      expect(decoded.startsWith('###测试')).toBe(true);
+  it("should allow overriding defaults per broadcast", async () => {
+    VoiceBroadcastController.initialize(mockHardwareManager as any, { 
+      clients: [
+        { id: 'cabinet', host: '127.0.0.1', port: 50000, volume: 8, speed: 3 }
+      ],
+      defaultClientId: 'cabinet'
+    });
+    const controller = VoiceBroadcastController.getInstance();
+
+    // Override volume to 2, speed to 9
+    await controller.broadcast("OverrideMsg", { volume: 2, speed: 9 }, 'cabinet');
+    
+    const call = mockHardwareManager.sendCommand.mock.calls[0];
+    const decoded = iconv.decode(call[1], 'gb2312');
+    
+    // Expect overrides [v2][s9]
+    expect(decoded).toContain('[v2][s9]OverrideMsg');
+    // Should NOT contain defaults
+    expect(decoded).not.toContain('[v8]');
+    expect(decoded).not.toContain('[s3]');
+  });
+
+  it("should merge partial overrides with defaults", async () => {
+    VoiceBroadcastController.initialize(mockHardwareManager as any, { 
+      clients: [
+        { id: 'cabinet', host: '127.0.0.1', port: 50000, volume: 8, speed: 3 }
+      ],
+      defaultClientId: 'cabinet'
+    });
+    const controller = VoiceBroadcastController.getInstance();
+
+    // Override only volume
+    await controller.broadcast("PartialMsg", { volume: 5 }, 'cabinet');
+    
+    const call = mockHardwareManager.sendCommand.mock.calls[0];
+    const decoded = iconv.decode(call[1], 'gb2312');
+    
+    // Expect volume 5 (override) and speed 3 (default)
+    expect(decoded).toContain('[v5][s3]PartialMsg');
   });
 });

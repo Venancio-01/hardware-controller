@@ -2,6 +2,7 @@ import iconv from 'iconv-lite';
 import { createModuleLogger } from '../logger/index.js';
 import { HardwareCommunicationManager } from '../hardware/manager.js';
 import { VoiceSchemas } from './validation.js';
+import type { VoiceClientConfig } from './types.js';
 
 /**
  * 语音播报模块控制器
@@ -13,15 +14,15 @@ export class VoiceBroadcastController {
 
   private log = createModuleLogger('VoiceBroadcastController');
   private hardwareManager: HardwareCommunicationManager;
-  private clientIds: Set<string>;
+  private clientConfigs: Map<string, VoiceClientConfig>;
   private defaultClientId?: string;
 
   private constructor(
     hardwareManager: HardwareCommunicationManager,
-    config: { clients: { id: string; host: string; port: number; description?: string }[]; defaultClientId?: string }
+    config: { clients: VoiceClientConfig[]; defaultClientId?: string }
   ) {
     this.hardwareManager = hardwareManager;
-    this.clientIds = new Set(config.clients.map((client) => client.id));
+    this.clientConfigs = new Map(config.clients.map((c) => [c.id, c]));
     this.defaultClientId = config.defaultClientId;
 
     this.log.debug('语音播报控制器已初始化', {
@@ -29,7 +30,9 @@ export class VoiceBroadcastController {
         id: client.id,
         host: client.host,
         port: client.port,
-        description: client.description
+        description: client.description,
+        volume: client.volume,
+        speed: client.speed
       })),
       defaultClientId: this.defaultClientId
     });
@@ -54,15 +57,26 @@ export class VoiceBroadcastController {
     try {
       const resolvedClientId = targetClientId ?? this.defaultClientId;
 
-      if (resolvedClientId && !this.clientIds.has(resolvedClientId)) {
+      if (resolvedClientId && !this.clientConfigs.has(resolvedClientId)) {
         this.log.warn('未找到指定的语音播报客户端，取消发送', {
           targetClientId: resolvedClientId
         });
         return false;
       }
 
+      // 获取客户端默认配置
+      const clientConfig = resolvedClientId ? this.clientConfigs.get(resolvedClientId) : undefined;
+      
+      // 合并配置：选项 > 默认配置
+      const finalVolume = options.volume !== undefined ? options.volume : clientConfig?.volume;
+      const finalSpeed = options.speed !== undefined ? options.speed : clientConfig?.speed;
+
       // 验证选项
-      const validatedOptions = VoiceSchemas.BroadcastOptions.parse(options);
+      const validatedOptions = VoiceSchemas.BroadcastOptions.parse({
+        ...options,
+        volume: finalVolume,
+        speed: finalSpeed
+      });
 
       // 使用验证后的选项
       const opts = validatedOptions;
@@ -176,7 +190,7 @@ export class VoiceBroadcastController {
    */
   static initialize(
     hardwareManager: HardwareCommunicationManager,
-    config: { clients: { id: string; host: string; port: number; description?: string }[]; defaultClientId?: string }
+    config: { clients: VoiceClientConfig[]; defaultClientId?: string }
   ): void {
     if (VoiceBroadcastController.instance) {
       const log = createModuleLogger('VoiceBroadcastController');
