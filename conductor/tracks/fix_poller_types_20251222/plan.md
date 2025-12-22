@@ -3,7 +3,7 @@
 ## Phase 1: 现状分析与基线确认
 - [x] **Task 1: 确定所有类型错误** 322939c
   - 运行 `bun x tsc --noEmit` 并记录 `src/state-machines/poller-machine.ts` 中的所有报错信息。
-- [ ] **Task 2: 验证现有测试基线**
+- [~] **Task 2: 验证现有测试基线**
   - 运行 `bun test test/state-machines/poller-machine.test.ts` 确保在修复类型前逻辑测试是正常通过的。
 - [ ] **Task: Conductor - User Manual Verification 'Phase 1: 现状分析与基线确认' (Protocol in workflow.md)**
 
