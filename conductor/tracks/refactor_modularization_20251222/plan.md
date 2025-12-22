@@ -12,13 +12,13 @@
 - [ ] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
 
 ## Phase 2: Refactor Components
-- [ ] Task: Extract Hardware & Voice Initialization
-    - [ ] Create `src/hardware/initializer.ts` (or similar) to handle config-driven setup
-    - [ ] Create `src/voice-broadcast/initializer.ts`
-    - [ ] Unit tests for initializers
-- [ ] Task: Extract Relay Reset Logic
-    - [ ] Create `src/relay/reset.ts`
-    - [ ] Unit tests ensuring it sends correct commands to all targets
+- [x] Task: Extract Hardware & Voice Initialization [3a3b4a8]
+    - [x] Create `src/hardware/initializer.ts` (or similar) to handle config-driven setup
+    - [x] Create `src/voice-broadcast/initializer.ts`
+    - [x] Unit tests for initializers
+- [x] Task: Extract Relay Reset Logic [3a3b4a8]
+    - [x] Create `src/relay/reset.ts`
+    - [x] Unit tests ensuring it sends correct commands to all targets
 - [ ] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
 
 ## Phase 3: Orchestration & Cleanup
