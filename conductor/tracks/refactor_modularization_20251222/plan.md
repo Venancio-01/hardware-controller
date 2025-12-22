@@ -22,17 +22,17 @@
 - [ ] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
 
 ## Phase 3: Orchestration & Cleanup
-- [ ] Task: Update `src/index.ts`
-    - [ ] Import and instantiate new initializers
-    - [ ] Instantiate `HardwareCommunicationManager`
-    - [ ] Instantiate `RelayStatusAggregator` & `ApplyAmmoFlow`
-    - [ ] Instantiate `PollerMachine`
-    - [ ] Implement `onIncomingData` handler directly in `index.ts` to route packets
-    - [ ] Wire up system start/stop signals
-- [ ] Task: Verify Integration
-    - [ ] Run existing integration tests
-    - [ ] Fix any breakages due to refactoring
-- [ ] Task: Delete `src/business-logic.ts`
-    - [ ] Remove file
-    - [ ] Remove references in `package.json` or other config if any
+- [x] Task: Update `src/index.ts` [a84123b]
+    - [x] Import and instantiate new initializers
+    - [x] Instantiate `HardwareCommunicationManager`
+    - [x] Instantiate `RelayStatusAggregator` & `ApplyAmmoFlow`
+    - [x] Instantiate `PollerMachine`
+    - [x] Implement `onIncomingData` handler directly in `index.ts` to route packets
+    - [x] Wire up system start/stop signals
+- [x] Task: Verify Integration [a84123b]
+    - [x] Run existing integration tests
+    - [x] Fix any breakages due to refactoring
+- [x] Task: Delete `src/business-logic.ts` [a84123b]
+    - [x] Remove file
+    - [x] Remove references in `package.json` or other config if any
 - [ ] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)
