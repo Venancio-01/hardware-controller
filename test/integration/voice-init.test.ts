@@ -1,12 +1,12 @@
-import { describe, expect, it, spyOn, beforeEach, afterEach, vi } from 'bun:test';
-import { BusinessLogicManager } from '../../src/business-logic.js';
+import { describe, expect, it, beforeEach, afterEach, mock, spyOn } from 'bun:test';
+import { initializeHardware } from '../../src/hardware/initializer.js';
+import { initializeVoiceBroadcast } from '../../src/voice-broadcast/initializer.js';
 import { HardwareCommunicationManager } from '../../src/hardware/manager.js';
 import { createModuleLogger } from '../../src/logger/index.js';
 import { VoiceBroadcastController } from '../../src/voice-broadcast/index.js';
 
 describe('Voice Initialization Integration', () => {
   let manager: HardwareCommunicationManager;
-  let bizLogic: BusinessLogicManager;
   const logger = createModuleLogger('Test');
   
   beforeEach(async () => {
@@ -14,23 +14,21 @@ describe('Voice Initialization Integration', () => {
     VoiceBroadcastController.destroy();
     
     manager = new HardwareCommunicationManager();
-    // Mock hardware setup
-    spyOn(manager, 'initialize').mockResolvedValue(undefined);
-    spyOn(manager, 'getAllConnectionStatus').mockReturnValue({ udp: {}, tcp: {} });
-    spyOn(manager, 'sendCommand').mockResolvedValue({});
-
-    bizLogic = new BusinessLogicManager(manager, logger);
+    // Directly mock the methods on the instance
+    manager.initialize = mock(() => Promise.resolve()) as any;
+    manager.getAllConnectionStatus = mock(() => ({ udp: {}, tcp: {} })) as any;
+    manager.sendCommand = mock(() => Promise.resolve({})) as any;
   });
 
   afterEach(() => {
-    bizLogic.stop();
     VoiceBroadcastController.destroy();
   });
 
   it('should initialize VoiceBroadcastController with config values', async () => {
     const initSpy = spyOn(VoiceBroadcastController, 'initialize');
     
-    await bizLogic.initialize();
+    await initializeHardware(manager, logger);
+    await initializeVoiceBroadcast(manager, logger);
     
     expect(initSpy).toHaveBeenCalled();
     const config = initSpy.mock.calls[0][1];
@@ -42,10 +40,7 @@ describe('Voice Initialization Integration', () => {
         expect(cabinet.volume).toBeDefined();
         expect(cabinet.speed).toBeDefined();
     }
-
-    // Check if control module has correct config
-    const control = config.clients.find((c: any) => c.id === 'voice-broadcast-control');
-    // In test env, VOICE_BROADCAST_CONTROL_HOST might be empty, so it might not be initialized
-    // But we can verify it if we mock the config or set env vars
+    
+    initSpy.mockRestore();
   });
 });

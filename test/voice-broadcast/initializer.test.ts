@@ -1,10 +1,12 @@
-import { describe, it, expect, mock, beforeEach } from 'bun:test';
+import { describe, it, expect, mock, beforeEach, afterEach, spyOn } from 'bun:test';
 import { initializeVoiceBroadcast } from '../../src/voice-broadcast/initializer.js';
 import { VoiceBroadcastController } from '../../src/voice-broadcast/index.js';
 
 describe('Voice Broadcast Initializer', () => {
   let mockManager: any;
   let mockLogger: any;
+  let initSpy: any;
+  let getInstanceSpy: any;
 
   beforeEach(() => {
     mockManager = {};
@@ -13,17 +15,16 @@ describe('Voice Broadcast Initializer', () => {
       warn: mock(() => {}),
       error: mock(() => {})
     };
-    // Reset singleton if possible, but here we just mock the class methods
-    mock.module('../../src/voice-broadcast/index.js', () => {
-      return {
-        VoiceBroadcastController: {
-          initialize: mock(() => {}),
-          getInstance: mock(() => ({
-            broadcast: mock(() => Promise.resolve())
-          }))
-        }
-      };
-    });
+    
+    initSpy = spyOn(VoiceBroadcastController, 'initialize').mockImplementation(() => {});
+    getInstanceSpy = spyOn(VoiceBroadcastController, 'getInstance').mockReturnValue({
+      broadcast: mock(() => Promise.resolve(true))
+    } as any);
+  });
+
+  afterEach(() => {
+    initSpy.mockRestore();
+    getInstanceSpy.mockRestore();
   });
 
   it('should initialize VoiceBroadcastController if config is present', async () => {
