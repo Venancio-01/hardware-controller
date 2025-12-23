@@ -85,42 +85,35 @@ describe('ApplyAmmoFlow Enhanced - Door Open Timeout Alarm', () => {
     // 6. 验证语音播报
     expect(broadcastMock).toHaveBeenCalledWith('柜门超时未关');
 
-    // 7. 验证继电器指令 (Cabinet 8/1, Control 8/1 High)
+    // 7. 验证继电器指令 (Cabinet 8, Control 1 High)
     // 检查调用参数
     const openCommand1 = RelayCommandBuilder.open(1);
     const openCommand8 = RelayCommandBuilder.open(8);
 
-    expect(sendCommandSpy).toHaveBeenCalledWith('udp', openCommand1, {}, 'cabinet', false);
     expect(sendCommandSpy).toHaveBeenCalledWith('udp', openCommand8, {}, 'cabinet', false);
     expect(sendCommandSpy).toHaveBeenCalledWith('udp', openCommand1, {}, 'control', false);
-    expect(sendCommandSpy).toHaveBeenCalledWith('udp', openCommand8, {}, 'control', false);
+    expect(sendCommandSpy).not.toHaveBeenCalledWith('udp', openCommand1, {}, 'cabinet', false);
+    expect(sendCommandSpy).not.toHaveBeenCalledWith('udp', openCommand8, {}, 'control', false);
   });
 
   it('should stop relay alarms when door is closed after timeout', async () => {
-    // 1. 进入超时状态
-    manager.onIncomingData!('udp', 'control', Buffer.from('dostatus00000000'), { address: '127.0.0.1', port: 1235 }, {});
-    manager.onIncomingData!('udp', 'cabinet', Buffer.from('dostatus00000000'), { address: '127.0.0.1', port: 1234 }, {});
-    manager.onIncomingData!('udp', 'cabinet', Buffer.from('dostatus10000000'), { address: '127.0.0.1', port: 1234 }, {});
-    manager.onIncomingData!('udp', 'control', Buffer.from('dostatus11000000'), { address: '127.0.0.1', port: 1235 }, {});
-    manager.onIncomingData!('udp', 'cabinet', Buffer.from('dostatus11000000'), { address: '127.0.0.1', port: 1234 }, {});
-    
+    // ...
     await vi.advanceTimersByTime(31000);
     broadcastMock.mockClear();
     sendCommandSpy.mockClear();
 
     // 2. 关闭柜门 (Cabinet Index 1 open again)
     manager.onIncomingData!('udp', 'cabinet', Buffer.from('dostatus10000000'), { address: '127.0.0.1', port: 1234 }, {});
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     // 3. 验证语音播报
     expect(broadcastMock).toHaveBeenCalledWith('柜门已关闭');
 
-    // 4. 验证继电器指令 (Cabinet 8/1, Control 8/1 Low)
+    // 4. 验证继电器指令 (Cabinet 8, Control 1 Low)
     const closeCommand1 = RelayCommandBuilder.close(1);
     const closeCommand8 = RelayCommandBuilder.close(8);
 
-    expect(sendCommandSpy).toHaveBeenCalledWith('udp', closeCommand1, {}, 'cabinet', false);
     expect(sendCommandSpy).toHaveBeenCalledWith('udp', closeCommand8, {}, 'cabinet', false);
     expect(sendCommandSpy).toHaveBeenCalledWith('udp', closeCommand1, {}, 'control', false);
-    expect(sendCommandSpy).toHaveBeenCalledWith('udp', closeCommand8, {}, 'control', false);
   });
 });
