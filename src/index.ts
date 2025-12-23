@@ -16,7 +16,7 @@ async function startApp() {
   const appLogger = createModuleLogger('App');
   const manager = new HardwareCommunicationManager();
   const relayAggregator = new RelayStatusAggregator();
-  const applyAmmoFlow = new ApplyAmmoFlow(appLogger);
+  const applyAmmoFlow = new ApplyAmmoFlow(appLogger, manager);
   const pollerActor = createPollerActor(manager);
 
   let queryLoop: NodeJS.Timeout | null = null;

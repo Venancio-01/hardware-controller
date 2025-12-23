@@ -1,5 +1,6 @@
 import { type StructuredLogger } from '../logger/index.js';
 import { createApplyAmmoActor } from '../state-machines/apply-ammo-machine.js';
+import { type HardwareCommunicationManager } from '../hardware/manager.js';
 
 // ============================================
 // 供弹申请流程索引常量定义
@@ -40,8 +41,8 @@ export const SWITCH_28_INDEX = 15;
 export class ApplyAmmoFlow {
   private actor: ReturnType<typeof createApplyAmmoActor>;
 
-  constructor(logger: StructuredLogger) {
-    this.actor = createApplyAmmoActor(logger);
+  constructor(logger: StructuredLogger, manager?: HardwareCommunicationManager) {
+    this.actor = createApplyAmmoActor(logger, manager);
   }
 
   start(): void {
@@ -63,6 +64,8 @@ export class ApplyAmmoFlow {
     const electricLockOutCurrent = currentCombined[ELECTRIC_LOCK_OUT_INDEX];
     const authCancelPrev = previousCombined[AUTH_CANCEL_INDEX];
     const authCancelCurrent = currentCombined[AUTH_CANCEL_INDEX];
+    const doorPrev = previousCombined[CABINET_DOOR_INDEX];
+    const doorCurrent = currentCombined[CABINET_DOOR_INDEX];
 
     if (applyCurrent && !applyPrev) {
       this.actor.send({ type: 'APPLY' });
@@ -75,10 +78,18 @@ export class ApplyAmmoFlow {
     }
 
     if (applyCurrent && applyPrev) {
+      // 授权/拒绝逻辑
       if (electricLockOutPrev !== electricLockOutCurrent) {
         this.actor.send({ type: 'AUTHORIZED' });
       } else if (authCancelPrev !== authCancelCurrent) {
         this.actor.send({ type: 'REFUSE' });
+      }
+
+      // 柜门逻辑 (仅在 applyCurrent 为 true 时有效，且由状态机控制是否接受)
+      if (!doorPrev && doorCurrent) {
+        this.actor.send({ type: 'DOOR_OPEN' });
+      } else if (doorPrev && !doorCurrent) {
+        this.actor.send({ type: 'DOOR_CLOSE' });
       }
     }
   }

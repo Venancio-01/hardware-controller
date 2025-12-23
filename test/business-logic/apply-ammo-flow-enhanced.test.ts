@@ -44,7 +44,7 @@ describe('ApplyAmmoFlow Enhanced Integration', () => {
     flow.handleCombinedChange(state1, state0);
 
     // 验证播报了“供弹结束”
-    expect(mockBroadcast).toHaveBeenCalledWith('供弹结束');
+    expect(mockBroadcast).toHaveBeenCalledWith('供弹[=dan4]结束');
   });
 
   it('应该在 CONTROL5 变化时触发“拒绝”逻辑', async () => {
@@ -61,7 +61,7 @@ describe('ApplyAmmoFlow Enhanced Integration', () => {
     flow.handleCombinedChange(state1, state2);
 
     // 验证播报了“授权未通过，请取消供弹”
-    expect(mockBroadcast).toHaveBeenCalledWith('授权未通过，请取消供弹');
+    expect(mockBroadcast).toHaveBeenCalledWith('授权未通过，请取消供弹[=dan4]');
     mockBroadcast.mockClear();
 
     // 3. 用户复位 (Index 0: true -> false)
@@ -70,6 +70,36 @@ describe('ApplyAmmoFlow Enhanced Integration', () => {
     flow.handleCombinedChange(state2, state3);
 
     // 验证播报了“供弹结束”
-    expect(mockBroadcast).toHaveBeenCalledWith('供弹结束');
+    expect(mockBroadcast).toHaveBeenCalledWith('供弹[=dan4]结束');
+  });
+
+  it('应该在授权后支持柜门开启和关闭的联动逻辑', async () => {
+    // 1. 进入申请状态
+    const state0 = new Array(16).fill(false);
+    const state1 = [...state0];
+    state1[0] = true;
+    flow.handleCombinedChange(state0, state1);
+    mockBroadcast.mockClear();
+
+    // 2. 授权通过 (Index 9 变化)
+    const state2 = [...state1];
+    state2[9] = true;
+    flow.handleCombinedChange(state1, state2);
+    expect(mockBroadcast).toHaveBeenCalledWith('授权通过，已开锁请打开柜门');
+    mockBroadcast.mockClear();
+
+    // 3. 柜门开启 (Index 1: false -> true)
+    const state3 = [...state2];
+    state3[1] = true;
+    flow.handleCombinedChange(state2, state3);
+    expect(mockBroadcast).toHaveBeenCalledWith('已开门，请取弹，取弹后关闭柜门，并复位按键');
+    mockBroadcast.mockClear();
+
+    // 4. 柜门关闭 (Index 1: true -> false)
+    const state4 = [...state3];
+    state4[1] = false;
+    flow.handleCombinedChange(state3, state4);
+    expect(mockBroadcast).toHaveBeenCalledWith('柜门已关闭');
+    // 注意：这里还会触发 resetLock，但因为 mock 了 manager，所以只会 log
   });
 });

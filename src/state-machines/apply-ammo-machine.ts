@@ -1,6 +1,8 @@
 import { setup, createActor } from 'xstate';
 import { VoiceBroadcastController } from '../voice-broadcast/index.js';
 import { type StructuredLogger } from '../logger/index.js';
+import { type HardwareCommunicationManager } from '../hardware/manager.js';
+import { RelayCommandBuilder } from '../relay/controller.js';
 
 type ApplyAmmoEvent =
   | { type: 'APPLY' }
@@ -10,7 +12,7 @@ type ApplyAmmoEvent =
   | { type: 'DOOR_OPEN' }
   | { type: 'DOOR_CLOSE' };
 
-export function createApplyAmmoActor(logger: StructuredLogger) {
+export function createApplyAmmoActor(logger: StructuredLogger, manager?: HardwareCommunicationManager) {
   const machine = setup({
     types: {} as {
       events: ApplyAmmoEvent;
@@ -80,8 +82,21 @@ export function createApplyAmmoActor(logger: StructuredLogger) {
         void voiceController.broadcast('柜门已关闭');
       },
       resetLock: () => {
-        // Implementation will be added in Phase 2
-        logger.info('执行闭锁操作 (Placeholder)');
+        if (!manager) {
+          logger.warn('硬件管理器未提供，跳过闭锁操作');
+          return;
+        }
+
+        const command = RelayCommandBuilder.open(1); // 9-8=1
+        logger.info('正在发送闭锁指令...', { command, clientId: 'control' });
+        
+        manager.sendCommand('udp', command, {}, 'control', false)
+          .then(() => {
+            logger.info('闭锁指令发送成功');
+          })
+          .catch((err) => {
+            logger.error('闭锁指令发送失败', err as Error);
+          });
       }
     }
   }).createMachine({
