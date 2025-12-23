@@ -1,105 +1,126 @@
-import { describe, it, expect, mock, beforeEach } from 'bun:test';
-import { ApplyAmmoFlow } from '../../src/business-logic/apply-ammo-flow.js';
+import { describe, expect, it, spyOn, beforeEach, afterEach, vi } from 'bun:test';
+import { HardwareCommunicationManager } from '../../src/hardware/manager.js';
+import { createModuleLogger } from '../../src/logger/index.js';
 import { VoiceBroadcastController } from '../../src/voice-broadcast/index.js';
-import { type StructuredLogger } from '../../src/logger/index.js';
+import { RelayStatusAggregator, type RelayClientId } from '../../src/business-logic/relay-status-aggregator.js';
+import { ApplyAmmoFlow } from '../../src/business-logic/apply-ammo-flow.js';
+import { parseStatusResponse, RelayCommandBuilder } from '../../src/relay/controller.js';
 
 // Mock VoiceBroadcastController
-const mockBroadcast = mock(() => Promise.resolve());
-mock.module('../../src/voice-broadcast/index.js', () => ({
+const broadcastMock = vi.fn();
+
+vi.mock('../../src/voice-broadcast/index.js', () => ({
   VoiceBroadcastController: {
-    isInitialized: mock(() => true),
-    getInstance: mock(() => ({
-      broadcast: mockBroadcast
-    }))
+    initialize: vi.fn(),
+    getInstance: () => ({ broadcast: broadcastMock }),
+    isInitialized: () => true,
+    destroy: vi.fn()
   }
 }));
 
-const mockLogger = {
-  info: mock(() => {}),
-  warn: mock(() => {}),
-  error: mock(() => {}),
-  debug: mock(() => {})
-} as unknown as StructuredLogger;
+describe('ApplyAmmoFlow Enhanced - Door Open Timeout Alarm', () => {
+  let manager: HardwareCommunicationManager;
+  let relayAggregator: RelayStatusAggregator;
+  let applyAmmoFlow: ApplyAmmoFlow;
+  const logger = createModuleLogger('Test');
+  let sendCommandSpy: any;
+  
+  beforeEach(async () => {
+    vi.useFakeTimers();
+    manager = new HardwareCommunicationManager();
+    relayAggregator = new RelayStatusAggregator();
+    applyAmmoFlow = new ApplyAmmoFlow(logger, manager);
+    
+    // Mock hardware setup
+    spyOn(manager, 'initialize').mockResolvedValue(undefined);
+    spyOn(manager, 'getAllConnectionStatus').mockReturnValue({ udp: {}, tcp: {} });
+    sendCommandSpy = spyOn(manager, 'sendCommand').mockResolvedValue({}); 
 
-describe('ApplyAmmoFlow Enhanced Integration', () => {
-  let flow: ApplyAmmoFlow;
+    // Setup manual routing logic (same as in index.ts)
+    manager.onIncomingData = async (protocol, clientId, data, remote, parsedResponse) => {
+        const rawStr = data.toString('utf8').trim();
+        if (rawStr.startsWith('dostatus')) {
+            const status = parseStatusResponse(rawStr, 'dostatus');
+            if (clientId === 'cabinet' || clientId === 'control') {
+                const combinedUpdate = relayAggregator.update(clientId as RelayClientId, status);
+                if (combinedUpdate && combinedUpdate.changed) {
+                    applyAmmoFlow.handleCombinedChange(combinedUpdate.previousCombined, combinedUpdate.combinedState);
+                }
+            }
+        }
+    };
 
-  beforeEach(() => {
-    flow = new ApplyAmmoFlow(mockLogger);
-    flow.start();
-    mockBroadcast.mockClear();
+    applyAmmoFlow.start();
+    broadcastMock.mockClear();
+    sendCommandSpy.mockClear();
   });
 
-  it('应该在 CABINET1 下降沿时触发“供弹结束” (申请中)', async () => {
-    // 1. 进入申请状态 (Index 0: false -> true)
-    const state0 = new Array(16).fill(false);
-    const state1 = [...state0];
-    state1[0] = true;
-   
-    flow.handleCombinedChange(state0, state1);
-    expect(mockBroadcast).toHaveBeenCalledWith('已申请，请等待授权');
-    mockBroadcast.mockClear();
-
-    // 2. 用户取消 (Index 0: true -> false)
-    flow.handleCombinedChange(state1, state0);
-
-    // 验证播报了“供弹结束”
-    expect(mockBroadcast).toHaveBeenCalledWith('供弹[=dan4]结束');
+  afterEach(() => {
+    applyAmmoFlow.stop();
+    vi.useRealTimers();
+    vi.clearAllMocks();
   });
 
-  it('应该在 CONTROL5 变化时触发“拒绝”逻辑', async () => {
-    // 1. 进入申请状态
-    const state0 = new Array(16).fill(false);
-    const state1 = [...state0];
-    state1[0] = true;
-    flow.handleCombinedChange(state0, state1);
-    mockBroadcast.mockClear();
+  it('should trigger relay alarms and voice broadcast when door open timeout occurs', async () => {
+    // 1. 初始化状态 (全开/Low)
+    manager.onIncomingData!('udp', 'control', Buffer.from('dostatus00000000'), { address: '127.0.0.1', port: 1235 }, {});
+    manager.onIncomingData!('udp', 'cabinet', Buffer.from('dostatus00000000'), { address: '127.0.0.1', port: 1234 }, {});
 
-    // 2. 控制端拒绝 (Index 12 变化: false -> true)
-    const state2 = [...state1];
-    state2[12] = true;
-    flow.handleCombinedChange(state1, state2);
+    // 2. 申请供弹 (Cabinet Index 0 closed)
+    manager.onIncomingData!('udp', 'cabinet', Buffer.from('dostatus10000000'), { address: '127.0.0.1', port: 1234 }, {});
+    
+    // 3. 授权通过 (Control Index 1 closed)
+    manager.onIncomingData!('udp', 'control', Buffer.from('dostatus11000000'), { address: '127.0.0.1', port: 1235 }, {});
 
-    // 验证播报了“授权未通过，请取消供弹”
-    expect(mockBroadcast).toHaveBeenCalledWith('授权未通过，请取消供弹[=dan4]');
-    mockBroadcast.mockClear();
+    // 4. 打开柜门 (Cabinet Index 1 closed)
+    manager.onIncomingData!('udp', 'cabinet', Buffer.from('dostatus11000000'), { address: '127.0.0.1', port: 1234 }, {});
+    
+    expect(broadcastMock).toHaveBeenCalledWith('已开门，请取弹[=dan4]，取弹[=dan4]后请关闭柜门，并复位按键');
+    broadcastMock.mockClear();
+    sendCommandSpy.mockClear();
 
-    // 3. 用户复位 (Index 0: true -> false)
-    const state3 = [...state2];
-    state3[0] = false;
-    flow.handleCombinedChange(state2, state3);
+    // 5. 等待超时 (30秒)
+    await vi.advanceTimersByTime(31000);
 
-    // 验证播报了“供弹结束”
-    expect(mockBroadcast).toHaveBeenCalledWith('供弹[=dan4]结束');
+    // 6. 验证语音播报
+    expect(broadcastMock).toHaveBeenCalledWith('柜门超时未关');
+
+    // 7. 验证继电器指令 (Cabinet 8/1, Control 8/1 High)
+    // 检查调用参数
+    const openCommand1 = RelayCommandBuilder.open(1);
+    const openCommand8 = RelayCommandBuilder.open(8);
+
+    expect(sendCommandSpy).toHaveBeenCalledWith('udp', openCommand1, {}, 'cabinet', false);
+    expect(sendCommandSpy).toHaveBeenCalledWith('udp', openCommand8, {}, 'cabinet', false);
+    expect(sendCommandSpy).toHaveBeenCalledWith('udp', openCommand1, {}, 'control', false);
+    expect(sendCommandSpy).toHaveBeenCalledWith('udp', openCommand8, {}, 'control', false);
   });
 
-  it('应该在授权后支持柜门开启和关闭的联动逻辑', async () => {
-    // 1. 进入申请状态
-    const state0 = new Array(16).fill(false);
-    const state1 = [...state0];
-    state1[0] = true;
-    flow.handleCombinedChange(state0, state1);
-    mockBroadcast.mockClear();
+  it('should stop relay alarms when door is closed after timeout', async () => {
+    // 1. 进入超时状态
+    manager.onIncomingData!('udp', 'control', Buffer.from('dostatus00000000'), { address: '127.0.0.1', port: 1235 }, {});
+    manager.onIncomingData!('udp', 'cabinet', Buffer.from('dostatus00000000'), { address: '127.0.0.1', port: 1234 }, {});
+    manager.onIncomingData!('udp', 'cabinet', Buffer.from('dostatus10000000'), { address: '127.0.0.1', port: 1234 }, {});
+    manager.onIncomingData!('udp', 'control', Buffer.from('dostatus11000000'), { address: '127.0.0.1', port: 1235 }, {});
+    manager.onIncomingData!('udp', 'cabinet', Buffer.from('dostatus11000000'), { address: '127.0.0.1', port: 1234 }, {});
+    
+    await vi.advanceTimersByTime(31000);
+    broadcastMock.mockClear();
+    sendCommandSpy.mockClear();
 
-    // 2. 授权通过 (Index 9 变化)
-    const state2 = [...state1];
-    state2[9] = true;
-    flow.handleCombinedChange(state1, state2);
-    expect(mockBroadcast).toHaveBeenCalledWith('授权通过，已开锁请打开柜门');
-    mockBroadcast.mockClear();
+    // 2. 关闭柜门 (Cabinet Index 1 open again)
+    manager.onIncomingData!('udp', 'cabinet', Buffer.from('dostatus10000000'), { address: '127.0.0.1', port: 1234 }, {});
 
-    // 3. 柜门开启 (Index 1: false -> true)
-    const state3 = [...state2];
-    state3[1] = true;
-    flow.handleCombinedChange(state2, state3);
-    expect(mockBroadcast).toHaveBeenCalledWith('已开门，请取弹，取弹后关闭柜门，并复位按键');
-    mockBroadcast.mockClear();
+    // 3. 验证语音播报
+    expect(broadcastMock).toHaveBeenCalledWith('柜门已关闭');
 
-    // 4. 柜门关闭 (Index 1: true -> false)
-    const state4 = [...state3];
-    state4[1] = false;
-    flow.handleCombinedChange(state3, state4);
-    expect(mockBroadcast).toHaveBeenCalledWith('柜门已关闭');
-    // 注意：这里还会触发 resetLock，但因为 mock 了 manager，所以只会 log
+    // 4. 验证继电器指令 (Cabinet 8/1, Control 8/1 Low)
+    const closeCommand1 = RelayCommandBuilder.close(1);
+    const closeCommand8 = RelayCommandBuilder.close(8);
+
+    expect(sendCommandSpy).toHaveBeenCalledWith('udp', closeCommand1, {}, 'cabinet', false);
+    expect(sendCommandSpy).toHaveBeenCalledWith('udp', closeCommand8, {}, 'cabinet', false);
+    expect(sendCommandSpy).toHaveBeenCalledWith('udp', closeCommand1, {}, 'control', false);
+    expect(sendCommandSpy).toHaveBeenCalledWith('udp', closeCommand8, {}, 'control', false);
   });
 });

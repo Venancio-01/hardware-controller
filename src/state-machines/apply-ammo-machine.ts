@@ -107,6 +107,46 @@ export function createApplyAmmoActor(logger: StructuredLogger, manager?: Hardwar
           .catch((err) => {
             logger.error('闭锁指令发送失败', err as Error);
           });
+      },
+      alarmOn: () => {
+        if (!manager) {
+          logger.warn('硬件管理器未提供，跳过报警指令');
+          return;
+        }
+
+        logger.info('柜门超时未关，正在开启报警...');
+
+        // 柜体端 8 和 1
+        const cabinetCommand8 = RelayCommandBuilder.open(8);
+        const cabinetCommand1 = RelayCommandBuilder.open(1);
+        // 控制端 8 和 1
+        const controlCommand8 = RelayCommandBuilder.open(8);
+        const controlCommand1 = RelayCommandBuilder.open(1);
+
+        void manager.sendCommand('udp', cabinetCommand8, {}, 'cabinet', false);
+        void manager.sendCommand('udp', cabinetCommand1, {}, 'cabinet', false);
+        void manager.sendCommand('udp', controlCommand8, {}, 'control', false);
+        void manager.sendCommand('udp', controlCommand1, {}, 'control', false);
+      },
+      alarmOff: () => {
+        if (!manager) {
+          logger.warn('硬件管理器未提供，跳过停止报警指令');
+          return;
+        }
+
+        logger.info('正在停止报警...');
+
+        // 柜体端 8 和 1
+        const cabinetCommand8 = RelayCommandBuilder.close(8);
+        const cabinetCommand1 = RelayCommandBuilder.close(1);
+        // 控制端 8 和 1
+        const controlCommand8 = RelayCommandBuilder.close(8);
+        const controlCommand1 = RelayCommandBuilder.close(1);
+
+        void manager.sendCommand('udp', cabinetCommand8, {}, 'cabinet', false);
+        void manager.sendCommand('udp', cabinetCommand1, {}, 'cabinet', false);
+        void manager.sendCommand('udp', controlCommand8, {}, 'control', false);
+        void manager.sendCommand('udp', controlCommand1, {}, 'control', false);
       }
     }
   }).createMachine({
@@ -134,7 +174,7 @@ export function createApplyAmmoActor(logger: StructuredLogger, manager?: Hardwar
       },
       door_open: {
         after: {
-          [config.DOOR_OPEN_TIMEOUT_MS]: { target: 'door_open_timeout', actions: 'broadcastDoorTimeout' }
+          [config.DOOR_OPEN_TIMEOUT_S * 1000]: { target: 'door_open_timeout', actions: 'broadcastDoorTimeout' }
         },
         on: {
           DOOR_CLOSE: { target: 'door_closed', actions: ['broadcastDoorClosed', 'resetLock'] },
@@ -142,6 +182,8 @@ export function createApplyAmmoActor(logger: StructuredLogger, manager?: Hardwar
         }
       },
       door_open_timeout: {
+        entry: 'alarmOn',
+        exit: 'alarmOff',
         on: {
           DOOR_CLOSE: { target: 'door_closed', actions: ['broadcastDoorClosed', 'resetLock'] }
         }
