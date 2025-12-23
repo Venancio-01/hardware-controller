@@ -1,12 +1,12 @@
 # Implementation Plan: Add Door State Monitoring to Apply Ammo Flow
 
-## Phase 1: State Machine Extension
+## Phase 1: State Machine Extension [checkpoint: 37891e7]
 - [x] Task 1.1: Add `DOOR_OPEN` and `DOOR_CLOSE` to `ApplyAmmoEvent` in `src/state-machines/apply-ammo-machine.ts`. [38c56f5]
 - [x] Task 1.2: Define new states `authorized`, `door_open`, and `door_closed` in `createApplyAmmoActor`. [38c56f5]
 - [x] Task 1.3: Implement `broadcastDoorOpen` and `broadcastDoorClosed` actions in the state machine. [38c56f5]
 - [x] Task 1.4: Update `test/state-machines/apply-ammo-machine.enhanced.test.ts` with test cases for the new door transition flow (AUTHORIZED -> DOOR_OPEN -> DOOR_CLOSE -> idle). [38c56f5]
 - [x] Task 1.5: Run tests and ensure they pass. [38c56f5]
-- [~] Task: Conductor - User Manual Verification 'Phase 1: State Machine Extension' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: State Machine Extension' (Protocol in workflow.md) [37891e7]
 
 ## Phase 2: Flow Logic & Hardware Integration
 - [ ] Task 2.1: Implement `resetLock` action in `apply-ammo-machine.ts` to send the `dooff01` command to the `control` client via `HardwareCommunicationManager`.
