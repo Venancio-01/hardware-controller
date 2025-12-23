@@ -35,14 +35,14 @@ describe('ApplyAmmoFlow Enhanced Integration', () => {
     const state0 = new Array(16).fill(false);
     const state1 = [...state0];
     state1[0] = true;
-    
+   
     flow.handleCombinedChange(state0, state1);
     expect(mockBroadcast).toHaveBeenCalledWith('已申请，请等待授权');
     mockBroadcast.mockClear();
 
     // 2. 用户取消 (Index 0: true -> false)
     flow.handleCombinedChange(state1, state0);
-    
+
     // 验证播报了“供弹结束”
     expect(mockBroadcast).toHaveBeenCalledWith('供弹结束');
   });
@@ -59,7 +59,7 @@ describe('ApplyAmmoFlow Enhanced Integration', () => {
     const state2 = [...state1];
     state2[12] = true;
     flow.handleCombinedChange(state1, state2);
-    
+
     // 验证播报了“授权未通过，请取消供弹”
     expect(mockBroadcast).toHaveBeenCalledWith('授权未通过，请取消供弹');
     mockBroadcast.mockClear();

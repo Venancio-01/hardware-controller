@@ -23,8 +23,6 @@ export class TCPClient {
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private reconnectInterval: NodeJS.Timeout | null = null;
   private shouldReconnect = false;
-  private heartbeatTimer: NodeJS.Timeout | null = null;
-  private lastHeartbeatResponse = 0;
 
   /**
    * 自定义消息事件处理器
@@ -32,7 +30,7 @@ export class TCPClient {
   public onMessage?: (data: Buffer) => void;
 
   constructor(config: NetworkConfig) {
-    this.config = {
+    const defaults: Partial<NetworkConfig> = {
       timeout: 5000,
       retries: 3,
       framing: true,
@@ -40,8 +38,17 @@ export class TCPClient {
       heartbeatTimeout: 5000,   // 心跳超时5秒
       reconnectDelay: 5000,     // 重连延迟5秒
       heartbeatStrict: true,
-      ...config,
     };
+    this.config = { ...defaults, ...config };
+
+    // Avoid undefined overriding defaults while keeping 0 as a valid value.
+    if (this.config.timeout == null) this.config.timeout = defaults.timeout;
+    if (this.config.retries == null) this.config.retries = defaults.retries;
+    if (this.config.framing == null) this.config.framing = defaults.framing;
+    if (this.config.heartbeatInterval == null) this.config.heartbeatInterval = defaults.heartbeatInterval;
+    if (this.config.heartbeatTimeout == null) this.config.heartbeatTimeout = defaults.heartbeatTimeout;
+    if (this.config.reconnectDelay == null) this.config.reconnectDelay = defaults.reconnectDelay;
+    if (this.config.heartbeatStrict == null) this.config.heartbeatStrict = defaults.heartbeatStrict;
   }
 
   /**
@@ -249,21 +256,6 @@ export class TCPClient {
     this.stats.messagesReceived++;
     this.stats.lastActivity = Date.now();
 
-    const messageStr = data.toString('utf8').trim();
-
-    // 检查是否是心跳响应
-    if (messageStr === 'HEARTBEAT_ACK' || messageStr.includes('HEARTBEAT')) {
-      this.log.debug('收到心跳响应');
-      this.lastHeartbeatResponse = Date.now();
-
-      // 清除心跳超时定时器
-      if (this.heartbeatTimer) {
-        clearTimeout(this.heartbeatTimer);
-        this.heartbeatTimer = null;
-      }
-      return;
-    }
-
     const messageId = this.extractMessageId(data);
 
     if (messageId && this.responseHandlers.has(messageId)) {
@@ -448,21 +440,6 @@ export class TCPClient {
         await this.sendNoWait(heartbeatMsg);
         this.log.debug('发送心跳包');
 
-        // 设置心跳超时检查
-        this.lastHeartbeatResponse = Date.now();
-        this.heartbeatTimer = setTimeout(() => {
-          const elapsed = Date.now() - this.lastHeartbeatResponse;
-          if (elapsed > this.config.heartbeatTimeout!) {
-            if (this.config.heartbeatStrict) {
-              this.log.warn('心跳超时，主动断开连接');
-              this.socket?.destroy(new Error('Heartbeat timeout'));
-              return;
-            }
-
-            this.log.warn('心跳超时，保持连接');
-          }
-        }, this.config.heartbeatTimeout);
-
       } catch (error) {
         this.log.error('心跳发送失败:', error as Error);
       }
@@ -476,10 +453,6 @@ export class TCPClient {
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = null;
-    }
-    if (this.heartbeatTimer) {
-      clearTimeout(this.heartbeatTimer);
-      this.heartbeatTimer = null;
     }
   }
 

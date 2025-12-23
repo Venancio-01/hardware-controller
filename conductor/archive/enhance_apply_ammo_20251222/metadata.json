@@ -1,0 +1,8 @@
+{
+  "track_id": "enhance_apply_ammo_20251222",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2025-12-22T00:00:00Z",
+  "updated_at": "2025-12-22T00:00:00Z",
+  "description": "增强申请供弹业务流程：新增用户取消（供弹结束）和控制端拒绝（授权未通过）逻辑及语音播报。"
+}

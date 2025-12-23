@@ -108,7 +108,11 @@ export class HardwareCommunicationManager {
           this.handleIncomingData('tcp', clientConfig.id, data, remoteAddress || { address: 'unknown', port: 0 });
         });
 
-        initPromises.push(tcpClient.connect());
+        initPromises.push(
+          tcpClient.connect().catch((error) => {
+            this.log.error(`TCP 客户端 '${clientConfig.id}' 启动连接失败，将在后台重连`, error as Error);
+          })
+        );
       }
     }
 

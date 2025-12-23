@@ -1,4 +1,4 @@
-import { describe, it, expect, mock, beforeEach, afterEach, spyOn } from 'bun:test';
+import { describe, it, expect, mock, beforeEach, afterEach } from 'bun:test';
 import { initializeVoiceBroadcast } from '../../src/voice-broadcast/initializer.js';
 import { VoiceBroadcastController } from '../../src/voice-broadcast/index.js';
 
@@ -16,19 +16,20 @@ describe('Voice Broadcast Initializer', () => {
       error: mock(() => {})
     };
     
-    initSpy = spyOn(VoiceBroadcastController, 'initialize').mockImplementation(() => {});
-    getInstanceSpy = spyOn(VoiceBroadcastController, 'getInstance').mockReturnValue({
-      broadcast: mock(() => Promise.resolve(true))
-    } as any);
+    // Ensure clean state
+    if (VoiceBroadcastController.isInitialized()) {
+      VoiceBroadcastController.destroy();
+    }
   });
 
   afterEach(() => {
-    initSpy.mockRestore();
-    getInstanceSpy.mockRestore();
+    if (VoiceBroadcastController.isInitialized()) {
+      VoiceBroadcastController.destroy();
+    }
   });
 
   it('should initialize VoiceBroadcastController if config is present', async () => {
     await initializeVoiceBroadcast(mockManager as any, mockLogger as any);
-    expect(VoiceBroadcastController.initialize).toHaveBeenCalled();
+    expect(VoiceBroadcastController.isInitialized()).toBe(true);
   });
 });

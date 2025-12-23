@@ -39,7 +39,7 @@ export function createApplyAmmoActor(logger: StructuredLogger) {
         }
 
         const voiceController = VoiceBroadcastController.getInstance();
-        void voiceController.broadcast('供弹完毕');
+        void voiceController.broadcast('供弹[=dan4]完毕');
       },
       broadcastCancelled: () => {
         if (!VoiceBroadcastController.isInitialized()) {
@@ -48,7 +48,7 @@ export function createApplyAmmoActor(logger: StructuredLogger) {
         }
 
         const voiceController = VoiceBroadcastController.getInstance();
-        void voiceController.broadcast('供弹结束');
+        void voiceController.broadcast('供弹[=dan4]结束');
       },
       broadcastRefused: () => {
         if (!VoiceBroadcastController.isInitialized()) {
@@ -57,7 +57,7 @@ export function createApplyAmmoActor(logger: StructuredLogger) {
         }
 
         const voiceController = VoiceBroadcastController.getInstance();
-        void voiceController.broadcast('授权未通过，请取消供弹');
+        void voiceController.broadcast('授权未通过，请取消供弹[=dan4]');
       }
     }
   }).createMachine({

@@ -20,7 +20,7 @@
 - [x] **Task 1: 全量测试与覆盖率检查** 2b6cf94
   - 运行所有测试用例，确保类型修复未引入回归。
   - 检查代码覆盖率，确保相关代码仍被充分覆盖。
-- [ ] **Task 2: 代码清理与提交**
+- [x] **Task 2: 代码清理与提交** 463271e
   - 移除任何临时的调试代码。
   - 按照规范提交代码并附加 Git Notes。
 - [ ] **Task: Conductor - User Manual Verification 'Phase 3: 最终验证与交付' (Protocol in workflow.md)**
