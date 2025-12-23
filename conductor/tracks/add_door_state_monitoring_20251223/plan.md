@@ -9,11 +9,12 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: State Machine Extension' (Protocol in workflow.md) [37891e7]
 
 ## Phase 2: Flow Logic & Hardware Integration
-- [ ] Task 2.1: Implement `resetLock` action in `apply-ammo-machine.ts` to send the `dooff01` command to the `control` client via `HardwareCommunicationManager`.
-- [ ] Task 2.2: Update `ApplyAmmoFlow.handleCombinedChange` in `src/business-logic/apply-ammo-flow.ts` to detect rising/falling edges of `CABINET_DOOR_INDEX` and trigger `DOOR_OPEN`/`DOOR_CLOSE` events.
-- [ ] Task 2.3: Ensure `AUTHORIZED` transition in the machine now leads to the `authorized` state instead of `idle`.
-- [ ] Task 2.4: Update `test/business-logic/apply-ammo-flow-enhanced.test.ts` to verify that cabinet door changes trigger the correct voice broadcasts and hardware commands.
-- [ ] Task 2.5: Run all tests and ensure they pass.
+- [x] Task 2.1: Implement `resetLock` action in `apply-ammo-machine.ts` to send the `dooff01` command to the `control` client via `HardwareCommunicationManager`. [f203073]
+- [x] Task 2.2: Update `ApplyAmmoFlow.handleCombinedChange` in `src/business-logic/apply-ammo-flow.ts` to detect rising/falling edges of `CABINET_DOOR_INDEX` and trigger `DOOR_OPEN`/`DOOR_CLOSE` events. [f203073]
+- [x] Task 2.3: Ensure `AUTHORIZED` transition in the machine now leads to the `authorized` state instead of `idle`. [f203073]
+- [x] Task 2.4: Update `test/business-logic/apply-ammo-flow-enhanced.test.ts` to verify that cabinet door changes trigger the correct voice broadcasts and hardware commands. [f203073]
+- [x] Task 2.5: Run all tests and ensure they pass. [f203073]
+- [~] Task: Conductor - User Manual Verification 'Phase 2: Flow Logic & Hardware Integration' (Protocol in workflow.md)
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Flow Logic & Hardware Integration' (Protocol in workflow.md)
 
 ## Phase 3: Final Integration & Quality Check
