@@ -6,12 +6,12 @@
 - [x] Task: Verify configuration loading with a unit test in `test/config-validation.test.ts`. c310296
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Configuration Update' (Protocol in workflow.md)
 
-## Phase 2: State Machine Logic Enhancement
+## Phase 2: State Machine Logic Enhancement [checkpoint: 981716c]
 - [x] Task: Define the new `door_open_timeout` state in `src/state-machines/apply-ammo-machine.ts`. 4f4f8ef
 - [x] Task: Implement the delayed transition from `door_open` to `door_open_timeout` using XState `after` property. 4f4f8ef
 - [x] Task: Implement the transition from `door_open_timeout` to `door_closed` upon `DOOR_CLOSED` event. 4f4f8ef
 - [x] Task: Write unit tests in `test/state-machines/apply-ammo-machine.enhanced.test.ts` to verify the state transitions and timing. 4f4f8ef
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: State Machine Logic Enhancement' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: State Machine Logic Enhancement' (Protocol in workflow.md)
 
 ## Phase 3: Hardware Actions Integration
 - [ ] Task: Define entry actions for `door_open_timeout` in `ApplyAmmoMachine` to trigger relay alarms (High) and voice broadcast.
