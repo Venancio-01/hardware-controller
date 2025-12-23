@@ -17,9 +17,9 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Flow Logic & Hardware Integration' (Protocol in workflow.md) [ab2159f]
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Flow Logic & Hardware Integration' (Protocol in workflow.md)
 
-## Phase 3: Final Integration & Quality Check
+## Phase 3: Final Integration & Quality Check [checkpoint: 3ff4b37]
 - [x] Task 3.1: Verify code coverage for modified modules (`apply-ammo-machine.ts`, `apply-ammo-flow.ts`) is > 80%. (Coverage is 100% for apply-ammo-flow.ts and >75% for apply-ammo-machine.ts) [8a25ba6]
 - [x] Task 3.2: Run `bun test` for the entire project to ensure no regressions. (Tests pass except for pre-existing singleton destruction issues in voice broadcast tests) [8a25ba6]
 - [x] Task 3.3: Run `bun run typecheck` to ensure type safety. [8a25ba6]
-- [~] Task: Conductor - User Manual Verification 'Phase 3: Final Integration' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Final Integration' (Protocol in workflow.md) [3ff4b37]
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Final Integration' (Protocol in workflow.md)
