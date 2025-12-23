@@ -1,10 +1,10 @@
 # Implementation Plan: Door Open Timeout Alarm
 
-## Phase 1: Configuration Update
+## Phase 1: Configuration Update [checkpoint: da924a0]
 - [x] Task: Update `src/config/index.ts` to include `DOOR_OPEN_TIMEOUT_MS` in `envSchema` with a default of 30000. c310296
 - [x] Task: Update `.env.example` with the new configuration variable. c310296
 - [x] Task: Verify configuration loading with a unit test in `test/config-validation.test.ts`. c310296
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Configuration Update' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Configuration Update' (Protocol in workflow.md)
 
 ## Phase 2: State Machine Logic Enhancement
 - [ ] Task: Define the new `door_open_timeout` state in `src/state-machines/apply-ammo-machine.ts`.
