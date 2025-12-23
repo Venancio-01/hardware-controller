@@ -150,6 +150,13 @@ const envSchema = z.object({
     .transform(Number)
     .pipe(z.number().int().min(100).max(60000))
     .default(1000),
+
+  // 柜门状态监控配置
+  DOOR_OPEN_TIMEOUT_MS: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().positive().min(1000))
+    .default(30000),
 })
 
 /**
@@ -237,6 +244,7 @@ export function getConfigSummary(): Record<string, unknown> {
       retryAttempts: config.HARDWARE_RETRY_ATTEMPTS,
       udpLocalPort: config.UDP_LOCAL_PORT,
       queryInterval: config.QUERY_INTERVAL,
+      doorOpenTimeout: config.DOOR_OPEN_TIMEOUT_MS,
     },
     logging: {
       level: config.LOG_LEVEL,
