@@ -1,4 +1,4 @@
-import { describe, it, expect, mock, beforeEach } from 'bun:test';
+import { describe, it, expect, mock, beforeEach, vi } from 'bun:test';
 import { createApplyAmmoActor } from '../../src/state-machines/apply-ammo-machine.js';
 import { VoiceBroadcastController } from '../../src/voice-broadcast/index.js';
 import { type StructuredLogger } from '../../src/logger/index.ts';
@@ -105,7 +105,7 @@ describe('ApplyAmmoMachine Enhanced', () => {
     // 3. 打开柜门
     actor.send({ type: 'DOOR_OPEN' });
     expect(actor.getSnapshot().value).toBe('door_open');
-    expect(mockBroadcast).toHaveBeenCalledWith('已开门，请取弹，取弹后关闭柜门，并复位按键');
+    expect(mockBroadcast).toHaveBeenCalledWith('已开门，请取弹[=dan4]，取弹[=dan4]后请关闭柜门，并复位按键');
     mockBroadcast.mockClear();
 
     // 4. 关闭柜门
@@ -118,5 +118,34 @@ describe('ApplyAmmoMachine Enhanced', () => {
     actor.send({ type: 'FINISHED' });
     expect(actor.getSnapshot().value).toBe('idle');
     expect(mockBroadcast).toHaveBeenCalledWith('供弹[=dan4]结束');
+  });
+
+  it('should transition to door_open_timeout if door is not closed in time', async () => {
+    // 使用 fake timers
+    vi.useFakeTimers();
+
+    const actor = createApplyAmmoActor(mockLogger);
+    actor.start();
+
+    // 流程: applying -> authorized -> door_open
+    actor.send({ type: 'APPLY' });
+    actor.send({ type: 'AUTHORIZED' });
+    actor.send({ type: 'DOOR_OPEN' });
+    expect(actor.getSnapshot().value).toBe('door_open');
+
+    // 清理之前的 mock 调用
+    mockBroadcast.mockClear();
+
+    // 快进时间超过默认的30秒超时
+    await Promise.resolve(); // 让事件循环处理当前事件
+    await vi.advanceTimersByTime(31000); // 快进31秒
+
+    // 检查状态是否变为 door_open_timeout
+    expect(actor.getSnapshot().value).toBe('door_open_timeout');
+    
+    // 检查是否触发了语音播报
+    expect(mockBroadcast).toHaveBeenCalledWith('柜门超时未关');
+
+    vi.useRealTimers();
   });
 });

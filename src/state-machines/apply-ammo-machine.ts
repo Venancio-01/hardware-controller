@@ -3,6 +3,7 @@ import { VoiceBroadcastController } from '../voice-broadcast/index.js';
 import { type StructuredLogger } from '../logger/index.js';
 import { type HardwareCommunicationManager } from '../hardware/manager.js';
 import { RelayCommandBuilder } from '../relay/controller.js';
+import { config } from '../config/index.js';
 
 type ApplyAmmoEvent =
   | { type: 'APPLY' }
@@ -70,7 +71,7 @@ export function createApplyAmmoActor(logger: StructuredLogger, manager?: Hardwar
         }
 
         const voiceController = VoiceBroadcastController.getInstance();
-        void voiceController.broadcast('已开门，请取弹，取弹后关闭柜门，并复位按键');
+        void voiceController.broadcast('已开门，请取弹[=dan4]，取弹[=dan4]后请关闭柜门，并复位按键');
       },
       broadcastDoorClosed: () => {
         if (!VoiceBroadcastController.isInitialized()) {
@@ -81,15 +82,24 @@ export function createApplyAmmoActor(logger: StructuredLogger, manager?: Hardwar
         const voiceController = VoiceBroadcastController.getInstance();
         void voiceController.broadcast('柜门已关闭');
       },
+      broadcastDoorTimeout: () => {
+        if (!VoiceBroadcastController.isInitialized()) {
+          logger.warn('语音播报未初始化，跳过柜门超时播报');
+          return;
+        }
+
+        const voiceController = VoiceBroadcastController.getInstance();
+        void voiceController.broadcast('柜门超时未关');
+      },
       resetLock: () => {
         if (!manager) {
           logger.warn('硬件管理器未提供，跳过闭锁操作');
           return;
         }
 
-        const command = RelayCommandBuilder.open(1); // 9-8=1
+        const command = RelayCommandBuilder.open(2);
         logger.info('正在发送闭锁指令...', { command, clientId: 'control' });
-        
+
         manager.sendCommand('udp', command, {}, 'control', false)
           .then(() => {
             logger.info('闭锁指令发送成功');
@@ -123,9 +133,17 @@ export function createApplyAmmoActor(logger: StructuredLogger, manager?: Hardwar
         }
       },
       door_open: {
+        after: {
+          [config.DOOR_OPEN_TIMEOUT_MS]: { target: 'door_open_timeout', actions: 'broadcastDoorTimeout' }
+        },
         on: {
           DOOR_CLOSE: { target: 'door_closed', actions: ['broadcastDoorClosed', 'resetLock'] },
           FINISHED: { target: 'idle', actions: 'broadcastCancelled' }
+        }
+      },
+      door_open_timeout: {
+        on: {
+          DOOR_CLOSE: { target: 'door_closed', actions: ['broadcastDoorClosed', 'resetLock'] }
         }
       },
       door_closed: {
