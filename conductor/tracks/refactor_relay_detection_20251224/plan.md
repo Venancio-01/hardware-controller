@@ -2,13 +2,13 @@
 
 本计划旨在通过让 `MonitorMachine` 直接订阅硬件数据并下沉检测逻辑，实现更清晰的架构，并彻底修复继电器索引误匹配的 Bug。
 
-## Phase 1: 基础工具类重构与单元测试 (TDD)
+## Phase 1: 基础工具类重构与单元测试 (TDD) [checkpoint: e5ef6bf]
 **目标**：在 `RelayStatusAggregator` 中实现基于索引的检测方法，并验证其准确性。
 
 - [x] **Task 1.1**: 为 `RelayStatusAggregator` 编写单元测试，模拟 CH1 和 CH13 的冲突场景 [325e94c]
 - [x] **Task 1.2**: 在 `RelayStatusAggregator` 中实现 `hasIndexChanged` 方法并添加边界检查 [325e94c]
 - [x] **Task 1.3**: 验证 Task 1.1 的测试通过并达到 >80% 覆盖率 [325e94c]
-- [ ] **Task: Conductor - User Manual Verification 'Phase 1: Foundation' (Protocol in workflow.md)**
+- [x] **Task: Conductor - User Manual Verification 'Phase 1: Foundation' (Protocol in workflow.md)**
 
 ## Phase 2: MonitorMachine 订阅与事件下沉 (TDD)
 **目标**：重构 `MonitorMachine` 使其具备直接订阅硬件数据的能力，并能发出语义化事件。
