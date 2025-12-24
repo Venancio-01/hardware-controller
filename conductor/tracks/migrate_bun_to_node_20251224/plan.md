@@ -14,7 +14,7 @@
 - [x] 任务: 安装与配置 Vitest。安装 `vitest` 相关依赖，并创建 `vitest.config.ts`。 ae7974e
 - [x] 任务: 迁移现有测试用例。将测试文件中的 `expect`, `test`, `describe`, `mock` 等从 Bun 全局变量迁移到 Vitest。 1919597
 - [x] 任务: 验证测试套件。确保执行 `pnpm test` 时，所有已有的 20+ 个测试文件全部通过。 1919597
-- [ ] 任务: Conductor - User Manual Verification '阶段 2: 测试框架迁移 (Vitest)' (Protocol in workflow.md)
+- [x] 任务: Conductor - User Manual Verification '阶段 2: 测试框架迁移 (Vitest)' (Protocol in workflow.md) [checkpoint: 0ae6d1f]
 
 ## 阶段 3: 源码中的 Bun API 替换
 目标：移除代码中对 `Bun.*` 全局 API 的直接依赖，替换为 Node.js 原生 API。
