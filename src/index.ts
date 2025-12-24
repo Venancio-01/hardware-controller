@@ -55,8 +55,8 @@ async function startApp() {
               // Priority 2: Business Logic Events
               
               // Handle Apply Button (Cabinet Relay 1, index 0)
-              if (combinedUpdate.changeDescriptions.some(d => d.includes('通道 1'))) {
-                const isCabinetRelay1Closed = (combinedUpdate.combinedState & 0x01) !== 0;
+              if (combinedUpdate.changeDescriptions.some(d => d.includes('CH1'))) {
+                const isCabinetRelay1Closed = (combinedUpdate.combinedState[0]);
                 if (isCabinetRelay1Closed) {
                    mainActor.send({ type: 'apply_request', priority: EventPriority.P2 });
                    // Also notify the child if it's already active
@@ -74,8 +74,8 @@ async function startApp() {
               }
 
               // Handle Authorization (Control Relay 5, index 12)
-              if (combinedUpdate.changeDescriptions.some(d => d.includes('通道 13'))) {
-                 const isControlRelay5Closed = (combinedUpdate.combinedState & (1 << 12)) !== 0;
+              if (combinedUpdate.changeDescriptions.some(d => d.includes('CH13'))) {
+                 const isControlRelay5Closed = (combinedUpdate.combinedState[12]);
                  const snapshot = mainActor.getSnapshot();
                  if (snapshot.value === 'normal' && snapshot.children.applyAmmo) {
                     snapshot.children.applyAmmo.send({ type: isControlRelay5Closed ? 'AUTHORIZED' : 'REFUSE' });
@@ -83,8 +83,8 @@ async function startApp() {
               }
 
               // Handle Door Sensor (Cabinet Relay 2, index 1)
-              if (combinedUpdate.changeDescriptions.some(d => d.includes('通道 2'))) {
-                 const isCabinetRelay2Closed = (combinedUpdate.combinedState & (1 << 1)) !== 0;
+              if (combinedUpdate.changeDescriptions.some(d => d.includes('CH2'))) {
+                 const isCabinetRelay2Closed = (combinedUpdate.combinedState[1]);
                  mainActor.send({ 
                    type: 'cabinet_lock_changed', 
                    priority: EventPriority.P2, 
