@@ -19,5 +19,5 @@
 
 ## Phase 4: Final Verification & Cleanup
 - [x] Task: Update existing integration tests (`test/integration/`) and orchestration tests to work with the new hierarchy. [e0160ef]
-- [ ] Task: Final verification of P0 event interruption (Key/Vibration interrupting a normal flow).
+- [x] Task: Final verification of P0 event interruption (Key/Vibration interrupting a normal flow). [26d5c3a]
 - [ ] Task: Conductor - User Manual Verification 'Phase 4: Final Verification' (Protocol in workflow.md)
