@@ -104,8 +104,29 @@ describe('MainMachine', () => {
     actor.send({ type: 'apply_request', priority: EventPriority.P2 });
     
     const applyAmmoActor = actor.getSnapshot().children.applyAmmo;
+    // Simulate finishing the flow
     applyAmmoActor.send({ type: 'FINISHED' });
 
     expect(actor.getSnapshot().value).toBe('idle');
+  });
+
+  it('should forward cabinet_lock_changed to applyAmmo actor', () => {
+    const actor = createMainActor(mockHardware, mockLogger);
+    actor.start();
+    actor.send({ type: 'apply_request', priority: EventPriority.P2 });
+    
+    const applyAmmoActor = actor.getSnapshot().children.applyAmmo;
+    
+    // Initial state of child
+    expect(applyAmmoActor.getSnapshot().value).toBe('idle');
+    applyAmmoActor.send({ type: 'APPLY' });
+    applyAmmoActor.send({ type: 'AUTHORIZED' });
+    expect(applyAmmoActor.getSnapshot().value).toBe('authorized');
+
+    // Send global event to Main
+    actor.send({ type: 'cabinet_lock_changed', priority: EventPriority.P2, isClosed: false });
+
+    // Verify child transitioned
+    expect(applyAmmoActor.getSnapshot().value).toBe('door_open');
   });
 });

@@ -1,4 +1,4 @@
-import { setup, createActor } from 'xstate';
+import { setup, createActor, sendTo } from 'xstate';
 import { type HardwareCommunicationManager } from '../hardware/manager.js';
 import { type StructuredLogger } from '../logger/index.js';
 import { monitorMachine } from './monitor-machine.js';
@@ -50,7 +50,16 @@ export const mainMachine = setup({
         })
       },
       on: {
-        operation_complete: 'idle'
+        operation_complete: 'idle',
+        cabinet_lock_changed: {
+          actions: sendTo('applyAmmo', ({ event }) => {
+            // Map global event to child machine event
+            if (event.type === 'cabinet_lock_changed') {
+              return event.isClosed ? { type: 'DOOR_CLOSE' } : { type: 'DOOR_OPEN' };
+            }
+            return { type: 'UNKNOWN' };
+          })
+        }
       }
     },
     alarm: {

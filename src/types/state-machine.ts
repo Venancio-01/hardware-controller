@@ -28,6 +28,7 @@ export type MonitorAnomalyEvent = BaseEvent & { type: 'monitor_anomaly'; priorit
 // P2 Events
 export type ApplyRequestEvent = BaseEvent & { type: 'apply_request'; priority: EventPriority.P2 };
 export type OperationCompleteEvent = BaseEvent & { type: 'operation_complete'; priority: EventPriority.P2 };
+export type CabinetLockChangedEvent = BaseEvent & { type: 'cabinet_lock_changed'; priority: EventPriority.P2; isClosed: boolean };
 
 // P3 Events
 export type MaintenanceEvent = BaseEvent & { type: 'maintenance_check'; priority: EventPriority.P3 };
@@ -38,4 +39,5 @@ export type SystemEvent =
   | MonitorAnomalyEvent
   | ApplyRequestEvent
   | OperationCompleteEvent
+  | CabinetLockChangedEvent
   | MaintenanceEvent;

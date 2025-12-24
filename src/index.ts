@@ -53,20 +53,43 @@ async function startApp() {
 
             if (combinedUpdate && combinedUpdate.changed) {
               // Priority 2: Business Logic Events
-              // For now, we manually bridge the aggregator logic to the MainMachine events
-              // In a future refactor, the aggregator could be part of the monitor machine.
               
-              // If lock state changed (cabinet relay 1, maps to index 0)
+              // Handle Apply Button (Cabinet Relay 1, index 0)
               if (combinedUpdate.changeDescriptions.some(d => d.includes('通道 1'))) {
-                const isCabinetRelay1Closed = (combinedUpdate.combinedState & 0x01) === 0; // 0 is closed/active for alarm? NO, 0 is open, 1 is closed for status?
-                // Actually parseStatusResponse: 0 is open, 1 is closed.
-                // Relay 1 is lock.
-                
-                // We need to map these to apply-ammo-machine events.
-                // However, the MainMachine manages the apply-ammo-machine as a child.
-                // We can send events to the MainMachine which it may forward or use to transition.
-                
-                // For Phase 3, we just ensure the MainMachine is running.
+                const isCabinetRelay1Closed = (combinedUpdate.combinedState & 0x01) !== 0;
+                if (isCabinetRelay1Closed) {
+                   mainActor.send({ type: 'apply_request', priority: EventPriority.P2 });
+                   // Also notify the child if it's already active
+                   const snapshot = mainActor.getSnapshot();
+                   if (snapshot.value === 'normal' && snapshot.children.applyAmmo) {
+                      snapshot.children.applyAmmo.send({ type: 'APPLY' });
+                   }
+                } else {
+                   // Button released - usually mapped to FINISHED in business logic
+                   const snapshot = mainActor.getSnapshot();
+                   if (snapshot.value === 'normal' && snapshot.children.applyAmmo) {
+                      snapshot.children.applyAmmo.send({ type: 'FINISHED' });
+                   }
+                }
+              }
+
+              // Handle Authorization (Control Relay 5, index 12)
+              if (combinedUpdate.changeDescriptions.some(d => d.includes('通道 13'))) {
+                 const isControlRelay5Closed = (combinedUpdate.combinedState & (1 << 12)) !== 0;
+                 const snapshot = mainActor.getSnapshot();
+                 if (snapshot.value === 'normal' && snapshot.children.applyAmmo) {
+                    snapshot.children.applyAmmo.send({ type: isControlRelay5Closed ? 'AUTHORIZED' : 'REFUSE' });
+                 }
+              }
+
+              // Handle Door Sensor (Cabinet Relay 2, index 1)
+              if (combinedUpdate.changeDescriptions.some(d => d.includes('通道 2'))) {
+                 const isCabinetRelay2Closed = (combinedUpdate.combinedState & (1 << 1)) !== 0;
+                 mainActor.send({ 
+                   type: 'cabinet_lock_changed', 
+                   priority: EventPriority.P2, 
+                   isClosed: isCabinetRelay2Closed 
+                 });
               }
 
               if (combinedUpdate.changeDescriptions.length > 0) {
@@ -103,8 +126,9 @@ async function startApp() {
 
     appLogger.info(`开始 UDP 查询循环 (${config.QUERY_INTERVAL}ms 间隔)`);
     queryLoop = setInterval(() => {
-      if (monitorActor) {
-        monitorActor.send({ type: 'TICK' });
+      const currentMonitor = mainActor.getSnapshot().children.monitor;
+      if (currentMonitor) {
+        currentMonitor.send({ type: 'TICK' });
       }
     }, config.QUERY_INTERVAL);
 
