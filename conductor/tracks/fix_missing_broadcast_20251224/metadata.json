@@ -1,0 +1,8 @@
+{
+  "track_id": "fix_missing_broadcast_20251224",
+  "type": "bug",
+  "status": "new",
+  "created_at": "2025-12-24T15:25:00Z",
+  "updated_at": "2025-12-24T15:25:00Z",
+  "description": "修复在继电器 CH1 闭合时未能触发 apply_request 语音播报的问题"
+}
