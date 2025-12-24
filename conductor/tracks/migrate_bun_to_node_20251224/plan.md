@@ -6,7 +6,7 @@
 - [x] 任务: 更新环境配置。修改 `package.json` 中的 `engines` 字段，指定 Node.js v22，并创建/更新 `.npmrc`。 61541ea
 - [x] 任务: 迁移包管理器。移除 `bun.lockb` 和 `bunfig.toml`，使用 `pnpm install` 生成 `pnpm-lock.yaml`。 3e5b3b7
 - [x] 任务: 更新构建脚本。修改 `package.json` 中的 `scripts`，将 `bun run` 替换为 `pnpm` 或 `node`。 087b8f0
-- [ ] 任务: Conductor - User Manual Verification '阶段 1: 基础设施与包管理器迁移' (Protocol in workflow.md)
+- [x] 任务: Conductor - User Manual Verification '阶段 1: 基础设施与包管理器迁移' (Protocol in workflow.md) [checkpoint: 70fb6a2]
 
 ## 阶段 2: 测试框架迁移 (Vitest)
 目标：将测试运行器从 Bun Test 迁移到 Vitest，并确保所有现有测试通过。
