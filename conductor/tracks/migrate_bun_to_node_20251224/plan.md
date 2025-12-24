@@ -12,8 +12,8 @@
 目标：将测试运行器从 Bun Test 迁移到 Vitest，并确保所有现有测试通过。
 
 - [x] 任务: 安装与配置 Vitest。安装 `vitest` 相关依赖，并创建 `vitest.config.ts`。 ae7974e
-- [ ] 任务: 迁移现有测试用例。将测试文件中的 `expect`, `test`, `describe`, `mock` 等从 Bun 全局变量迁移到 Vitest。
-- [ ] 任务: 验证测试套件。确保执行 `pnpm test` 时，所有已有的 20+ 个测试文件全部通过。
+- [x] 任务: 迁移现有测试用例。将测试文件中的 `expect`, `test`, `describe`, `mock` 等从 Bun 全局变量迁移到 Vitest。 1919597
+- [x] 任务: 验证测试套件。确保执行 `pnpm test` 时，所有已有的 20+ 个测试文件全部通过。 1919597
 - [ ] 任务: Conductor - User Manual Verification '阶段 2: 测试框架迁移 (Vitest)' (Protocol in workflow.md)
 
 ## 阶段 3: 源码中的 Bun API 替换
