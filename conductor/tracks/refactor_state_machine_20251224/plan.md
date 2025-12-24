@@ -3,7 +3,7 @@
 ## Phase 1: Foundation & Refactoring Preparation
 - [x] Task: Rename `poller-machine.ts` to `monitor-machine.ts` and update all existing imports/references. [f18d39b]
 - [x] Task: Define global types and prioritized event schemas in `src/types/state-machine.ts` (P0-P3 priorities). [e32ed94]
-- [ ] Task: Create a skeleton `alarm-machine.ts` in `src/state-machines/` with basic states (`idle`, `active`, `acknowledged`).
+- [~] Task: Create a skeleton `alarm-machine.ts` in `src/state-machines/` with basic states (`idle`, `active`, `acknowledged`).
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Foundation' (Protocol in workflow.md)
 
 ## Phase 2: Main Coordinator Implementation
