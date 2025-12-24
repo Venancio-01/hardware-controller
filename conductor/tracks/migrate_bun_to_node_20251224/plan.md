@@ -19,10 +19,10 @@
 ## 阶段 3: 源码中的 Bun API 替换
 目标：移除代码中对 `Bun.*` 全局 API 的直接依赖，替换为 Node.js 原生 API。
 
-- [ ] 任务: 识别 Bun API 引用。使用 grep 查找项目中所有 `Bun.` 的调用（如 `Bun.file`, `Bun.serve`, `Bun.password` 等）。
-- [ ] 任务: 替换文件/网络 API。将 `Bun.file` 替换为 `fs/promises`，将 `Bun.serve`（如有）替换为 Node.js 原生 http 或 Express/Fastify。
-- [ ] 任务: 替换其他 Bun 特有 API。
-- [ ] 任务: Conductor - User Manual Verification '阶段 3: 源码中的 Bun API 替换' (Protocol in workflow.md)
+- [x] 任务: 识别 Bun API 引用。使用 grep 查找项目中所有 `Bun.` 的调用（如 `Bun.file`, `Bun.serve`, `Bun.password` 等）。 [n/a: none found]
+- [x] 任务: 替换文件/网络 API。将 `Bun.file` 替换为 `fs/promises`，将 `Bun.serve`（如有）替换为 Node.js 原生 http 或 Express/Fastify。 [n/a]
+- [x] 任务: 替换其他 Bun 特有 API。 [n/a]
+- [x] 任务: Conductor - User Manual Verification '阶段 3: 源码中的 Bun API 替换' (Protocol in workflow.md) [checkpoint: n/a]
 
 ## 阶段 4: 最终验证与清理
 目标：确保项目在 Node.js 环境下能够完整构建、运行并保持功能一致性。
