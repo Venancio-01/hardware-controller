@@ -36,7 +36,8 @@ export const monitorMachine = setup({
   states: {
     idle: {
       on: {
-        START: 'waiting'
+        START: 'waiting',
+        TICK: 'polling'
       }
     },
     waiting: {

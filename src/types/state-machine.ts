@@ -27,17 +27,27 @@ export type MonitorAnomalyEvent = BaseEvent & { type: 'monitor_anomaly'; priorit
 
 // P2 Events
 export type ApplyRequestEvent = BaseEvent & { type: 'apply_request'; priority: EventPriority.P2 };
+export type AuthorizeRequestEvent = BaseEvent & { type: 'authorize_request'; priority: EventPriority.P2 };
+export type RefuseRequestEvent = BaseEvent & { type: 'refuse_request'; priority: EventPriority.P2 };
+export type FinishRequestEvent = BaseEvent & { type: 'finish_request'; priority: EventPriority.P2 };
 export type OperationCompleteEvent = BaseEvent & { type: 'operation_complete'; priority: EventPriority.P2 };
 export type CabinetLockChangedEvent = BaseEvent & { type: 'cabinet_lock_changed'; priority: EventPriority.P2; isClosed: boolean };
+export type AlarmCancelledEvent = BaseEvent & { type: 'alarm_cancelled'; priority: EventPriority.P2 };
 
 // P3 Events
 export type MaintenanceEvent = BaseEvent & { type: 'maintenance_check'; priority: EventPriority.P3 };
+export type MonitorTickEvent = BaseEvent & { type: 'monitor_tick'; priority: EventPriority.P3 };
 
 export type SystemEvent =
   | KeyDetectedEvent
   | VibrationDetectedEvent
   | MonitorAnomalyEvent
   | ApplyRequestEvent
+  | AuthorizeRequestEvent
+  | RefuseRequestEvent
+  | FinishRequestEvent
   | OperationCompleteEvent
   | CabinetLockChangedEvent
-  | MaintenanceEvent;
+  | AlarmCancelledEvent
+  | MaintenanceEvent
+  | MonitorTickEvent;

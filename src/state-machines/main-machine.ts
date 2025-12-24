@@ -32,7 +32,10 @@ export const mainMachine = setup({
   on: {
     key_detected: '.alarm',
     vibration_detected: '.alarm',
-    monitor_anomaly: '.alarm'
+    monitor_anomaly: '.alarm',
+    monitor_tick: {
+      actions: sendTo('monitor', { type: 'TICK' })
+    }
   },
   states: {
     idle: {
@@ -51,9 +54,20 @@ export const mainMachine = setup({
       },
       on: {
         operation_complete: 'idle',
+        apply_request: {
+          actions: sendTo('applyAmmo', { type: 'APPLY' })
+        },
+        authorize_request: {
+          actions: sendTo('applyAmmo', { type: 'AUTHORIZED' })
+        },
+        refuse_request: {
+          actions: sendTo('applyAmmo', { type: 'REFUSE' })
+        },
+        finish_request: {
+          actions: sendTo('applyAmmo', { type: 'FINISHED' })
+        },
         cabinet_lock_changed: {
           actions: sendTo('applyAmmo', ({ event }) => {
-            // Map global event to child machine event
             if (event.type === 'cabinet_lock_changed') {
               return event.isClosed ? { type: 'DOOR_CLOSE' } : { type: 'DOOR_OPEN' };
             }

@@ -52,43 +52,33 @@ async function startApp() {
             );
 
             if (combinedUpdate && combinedUpdate.changed) {
-              // Priority 2: Business Logic Events
-              
               // Handle Apply Button (Cabinet Relay 1, index 0)
               if (combinedUpdate.changeDescriptions.some(d => d.includes('CH1'))) {
                 const isCabinetRelay1Closed = (combinedUpdate.combinedState[0]);
                 if (isCabinetRelay1Closed) {
                    mainActor.send({ type: 'apply_request', priority: EventPriority.P2 });
-                   // Also notify the child if it's already active
-                   const snapshot = mainActor.getSnapshot();
-                   if (snapshot.value === 'normal' && snapshot.children.applyAmmo) {
-                      snapshot.children.applyAmmo.send({ type: 'APPLY' });
-                   }
                 } else {
-                   // Button released - usually mapped to FINISHED in business logic
-                   const snapshot = mainActor.getSnapshot();
-                   if (snapshot.value === 'normal' && snapshot.children.applyAmmo) {
-                      snapshot.children.applyAmmo.send({ type: 'FINISHED' });
-                   }
+                   mainActor.send({ type: 'finish_request', priority: EventPriority.P2 });
                 }
               }
 
               // Handle Authorization (Control Relay 5, index 12)
               if (combinedUpdate.changeDescriptions.some(d => d.includes('CH13'))) {
                  const isControlRelay5Closed = (combinedUpdate.combinedState[12]);
-                 const snapshot = mainActor.getSnapshot();
-                 if (snapshot.value === 'normal' && snapshot.children.applyAmmo) {
-                    snapshot.children.applyAmmo.send({ type: isControlRelay5Closed ? 'AUTHORIZED' : 'REFUSE' });
+                 if (isControlRelay5Closed) {
+                    mainActor.send({ type: 'authorize_request', priority: EventPriority.P2 });
+                 } else {
+                    mainActor.send({ type: 'refuse_request', priority: EventPriority.P2 });
                  }
               }
 
               // Handle Door Sensor (Cabinet Relay 2, index 1)
               if (combinedUpdate.changeDescriptions.some(d => d.includes('CH2'))) {
                  const isCabinetRelay2Closed = (combinedUpdate.combinedState[1]);
-                 mainActor.send({ 
-                   type: 'cabinet_lock_changed', 
-                   priority: EventPriority.P2, 
-                   isClosed: isCabinetRelay2Closed 
+                 mainActor.send({
+                   type: 'cabinet_lock_changed',
+                   priority: EventPriority.P2,
+                   isClosed: isCabinetRelay2Closed
                  });
               }
 
@@ -118,18 +108,12 @@ async function startApp() {
     // 启动主状态机
     mainActor.start();
     
-    // 启动 Monitor 子状态机 (Monitor is auto-invoked by Main)
-    const monitorActor = mainActor.getSnapshot().children.monitor;
-    if (monitorActor) {
-      monitorActor.send({ type: 'START' });
-    }
+    // 启动 Monitor 子状态机 (Initial START)
+    mainActor.send({ type: 'monitor_tick', priority: EventPriority.P3 });
 
     appLogger.info(`开始 UDP 查询循环 (${config.QUERY_INTERVAL}ms 间隔)`);
     queryLoop = setInterval(() => {
-      const currentMonitor = mainActor.getSnapshot().children.monitor;
-      if (currentMonitor) {
-        currentMonitor.send({ type: 'TICK' });
-      }
+      mainActor.send({ type: 'monitor_tick', priority: EventPriority.P3 });
     }, config.QUERY_INTERVAL);
 
     // 关闭处理
