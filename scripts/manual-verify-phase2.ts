@@ -1,33 +1,42 @@
-import { initializeHardware } from '../src/hardware/initializer.js';
-import { initializeVoiceBroadcast } from '../src/voice-broadcast/initializer.ts';
-import { resetAllRelays } from '../src/relay/reset.js';
+import { createMainActor } from '../src/state-machines/main-machine.js';
 import { HardwareCommunicationManager } from '../src/hardware/manager.js';
-import { createModuleLogger } from '../src/logger/index.js';
+import { EventPriority } from '../src/types/state-machine.js';
 
-console.log('--- Phase 2 Verification: Initializers & Reset ---');
+console.log('--- Phase 2 Verification: Main Machine ---');
 
 const mockHardware = new HardwareCommunicationManager();
-const logger = createModuleLogger('VerifyPhase2');
-
-// Mock initialize
-mockHardware.initialize = async (cfg) => {
-  console.log('[MockHardware] Initializing with:', JSON.stringify(cfg, null, 2));
-};
-
-// Mock sendCommand
-mockHardware.sendCommand = async (protocol, cmd, params, clientId) => {
-  console.log(`[MockHardware] Sending ${protocol} command to ${clientId}: ${cmd}`);
+mockHardware.sendCommand = async (protocol, command, parameters, clientId) => {
+  console.log(`[MockHardware] Sending ${protocol} command to ${clientId}: ${command}`);
   return {};
 };
 
-// Mock getAllConnectionStatus
-mockHardware.getAllConnectionStatus = () => ({ udp: { cabinet: 'reg', control: 'reg' }, tcp: {} });
+const actor = createMainActor(mockHardware);
 
-async function verify() {
-  await initializeHardware(mockHardware, logger);
-  await resetAllRelays(mockHardware, logger);
-  await initializeVoiceBroadcast(mockHardware, logger);
+actor.subscribe((snapshot) => {
+  console.log(`[Main Actor State] ${snapshot.value}`);
+  if (snapshot.children.monitor) {
+     console.log('  [Child] monitor actor is active');
+  }
+  if (snapshot.children.alarm) {
+     console.log('  [Child] alarm actor is active');
+  }
+});
+
+actor.start();
+
+setTimeout(() => {
+  console.log('-> Sending apply_request (P2)');
+  actor.send({ type: 'apply_request', priority: EventPriority.P2 });
+}, 500);
+
+setTimeout(() => {
+  console.log('-> Sending key_detected (P0) - Priority Interruption');
+  actor.send({ type: 'key_detected', priority: EventPriority.P0 });
+}, 1000);
+
+setTimeout(() => {
+  console.log('-> Sending alarm_cancelled');
+  actor.send({ type: 'alarm_cancelled' });
   console.log('--- Verification Complete ---');
-}
-
-verify().catch(console.error);
+  process.exit(0);
+}, 1500);
