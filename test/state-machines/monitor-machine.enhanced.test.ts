@@ -1,0 +1,116 @@
+import { setup, createActor } from 'xstate';
+import { monitorMachine } from '../../src/state-machines/monitor-machine.js';
+import { HardwareCommunicationManager } from '../../src/hardware/manager.js';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { EventPriority } from '../../src/types/state-machine.js';
+import { config } from '../../src/config/index.js';
+
+// Mock the HardwareCommunicationManager class
+vi.mock('../../src/hardware/manager.js', () => {
+  return {
+    HardwareCommunicationManager: class {
+      sendCommand = vi.fn(() => Promise.resolve({}));
+      onIncomingData?: Function;
+    }
+  };
+});
+
+describe('MonitorMachine - Enhanced Subscriptions', () => {
+  let mockHardware: HardwareCommunicationManager;
+
+  beforeEach(() => {
+    mockHardware = new HardwareCommunicationManager();
+    vi.clearAllMocks();
+  });
+
+  it('should notify parent of business events when relay status changes', async () => {
+    let receivedEvents: any[] = [];
+    const cabinetIndexes = new Set<number>();
+    const controlIndexes = new Set<number>();
+
+    const buildStatusPayload = (indexes: Set<number>, offset: number) => {
+      const bits = Array.from({ length: 8 }, () => '0');
+      indexes.forEach((index) => {
+        if (index >= offset && index < offset + 8) {
+          bits[index - offset] = '1';
+        }
+      });
+      return `dostatus${bits.join('')}`;
+    };
+
+    const sendStatus = (clientId: 'cabinet' | 'control') => {
+      const payload = clientId === 'cabinet'
+        ? buildStatusPayload(cabinetIndexes, 0)
+        : buildStatusPayload(controlIndexes, 8);
+      mockHardware.onIncomingData?.('udp', clientId, Buffer.from(payload), { address: '127.0.0.1', port: 8000 }, {});
+    };
+    
+    const parentMachine = setup({
+      actors: { monitor: monitorMachine }
+    }).createMachine({
+      invoke: {
+        src: 'monitor',
+        id: 'monitor',
+        input: { hardware: mockHardware }
+      },
+      on: {
+        '*': {
+          actions: ({ event }) => { 
+            // Only collect relevant business events
+            if (['apply_request', 'authorize_request', 'cabinet_lock_changed', 'finish_request', 'refuse_request'].includes(event.type)) {
+                receivedEvents.push(event); 
+            }
+          }
+        }
+      }
+    });
+
+    const parentActor = createActor(parentMachine);
+    parentActor.start();
+    
+    // Wait for actor to initialize and entry actions to run
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    // Ensure subscription is established
+    expect(mockHardware.onIncomingData).toBeDefined();
+
+    // Simulate Hardware Data Callback
+    // 1. Initial State
+    sendStatus('cabinet');
+    sendStatus('control');
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    // 2. CH1 (Index 0) Closed -> apply_request
+    cabinetIndexes.add(config.APPLY_INDEX);
+    sendStatus('cabinet');
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    expect(receivedEvents).toContainEqual(expect.objectContaining({ type: 'apply_request', priority: EventPriority.P2 }));
+
+    receivedEvents = [];
+    controlIndexes.add(config.AUTH_INDEX);
+    sendStatus('control');
+    await new Promise(resolve => setTimeout(resolve, 50));
+    expect(receivedEvents).toContainEqual(expect.objectContaining({ type: 'authorize_request', priority: EventPriority.P2 }));
+
+    
+    // Ensure CH1 logic was NOT triggered again
+    expect(receivedEvents.filter(e => e.type === 'apply_request').length).toBe(0);
+
+    // 4. ELECTRIC_LOCK_OUT_INDEX changed -> cabinet_lock_changed
+    receivedEvents = [];
+    const lockClientId = config.ELECTRIC_LOCK_OUT_INDEX >= 8 ? 'control' : 'cabinet';
+    if (lockClientId === 'control') {
+      controlIndexes.add(config.ELECTRIC_LOCK_OUT_INDEX);
+    } else {
+      cabinetIndexes.add(config.ELECTRIC_LOCK_OUT_INDEX);
+    }
+    sendStatus(lockClientId);
+    await new Promise(resolve => setTimeout(resolve, 50));
+    expect(receivedEvents).toContainEqual(expect.objectContaining({ 
+        type: 'cabinet_lock_changed', 
+        priority: EventPriority.P2,
+        isClosed: true
+    }));
+  });
+});
