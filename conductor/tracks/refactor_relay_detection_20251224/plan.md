@@ -13,10 +13,10 @@
 ## Phase 2: MonitorMachine 订阅与事件下沉 (TDD)
 **目标**：重构 `MonitorMachine` 使其具备直接订阅硬件数据的能力，并能发出语义化事件。
 
-- [ ] **Task 2.1**: 扩展 `MonitorMachine` 单元测试，模拟硬件管理器回调触发业务事件
-- [ ] **Task 2.2**: 在 `MonitorMachine` 中实现对 `HardwareCommunicationManager` 的直接订阅逻辑
-- [ ] **Task 2.3**: 在 `MonitorMachine` 内部集成 `RelayStatusAggregator` 并实现逻辑分发（发送 `sendParent`）
-- [ ] **Task 2.4**: 验证 `MonitorMachine` 的所有测试通过
+- [x] **Task 2.1**: 扩展 `MonitorMachine` 单元测试，模拟 hardware 回调触发业务事件
+- [x] **Task 2.2**: 在 `MonitorMachine` 中实现对 `HardwareCommunicationManager` 的直接订阅逻辑
+- [x] **Task 2.3**: 在 `MonitorMachine` 内部集成 `RelayStatusAggregator` 并实现逻辑分发（发送 `sendParent`）
+- [x] **Task 2.4**: 验证 `MonitorMachine` 的所有测试通过 [215d82b]
 - [ ] **Task: Conductor - User Manual Verification 'Phase 2: MonitorMachine Subscription' (Protocol in workflow.md)**
 
 ## Phase 3: 系统集成与清理
