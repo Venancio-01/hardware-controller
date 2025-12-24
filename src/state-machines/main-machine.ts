@@ -30,14 +30,16 @@ export const mainMachine = setup({
       on: {
         apply_request: 'normal',
         key_detected: 'alarm',
-        vibration_detected: 'alarm'
+        vibration_detected: 'alarm',
+        monitor_anomaly: 'alarm'
       }
     },
     normal: {
       on: {
         operation_complete: 'idle',
         key_detected: 'alarm',
-        vibration_detected: 'alarm'
+        vibration_detected: 'alarm',
+        monitor_anomaly: 'alarm'
       }
     },
     alarm: {

@@ -1,6 +1,7 @@
-import { setup, createActor } from 'xstate';
+import { setup, createActor, fromPromise, sendParent } from 'xstate';
 import { type HardwareCommunicationManager } from '../hardware/manager.js';
 import { RelayCommandBuilder } from '../relay/controller.js';
+import { EventPriority } from '../types/state-machine.js';
 
 type MonitorContext = {
   hardware: HardwareCommunicationManager;
@@ -17,18 +18,14 @@ export const monitorMachine = setup({
     events: {} as MonitorEvent,
     input: {} as { hardware: HardwareCommunicationManager }
   },
-  actions: {
-    queryRelayStatus: async ({ context }) => {
+  actors: {
+    queryRelayStatus: fromPromise(async ({ input }: { input: { hardware: HardwareCommunicationManager } }) => {
       const cmd = RelayCommandBuilder.queryRelayStatus();
-      try {
-        await Promise.all([
-          context.hardware.sendCommand('udp', cmd, undefined, 'cabinet', false),
-          context.hardware.sendCommand('udp', cmd, undefined, 'control', false)
-        ]);
-      } catch (error) {
-
-      }
-    }
+      await Promise.all([
+        input.hardware.sendCommand('udp', cmd, undefined, 'cabinet', false),
+        input.hardware.sendCommand('udp', cmd, undefined, 'control', false)
+      ]);
+    })
   }
 }).createMachine({
   id: 'monitor',
@@ -49,7 +46,19 @@ export const monitorMachine = setup({
       }
     },
     polling: {
-      entry: 'queryRelayStatus',
+      invoke: {
+        src: 'queryRelayStatus',
+        input: ({ context }) => ({ hardware: context.hardware }),
+        onDone: 'waiting',
+        onError: 'error'
+      }
+    },
+    error: {
+      entry: sendParent(({ event }) => ({
+        type: 'monitor_anomaly',
+        priority: EventPriority.P1,
+        data: (event as any).data
+      })),
       always: 'waiting'
     }
   }

@@ -65,4 +65,19 @@ describe('MainMachine', () => {
     const snapshot = actor.getSnapshot();
     expect(snapshot.children.monitor).toBeDefined();
   });
+
+  it('should transition to alarm on monitor_anomaly from monitor actor', async () => {
+    mockHardware.sendCommand = vi.fn().mockRejectedValue(new Error('Hardware Error'));
+    const actor = createMainActor(mockHardware);
+    actor.start();
+    
+    const monitorActor = actor.getSnapshot().children.monitor;
+    monitorActor.send({ type: 'START' });
+    monitorActor.send({ type: 'TICK' });
+
+    // Wait for async poll and sendParent
+    await new Promise(resolve => setTimeout(resolve, 30));
+
+    expect(actor.getSnapshot().value).toBe('alarm');
+  });
 });

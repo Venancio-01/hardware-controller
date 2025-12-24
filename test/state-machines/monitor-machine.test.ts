@@ -1,4 +1,5 @@
-import { createMonitorActor } from '../../src/state-machines/monitor-machine.js';
+import { setup, createActor } from 'xstate';
+import { monitorMachine } from '../../src/state-machines/monitor-machine.js';
 import { HardwareCommunicationManager } from '../../src/hardware/manager.js';
 
 // Mock the HardwareCommunicationManager class
@@ -18,20 +19,20 @@ describe('MonitorMachine', () => {
   });
 
   it('should start in idle state', () => {
-    const actor = createMonitorActor(mockHardware);
+    const actor = createActor(monitorMachine, { input: { hardware: mockHardware } });
     actor.start();
     expect(actor.getSnapshot().value).toBe('idle');
   });
 
   it('should transition to waiting state on START', () => {
-    const actor = createMonitorActor(mockHardware);
+    const actor = createActor(monitorMachine, { input: { hardware: mockHardware } });
     actor.start();
     actor.send({ type: 'START' });
     expect(actor.getSnapshot().value).toBe('waiting');
   });
 
   it('should return to idle state on STOP', () => {
-    const actor = createMonitorActor(mockHardware);
+    const actor = createActor(monitorMachine, { input: { hardware: mockHardware } });
     actor.start();
     actor.send({ type: 'START' });
     expect(actor.getSnapshot().value).toBe('waiting');
@@ -40,28 +41,53 @@ describe('MonitorMachine', () => {
   });
 
   it('should invoke hardware query on TICK and return to waiting', async () => {
-    const actor = createMonitorActor(mockHardware);
+    const actor = createActor(monitorMachine, { input: { hardware: mockHardware } });
     actor.start();
-    actor.send({ type: 'START' }); // transitions to waiting
+    actor.send({ type: 'START' });
 
-    // Send TICK to trigger polling
     actor.send({ type: 'TICK' });
 
-    // Wait for async actions to complete
-    await new Promise(resolve => setTimeout(resolve, 10));
+    // Wait for async actions
+    await new Promise(resolve => setTimeout(resolve, 20));
 
-    // Should briefly go to polling and back to waiting (or stay in polling if async)
-    // Assuming synchronous execution of action or immediate transition
-    // But importantly, check if sendCommand was called
     expect(mockHardware.sendCommand).toHaveBeenCalled();
-    // Assuming monitor machine behaves same as poller for now
-    expect(mockHardware.sendCommand).toHaveBeenCalledTimes(2); // cabinet and control
+    expect(mockHardware.sendCommand).toHaveBeenCalledTimes(2);
     
-    // Check arguments for one of the calls
-    // Expecting 'udp', command, undefined, target, false
     const calls = (mockHardware.sendCommand as any).mock.calls;
     const targets = calls.map((c: any[]) => c[3]);
     expect(targets).toContain('cabinet');
     expect(targets).toContain('control');
+  });
+
+  it('should send monitor_anomaly to parent on hardware failure', async () => {
+    mockHardware.sendCommand = vi.fn().mockRejectedValue(new Error('Network timeout'));
+    
+    let receivedAnomaly = false;
+    const parentMachine = setup({
+      actors: { monitor: monitorMachine }
+    }).createMachine({
+      invoke: {
+        src: 'monitor',
+        id: 'monitor',
+        input: { hardware: mockHardware }
+      },
+      on: {
+        monitor_anomaly: {
+          actions: () => { receivedAnomaly = true; }
+        }
+      }
+    });
+
+    const parentActor = createActor(parentMachine);
+    parentActor.start();
+    
+    const monitorActor = parentActor.getSnapshot().children.monitor;
+    monitorActor.send({ type: 'START' });
+    monitorActor.send({ type: 'TICK' });
+
+    // Wait for async action
+    await new Promise(resolve => setTimeout(resolve, 20));
+
+    expect(receivedAnomaly).toBe(true);
   });
 });
