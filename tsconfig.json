@@ -30,9 +30,7 @@
     "lib": [
       "ESNext"
     ],
-    "types": [
-      "bun-types"
-    ]
+    "types": []
   },
   "include": [
     "src/**/*"
