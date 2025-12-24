@@ -1,4 +1,18 @@
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
+import dotenv from 'dotenv'
 import { z } from 'zod'
+
+const envLocalPath = resolve(process.cwd(), '.env.local')
+const envPath = resolve(process.cwd(), '.env')
+
+if (existsSync(envLocalPath)) {
+  dotenv.config({ path: envLocalPath })
+}
+
+if (existsSync(envPath)) {
+  dotenv.config({ path: envPath })
+}
 
 /**
  * 客户端连接配置 Schema
@@ -74,16 +88,22 @@ const envSchema = z.object({
     .default(8000),
 
   // 语音播报模块配置
-  VOICE_BROADCAST_CABINET_HOST: z
-    .string()
-    .regex(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^localhost$/, 'Invalid IP address format')
-    .default('192.168.1.103'),
+  VOICE_BROADCAST_CABINET_HOST: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z
+      .string()
+      .regex(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^localhost$/, 'Invalid IP address format')
+      .optional()
+  ),
 
-  VOICE_BROADCAST_CABINET_PORT: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().positive().min(1).max(65535))
-    .default(50000),
+  VOICE_BROADCAST_CABINET_PORT: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z
+      .string()
+      .transform(Number)
+      .pipe(z.number().int().positive().min(1).max(65535))
+      .optional()
+  ),
 
   VOICE_BROADCAST_CABINET_VOLUME: z
     .string()
@@ -157,6 +177,122 @@ const envSchema = z.object({
     .transform(Number)
     .pipe(z.number().int().positive().min(1))
     .default(30),
+
+  // 硬件输入索引配置 (0-15)
+  APPLY_INDEX: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(15))
+    .default(0),
+
+  CABINET_DOOR_INDEX: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(15))
+    .default(1),
+
+  ELECTRIC_LOCK_IN_INDEX: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(15))
+    .default(2),
+
+  MECHANICAL_LOCK_INDEX: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(15))
+    .default(3),
+
+  VIBRATION_ALARM_INDEX: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(15))
+    .default(4),
+
+  SWITCH_06_INDEX: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(15))
+    .default(5),
+
+  DEVICE_STATUS_INDEX: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(15))
+    .default(6),
+
+  CABINET_ALARM_LIGHT_INDEX: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(15))
+    .default(7),
+
+  CONTROL_ALARM_LIGHT_INDEX: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(15))
+    .default(8),
+
+  ELECTRIC_LOCK_OUT_INDEX: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(15))
+    .default(9),
+
+  ALARM_STATUS_INDEX: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(15))
+    .default(10),
+
+  AUTH_INDEX: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(15))
+    .default(11),
+
+  AUTH_CANCEL_INDEX: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(15))
+    .default(12),
+
+  SWITCH_26_INDEX: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(15))
+    .default(13),
+
+  SWITCH_27_INDEX: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(15))
+    .default(14),
+
+  SWITCH_28_INDEX: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(15))
+    .default(15),
+
+  // 硬件继电器索引配置 (1-32)
+  RELAY_LOCK_INDEX: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().positive().min(1).max(32))
+    .default(2),
+
+  RELAY_CABINET_ALARM_INDEX: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().positive().min(1).max(32))
+    .default(8),
+
+  RELAY_CONTROL_ALARM_INDEX: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().positive().min(1).max(32))
+    .default(1),
 })
 
 /**
@@ -245,6 +381,29 @@ export function getConfigSummary(): Record<string, unknown> {
       udpLocalPort: config.UDP_LOCAL_PORT,
       queryInterval: config.QUERY_INTERVAL,
       doorOpenTimeout: config.DOOR_OPEN_TIMEOUT_S,
+      inputs: {
+        apply: config.APPLY_INDEX,
+        cabinetDoor: config.CABINET_DOOR_INDEX,
+        electricLockIn: config.ELECTRIC_LOCK_IN_INDEX,
+        mechanicalLock: config.MECHANICAL_LOCK_INDEX,
+        vibrationAlarm: config.VIBRATION_ALARM_INDEX,
+        switch06: config.SWITCH_06_INDEX,
+        deviceStatus: config.DEVICE_STATUS_INDEX,
+        cabinetAlarmLight: config.CABINET_ALARM_LIGHT_INDEX,
+        controlAlarmLight: config.CONTROL_ALARM_LIGHT_INDEX,
+        electricLockOut: config.ELECTRIC_LOCK_OUT_INDEX,
+        alarmStatus: config.ALARM_STATUS_INDEX,
+        auth: config.AUTH_INDEX,
+        authCancel: config.AUTH_CANCEL_INDEX,
+        switch26: config.SWITCH_26_INDEX,
+        switch27: config.SWITCH_27_INDEX,
+        switch28: config.SWITCH_28_INDEX,
+      },
+      relays: {
+        lock: config.RELAY_LOCK_INDEX,
+        cabinetAlarm: config.RELAY_CABINET_ALARM_INDEX,
+        controlAlarm: config.RELAY_CONTROL_ALARM_INDEX,
+      },
     },
     logging: {
       level: config.LOG_LEVEL,
