@@ -1,4 +1,5 @@
-import { createApplyAmmoActor } from '../../src/state-machines/apply-ammo-machine.js';
+import { setup, createActor } from 'xstate';
+import { applyAmmoMachine } from '../../src/state-machines/apply-ammo-machine.js';
 import { VoiceBroadcastController } from '../../src/voice-broadcast/index.js';
 import { type StructuredLogger } from '../../src/logger/index.ts';
 
@@ -24,14 +25,36 @@ const mockLogger = {
   debug: vi.fn(() => {})
 } as unknown as StructuredLogger;
 
+const mockHardware = {
+  sendCommand: vi.fn(() => Promise.resolve({}))
+} as any;
+
+/**
+ * Helper to create an actor with a parent to avoid sendParent errors
+ */
+function createWrappedActor() {
+  const parentMachine = setup({
+    actors: { applyAmmo: applyAmmoMachine }
+  }).createMachine({
+    invoke: {
+      src: 'applyAmmo',
+      id: 'applyAmmo',
+      input: { logger: mockLogger, manager: mockHardware }
+    }
+  });
+
+  const parentActor = createActor(parentMachine);
+  parentActor.start();
+  return parentActor.getSnapshot().children.applyAmmo;
+}
+
 describe('ApplyAmmoMachine Enhanced', () => {
   beforeEach(() => {
     mockBroadcast.mockClear();
   });
 
   it('应该在 applying 状态下支持用户取消 (CABINET1 变低)', () => {
-    const actor = createApplyAmmoActor(mockLogger);
-    actor.start();
+    const actor = createWrappedActor();
     
     // 进入 applying 状态
     actor.send({ type: 'APPLY' });
@@ -48,8 +71,7 @@ describe('ApplyAmmoMachine Enhanced', () => {
   });
 
   it('应该在 applying 状态下支持控制端拒绝 (CONTROL5 变化)', () => {
-    const actor = createApplyAmmoActor(mockLogger);
-    actor.start();
+    const actor = createWrappedActor();
     
     // 进入 applying 状态
     actor.send({ type: 'APPLY' });
@@ -65,8 +87,7 @@ describe('ApplyAmmoMachine Enhanced', () => {
   });
 
   it('应该在 refused 状态下支持用户复位 (CABINET1 变低)', () => {
-    const actor = createApplyAmmoActor(mockLogger);
-    actor.start();
+    const actor = createWrappedActor();
     
     // 进入 applying -> refused
     actor.send({ type: 'APPLY' });
@@ -86,8 +107,7 @@ describe('ApplyAmmoMachine Enhanced', () => {
   });
 
   it('应该支持完整的开门取弹流程 (AUTHORIZED -> DOOR_OPEN -> DOOR_CLOSE)', () => {
-    const actor = createApplyAmmoActor(mockLogger);
-    actor.start();
+    const actor = createWrappedActor();
 
     // 1. 申请供弹
     actor.send({ type: 'APPLY' });
@@ -96,7 +116,7 @@ describe('ApplyAmmoMachine Enhanced', () => {
 
     // 2. 授权通过
     actor.send({ type: 'AUTHORIZED' });
-    // 期望进入 authorized 状态，而不是直接回到 idle
+    // 期望进入 authorized 状态
     expect(actor.getSnapshot().value).toBe('authorized');
     expect(mockBroadcast).toHaveBeenCalledWith('授权通过，已开锁请打开柜门');
     mockBroadcast.mockClear();
@@ -123,8 +143,7 @@ describe('ApplyAmmoMachine Enhanced', () => {
     // 使用 fake timers
     vi.useFakeTimers();
 
-    const actor = createApplyAmmoActor(mockLogger);
-    actor.start();
+    const actor = createWrappedActor();
 
     // 流程: applying -> authorized -> door_open
     actor.send({ type: 'APPLY' });
