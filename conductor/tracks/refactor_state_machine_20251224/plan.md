@@ -1,10 +1,10 @@
 # Implementation Plan: Refactor State Machine Architecture (Main-Sub Mixed SM)
 
-## Phase 1: Foundation & Refactoring Preparation
+## Phase 1: Foundation & Refactoring Preparation [checkpoint: 20fe256]
 - [x] Task: Rename `poller-machine.ts` to `monitor-machine.ts` and update all existing imports/references. [f18d39b]
 - [x] Task: Define global types and prioritized event schemas in `src/types/state-machine.ts` (P0-P3 priorities). [e32ed94]
 - [x] Task: Create a skeleton `alarm-machine.ts` in `src/state-machines/` with basic states (`idle`, `active`, `acknowledged`). [17097cd]
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Foundation' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Foundation' (Protocol in workflow.md) [20fe256]
 
 ## Phase 2: Main Coordinator Implementation
 - [ ] Task: Write TDD tests for `MainMachine` (verifying actor spawning and global state transitions from IDLE to ALARM/NORMAL).
