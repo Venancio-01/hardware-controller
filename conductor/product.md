@@ -1,8 +1,8 @@
 # Initial Concept
-A hardware communication service using Node.js/Bun + TypeScript for relay control and voice broadcast via UDP/TCP.
+A hardware communication service using Node.js + TypeScript for relay control and voice broadcast via UDP/TCP.
 
 ## 1. 产品愿景
-为工业控制现场的设备管理人员提供一个基于 Bun + TypeScript 的高可靠硬件通信服务，实现对继电器控制和语音播报模块的精准管理。
+为工业控制现场的设备管理人员提供一个基于 Node.js + TypeScript 的高可靠硬件通信服务，实现对继电器控制和语音播报模块的精准管理。
 
 ## 2. 目标用户
 - **主要用户**：工业控制现场设备管理人员。
