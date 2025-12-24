@@ -14,7 +14,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-## [~] Track: Refactor State Machine Architecture (Main-Sub Mixed SM)
+## [x] Track: Refactor State Machine Architecture (Main-Sub Mixed SM)
 *Link: [./conductor/tracks/refactor_state_machine_20251224/](./conductor/tracks/refactor_state_machine_20251224/)*
 
 ---
