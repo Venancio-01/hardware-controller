@@ -1,4 +1,4 @@
-import { createPollerActor } from '../../src/state-machines/poller-machine.js';
+import { createMonitorActor } from '../../src/state-machines/monitor-machine.js';
 import { HardwareCommunicationManager } from '../../src/hardware/manager.js';
 
 // Mock the HardwareCommunicationManager class
@@ -10,7 +10,7 @@ vi.mock('../../src/hardware/manager.js', () => {
   };
 });
 
-describe('PollerMachine', () => {
+describe('MonitorMachine', () => {
   let mockHardware: HardwareCommunicationManager;
 
   beforeEach(() => {
@@ -18,20 +18,20 @@ describe('PollerMachine', () => {
   });
 
   it('should start in idle state', () => {
-    const actor = createPollerActor(mockHardware);
+    const actor = createMonitorActor(mockHardware);
     actor.start();
     expect(actor.getSnapshot().value).toBe('idle');
   });
 
   it('should transition to waiting state on START', () => {
-    const actor = createPollerActor(mockHardware);
+    const actor = createMonitorActor(mockHardware);
     actor.start();
     actor.send({ type: 'START' });
     expect(actor.getSnapshot().value).toBe('waiting');
   });
 
   it('should return to idle state on STOP', () => {
-    const actor = createPollerActor(mockHardware);
+    const actor = createMonitorActor(mockHardware);
     actor.start();
     actor.send({ type: 'START' });
     expect(actor.getSnapshot().value).toBe('waiting');
@@ -40,7 +40,7 @@ describe('PollerMachine', () => {
   });
 
   it('should invoke hardware query on TICK and return to waiting', async () => {
-    const actor = createPollerActor(mockHardware);
+    const actor = createMonitorActor(mockHardware);
     actor.start();
     actor.send({ type: 'START' }); // transitions to waiting
 
@@ -54,6 +54,7 @@ describe('PollerMachine', () => {
     // Assuming synchronous execution of action or immediate transition
     // But importantly, check if sendCommand was called
     expect(mockHardware.sendCommand).toHaveBeenCalled();
+    // Assuming monitor machine behaves same as poller for now
     expect(mockHardware.sendCommand).toHaveBeenCalledTimes(2); // cabinet and control
     
     // Check arguments for one of the calls

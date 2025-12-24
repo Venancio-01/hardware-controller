@@ -2,19 +2,19 @@ import { setup, createActor } from 'xstate';
 import { type HardwareCommunicationManager } from '../hardware/manager.js';
 import { RelayCommandBuilder } from '../relay/controller.js';
 
-type PollerContext = {
+type MonitorContext = {
   hardware: HardwareCommunicationManager;
 };
 
-type PollerEvent =
+type MonitorEvent =
   | { type: 'START' }
   | { type: 'STOP' }
   | { type: 'TICK' };
 
-export const pollerMachine = setup({
+export const monitorMachine = setup({
   types: {
-    context: {} as PollerContext,
-    events: {} as PollerEvent,
+    context: {} as MonitorContext,
+    events: {} as MonitorEvent,
     input: {} as { hardware: HardwareCommunicationManager }
   },
   actions: {
@@ -31,7 +31,7 @@ export const pollerMachine = setup({
     }
   }
 }).createMachine({
-  id: 'poller',
+  id: 'monitor',
   initial: 'idle',
   context: ({ input }) => ({
     hardware: input.hardware
@@ -55,6 +55,6 @@ export const pollerMachine = setup({
   }
 });
 
-export function createPollerActor(hardware: HardwareCommunicationManager) {
-  return createActor(pollerMachine, { input: { hardware } });
+export function createMonitorActor(hardware: HardwareCommunicationManager) {
+  return createActor(monitorMachine, { input: { hardware } });
 }

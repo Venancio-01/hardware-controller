@@ -6,7 +6,7 @@ import { initializeVoiceBroadcast } from './voice-broadcast/initializer.js';
 import { resetAllRelays } from './relay/reset.js';
 import { RelayStatusAggregator, type RelayClientId } from './business-logic/relay-status-aggregator.js';
 import { ApplyAmmoFlow } from './business-logic/apply-ammo-flow.js';
-import { createPollerActor } from './state-machines/poller-machine.js';
+import { createMonitorActor } from './state-machines/monitor-machine.js';
 import { parseStatusResponse } from './relay/controller.js';
 
 /**
@@ -17,7 +17,7 @@ async function startApp() {
   const manager = new HardwareCommunicationManager();
   const relayAggregator = new RelayStatusAggregator();
   const applyAmmoFlow = new ApplyAmmoFlow(appLogger, manager);
-  const pollerActor = createPollerActor(manager);
+  const pollerActor = createMonitorActor(manager);
 
   let queryLoop: NodeJS.Timeout | null = null;
 

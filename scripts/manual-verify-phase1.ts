@@ -1,4 +1,4 @@
-import { createPollerActor } from '../src/state-machines/poller-machine.js';
+import { createMonitorActor } from '../src/state-machines/monitor-machine.js';
 import { HardwareCommunicationManager } from '../src/hardware/manager.js';
 
 console.log('--- Phase 1 Verification: Poller Machine ---');
@@ -10,7 +10,7 @@ mockHardware.sendCommand = async (protocol, command, parameters, clientId) => {
   return {};
 };
 
-const actor = createPollerActor(mockHardware);
+const actor = createMonitorActor(mockHardware);
 
 actor.subscribe((snapshot) => {
   console.log(`[Actor State] ${snapshot.value}`);

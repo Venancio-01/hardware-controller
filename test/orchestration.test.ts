@@ -1,7 +1,7 @@
 import { HardwareCommunicationManager } from '../src/hardware/manager.js';
 import { RelayStatusAggregator } from '../src/business-logic/relay-status-aggregator.js';
 import { ApplyAmmoFlow } from '../src/business-logic/apply-ammo-flow.js';
-import { createPollerActor } from '../src/state-machines/poller-machine.js';
+import { createMonitorActor } from '../src/state-machines/monitor-machine.js';
 import { initializeHardware } from '../src/hardware/initializer.js';
 import { resetAllRelays } from '../src/relay/reset.js';
 
@@ -13,7 +13,7 @@ describe('System Orchestration', () => {
     
     const aggregator = new RelayStatusAggregator();
     const flow = new ApplyAmmoFlow({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } as any);
-    const poller = createPollerActor(manager);
+    const poller = createMonitorActor(manager);
     
     // This is essentially what index.ts does
     await initializeHardware(manager, { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } as any);
