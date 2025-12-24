@@ -6,10 +6,10 @@
 - [x] Task: Create a skeleton `alarm-machine.ts` in `src/state-machines/` with basic states (`idle`, `active`, `acknowledged`). [17097cd]
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Foundation' (Protocol in workflow.md) [20fe256]
 
-## Phase 2: Main Coordinator Implementation
+## Phase 2: Main Coordinator Implementation [checkpoint: 92297e7]
 - [x] Task: Write TDD tests for `MainMachine` (verifying actor spawning and global state transitions from IDLE to ALARM/NORMAL). [37af71c]
 - [x] Task: Implement `MainMachine` in `src/state-machines/main-machine.ts` using XState V5 Actor model. [37af71c]
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Main Coordinator' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Main Coordinator' (Protocol in workflow.md) [92297e7]
 
 ## Phase 3: Sub-machine Integration
 - [ ] Task: Refactor `monitor-machine.ts` (formerly poller) to act as a child actor and raise anomaly events to the parent.
