@@ -1,13 +1,8 @@
 # Plan: Externalize Hardware Indices to Configuration
 
-## Phase 1: Configuration Infrastructure
+## Phase 1: Configuration Infrastructure [checkpoint: 9858a30]
 - [x] Task: Implement Zod schema validation for Hardware Input and Relay indices in `src/config/index.ts` and update `.env.example`. 1fd6f8a
-    - **Goal**: Ensure all hardware indices are configurable via environment variables and strictly validated.
-    - **TDD Steps**:
-        1. Update `test/config-validation.test.ts` to define expected schema for `hardware.inputs` (e.g., `APPLY_INDEX`) and `hardware.relays` (e.g., `RELAY_LOCK_INDEX`). Assert it fails without implementation.
-        2. Update `src/config/index.ts` to include these new fields in the Zod schema with default values matching current constants.
-        3. Verify tests pass.
-- [ ] Task: Conductor - User Manual Verification 'Configuration Infrastructure' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Configuration Infrastructure' (Protocol in workflow.md) 9858a30
 
 ## Phase 2: Refactor Input Constants
 - [ ] Task: Replace hardcoded input constants in `src/business-logic/apply-ammo-flow.ts` with configuration values.
