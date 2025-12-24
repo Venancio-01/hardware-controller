@@ -7,8 +7,8 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Foundation' (Protocol in workflow.md) [20fe256]
 
 ## Phase 2: Main Coordinator Implementation
-- [ ] Task: Write TDD tests for `MainMachine` (verifying actor spawning and global state transitions from IDLE to ALARM/NORMAL).
-- [ ] Task: Implement `MainMachine` in `src/state-machines/main-machine.ts` using XState V5 Actor model.
+- [x] Task: Write TDD tests for `MainMachine` (verifying actor spawning and global state transitions from IDLE to ALARM/NORMAL). [37af71c]
+- [x] Task: Implement `MainMachine` in `src/state-machines/main-machine.ts` using XState V5 Actor model. [37af71c]
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Main Coordinator' (Protocol in workflow.md)
 
 ## Phase 3: Sub-machine Integration
