@@ -275,23 +275,23 @@ const envSchema = z.object({
     .pipe(z.number().int().min(0).max(15))
     .default(15),
 
-  // 硬件继电器索引配置 (1-32)
+  // 硬件继电器索引配置 (1-8)
   RELAY_LOCK_INDEX: z
     .string()
     .transform(Number)
-    .pipe(z.number().int().positive().min(1).max(32))
+    .pipe(z.number().int().min(1).max(8))
     .default(2),
 
   RELAY_CABINET_ALARM_INDEX: z
     .string()
     .transform(Number)
-    .pipe(z.number().int().positive().min(1).max(32))
+    .pipe(z.number().int().min(1).max(8))
     .default(8),
 
   RELAY_CONTROL_ALARM_INDEX: z
     .string()
     .transform(Number)
-    .pipe(z.number().int().positive().min(1).max(32))
+    .pipe(z.number().int().min(1).max(8))
     .default(1),
 })
 

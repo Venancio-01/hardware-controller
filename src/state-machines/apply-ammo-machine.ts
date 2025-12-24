@@ -2,7 +2,7 @@ import { setup, createActor } from 'xstate';
 import { VoiceBroadcastController } from '../voice-broadcast/index.js';
 import { type StructuredLogger } from '../logger/index.js';
 import { type HardwareCommunicationManager } from '../hardware/manager.js';
-import { RelayCommandBuilder } from '../relay/controller.js';
+import { RelayCommandBuilder, type RelayChannel } from '../relay/controller.js';
 import { config } from '../config/index.js';
 
 type ApplyAmmoEvent =
@@ -97,7 +97,7 @@ export function createApplyAmmoActor(logger: StructuredLogger, manager?: Hardwar
           return;
         }
 
-        const command = RelayCommandBuilder.open(2);
+        const command = RelayCommandBuilder.open(config.RELAY_LOCK_INDEX as RelayChannel);
         logger.info('正在发送闭锁指令...', { command, clientId: 'control' });
 
         manager.sendCommand('udp', command, {}, 'control', false)
@@ -116,9 +116,9 @@ export function createApplyAmmoActor(logger: StructuredLogger, manager?: Hardwar
 
         logger.info('柜门超时未关，正在开启报警...');
 
-        // 柜体端 8 和 控制端 1
-        const cabinetCommand8 = RelayCommandBuilder.close(8);
-        const controlCommand1 = RelayCommandBuilder.close(1);
+        // 柜体端报警灯 和 控制端报警灯
+        const cabinetCommand8 = RelayCommandBuilder.close(config.RELAY_CABINET_ALARM_INDEX as RelayChannel);
+        const controlCommand1 = RelayCommandBuilder.close(config.RELAY_CONTROL_ALARM_INDEX as RelayChannel);
 
         void manager.sendCommand('udp', cabinetCommand8, {}, 'cabinet', false);
         void manager.sendCommand('udp', controlCommand1, {}, 'control', false);
@@ -131,9 +131,9 @@ export function createApplyAmmoActor(logger: StructuredLogger, manager?: Hardwar
 
         logger.info('正在停止报警...');
 
-        // 柜体端 8 和 控制端 1
-        const cabinetCommand8 = RelayCommandBuilder.open(8);
-        const controlCommand1 = RelayCommandBuilder.open(1);
+        // 柜体端报警灯 和 控制端报警灯
+        const cabinetCommand8 = RelayCommandBuilder.open(config.RELAY_CABINET_ALARM_INDEX as RelayChannel);
+        const controlCommand1 = RelayCommandBuilder.open(config.RELAY_CONTROL_ALARM_INDEX as RelayChannel);
 
         void manager.sendCommand('udp', cabinetCommand8, {}, 'cabinet', false);
         void manager.sendCommand('udp', controlCommand1, {}, 'control', false);
