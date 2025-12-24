@@ -151,12 +151,12 @@ const envSchema = z.object({
     .pipe(z.number().int().min(100).max(60000))
     .default(1000),
 
-  // 柜门状态监控配置
-  DOOR_OPEN_TIMEOUT_MS: z
+  // 柜门状态监控配置（秒为单位）
+  DOOR_OPEN_TIMEOUT_S: z
     .string()
     .transform(Number)
-    .pipe(z.number().int().positive().min(1000))
-    .default(30000),
+    .pipe(z.number().int().positive().min(1))
+    .default(30),
 })
 
 /**
@@ -244,7 +244,7 @@ export function getConfigSummary(): Record<string, unknown> {
       retryAttempts: config.HARDWARE_RETRY_ATTEMPTS,
       udpLocalPort: config.UDP_LOCAL_PORT,
       queryInterval: config.QUERY_INTERVAL,
-      doorOpenTimeout: config.DOOR_OPEN_TIMEOUT_MS,
+      doorOpenTimeout: config.DOOR_OPEN_TIMEOUT_S,
     },
     logging: {
       level: config.LOG_LEVEL,

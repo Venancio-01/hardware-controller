@@ -117,8 +117,8 @@ export function createApplyAmmoActor(logger: StructuredLogger, manager?: Hardwar
         logger.info('柜门超时未关，正在开启报警...');
 
         // 柜体端 8 和 控制端 1
-        const cabinetCommand8 = RelayCommandBuilder.open(8);
-        const controlCommand1 = RelayCommandBuilder.open(1);
+        const cabinetCommand8 = RelayCommandBuilder.close(8);
+        const controlCommand1 = RelayCommandBuilder.close(1);
 
         void manager.sendCommand('udp', cabinetCommand8, {}, 'cabinet', false);
         void manager.sendCommand('udp', controlCommand1, {}, 'control', false);
@@ -132,8 +132,8 @@ export function createApplyAmmoActor(logger: StructuredLogger, manager?: Hardwar
         logger.info('正在停止报警...');
 
         // 柜体端 8 和 控制端 1
-        const cabinetCommand8 = RelayCommandBuilder.close(8);
-        const controlCommand1 = RelayCommandBuilder.close(1);
+        const cabinetCommand8 = RelayCommandBuilder.open(8);
+        const controlCommand1 = RelayCommandBuilder.open(1);
 
         void manager.sendCommand('udp', cabinetCommand8, {}, 'cabinet', false);
         void manager.sendCommand('udp', controlCommand1, {}, 'control', false);

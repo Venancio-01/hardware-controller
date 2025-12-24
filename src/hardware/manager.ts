@@ -139,13 +139,12 @@ export class HardwareCommunicationManager {
     clientId?: string,
     expectResponse = true
   ): Promise<Record<string, HardwareResponse | undefined>> {
-
-    // Do not serialize, send raw data
     let commandBuffer: Buffer;
     if (Buffer.isBuffer(command)) {
       commandBuffer = command;
     } else {
-      commandBuffer = Buffer.from(String(command), 'utf-8');
+      const encoding = protocol === 'udp' ? 'ascii' : 'utf-8';
+      commandBuffer = Buffer.from(String(command), encoding);
     }
 
     const results: Record<string, HardwareResponse | undefined> = {};
@@ -158,7 +157,6 @@ export class HardwareCommunicationManager {
         if (!target) throw new Error(`UDP client '${clientId}' not registered`);
         targets.set(clientId, target);
       } else {
-        // Broadcast to all registered UDP targets
         this.udpTargets.forEach((target, id) => targets.set(id, target));
       }
 

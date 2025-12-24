@@ -1,0 +1,8 @@
+{
+  "track_id": "door_open_alarm_20251223",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2025-12-23T10:00:00Z",
+  "updated_at": "2025-12-23T10:00:00Z",
+  "description": "src/state-machines/apply-ammo-machine.ts 进入 door_open 后，需要启动一个计时器，超过一定时间后没有进入 door_closed 状态，则进行报警（向 cabinet 和 control 的 udp client 的 8 和 1 发送 high 命令），该倒计时时间由 @.env 进行配置，并增加语音播报“柜门超时未关”。"
+}

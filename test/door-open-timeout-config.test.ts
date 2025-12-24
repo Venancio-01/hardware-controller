@@ -2,7 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { envSchema } from '../src/config/index.js';
 
 describe('Door Open Timeout Config Validation', () => {
-  it('should validate DOOR_OPEN_TIMEOUT_MS with default value', () => {
+  it('should validate DOOR_OPEN_TIMEOUT_S with default value', () => {
     const minimalEnv = {
       // Required defaults
       NODE_ENV: 'test',
@@ -18,14 +18,14 @@ describe('Door Open Timeout Config Validation', () => {
     expect(result.success).toBe(true);
 
     if (result.success) {
-      // @ts-ignore - DOOR_OPEN_TIMEOUT_MS might not exist yet
-      expect(result.data.DOOR_OPEN_TIMEOUT_MS).toBe(30000);
+      // @ts-ignore - DOOR_OPEN_TIMEOUT_S might not exist yet
+      expect(result.data.DOOR_OPEN_TIMEOUT_S).toBe(30);
     }
   });
 
-  it('should allow overriding DOOR_OPEN_TIMEOUT_MS', () => {
+  it('should allow overriding DOOR_OPEN_TIMEOUT_S', () => {
     const customEnv = {
-      DOOR_OPEN_TIMEOUT_MS: '60000',
+      DOOR_OPEN_TIMEOUT_S: '60',
       // Required defaults
       NODE_ENV: 'test',
       PORT: '3000',
@@ -41,13 +41,13 @@ describe('Door Open Timeout Config Validation', () => {
 
     if (result.success) {
       // @ts-ignore
-      expect(result.data.DOOR_OPEN_TIMEOUT_MS).toBe(60000);
+      expect(result.data.DOOR_OPEN_TIMEOUT_S).toBe(60);
     }
   });
 
-  it('should fail when DOOR_OPEN_TIMEOUT_MS is negative', () => {
+  it('should fail when DOOR_OPEN_TIMEOUT_S is negative', () => {
     const invalidEnv = {
-      DOOR_OPEN_TIMEOUT_MS: '-1000',
+      DOOR_OPEN_TIMEOUT_S: '-1',
       // Required defaults
       NODE_ENV: 'test',
       PORT: '3000',

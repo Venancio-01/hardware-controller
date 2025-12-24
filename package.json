@@ -1,5 +1,5 @@
 {
-  "name": "node-switch",
+  "name": "hardware-controller",
   "version": "1.0.0",
   "description": "Bun + TypeScript hardware communication",
   "type": "module",
@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "build": "bun build ./src/index.ts --outfile ./dist/index.js --target bun",
-    "build:binary": "bun build ./src/index.ts --compile --outfile ./dist/node-switch-bun",
+    "build:binary": "bun build ./src/index.ts --compile --outfile ./dist/hardware-controller-bun",
     "start": "bun run src/index.ts",
     "clean": "rm -rf dist",
     "test": "bun test",
