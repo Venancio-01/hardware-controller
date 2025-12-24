@@ -18,6 +18,6 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 3: Integration' (Protocol in workflow.md) [5bc7c39]
 
 ## Phase 4: Final Verification & Cleanup
-- [ ] Task: Update existing integration tests (`test/integration/`) and orchestration tests to work with the new hierarchy.
+- [x] Task: Update existing integration tests (`test/integration/`) and orchestration tests to work with the new hierarchy. [e0160ef]
 - [ ] Task: Final verification of P0 event interruption (Key/Vibration interrupting a normal flow).
 - [ ] Task: Conductor - User Manual Verification 'Phase 4: Final Verification' (Protocol in workflow.md)
