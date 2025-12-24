@@ -17,7 +17,7 @@
 - [x] **Task 2.2**: 在 `MonitorMachine` 中实现对 `HardwareCommunicationManager` 的直接订阅逻辑
 - [x] **Task 2.3**: 在 `MonitorMachine` 内部集成 `RelayStatusAggregator` 并实现逻辑分发（发送 `sendParent`）
 - [x] **Task 2.4**: 验证 `MonitorMachine` 的所有测试通过 [215d82b]
-- [ ] **Task: Conductor - User Manual Verification 'Phase 2: MonitorMachine Subscription' (Protocol in workflow.md)**
+- [~] **Task: Conductor - User Manual Verification 'Phase 2: MonitorMachine Subscription' (Protocol in workflow.md)**
 
 ## Phase 3: 系统集成与清理
 **目标**：移除 `index.ts` 中的冗余逻辑，完成最终集成。

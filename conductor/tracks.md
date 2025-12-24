@@ -14,7 +14,9 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-## [x] Track: Fix Missing apply_request Voice Broadcast on CH1 Closure
-*Link: [./conductor/tracks/fix_missing_broadcast_20251224/](./conductor/tracks/fix_missing_broadcast_20251224/)*
 
 
+---
+
+## [~] Track: Refactor Relay Detection into MonitorMachine
+*Link: [./conductor/tracks/refactor_relay_detection_20251224/](./conductor/tracks/refactor_relay_detection_20251224/)*

@@ -42,7 +42,7 @@ export const mainMachine = setup({
       on: {
         apply_request: {
           target: 'normal',
-          actions: ({ context }) => context.logger.info('[MainMachine] Received apply_request in idle, transitioning to normal')
+          actions: ({ context }) => context.logger.info('[MainMachine] 在空闲状态收到 apply_request，正在切换到 normal 状态')
         }
       }
     },
@@ -50,20 +50,20 @@ export const mainMachine = setup({
       invoke: {
         src: 'applyAmmo',
         id: 'applyAmmo',
-        input: ({ context }) => ({ 
+        input: ({ context }) => ({
           logger: context.logger,
           manager: context.hardware
         })
       },
       entry: [
-        ({ context }) => context.logger.info('[MainMachine] Entering normal state, triggering APPLY on applyAmmo'),
+        ({ context }) => context.logger.info('[MainMachine] 进入 normal 状态，触发 applyAmmo 的 APPLY 事件'),
         sendTo('applyAmmo', { type: 'APPLY' })
       ],
       on: {
         operation_complete: 'idle',
         apply_request: {
           actions: [
-            ({ context }) => context.logger.info('[MainMachine] Received apply_request in normal, forwarding to applyAmmo'),
+            ({ context }) => context.logger.info('[MainMachine] 在 normal 状态收到 apply_request，正在转发给 applyAmmo'),
             sendTo('applyAmmo', { type: 'APPLY' })
           ]
         },

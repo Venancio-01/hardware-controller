@@ -43,9 +43,8 @@ export const monitorMachine = setup({
   }),
   entry: [
     ({ context, self }) => {
-      log.info('MonitorMachine entry: setting up hardware subscription');
       context.hardware.onIncomingData = (protocol, clientId, data) => {
-        log.debug(`Hardware data received: ${clientId} ${data.toString()}`);
+        log.debug(`收到硬件数据: ${clientId} ${data.toString()}`);
         if (protocol === 'udp') {
           self.send({ type: 'RELAY_DATA_RECEIVED', clientId, data });
         }
@@ -57,7 +56,7 @@ export const monitorMachine = setup({
       actions: enqueueActions(({ context, event, enqueue }) => {
         const { clientId, data } = event;
         const rawStr = data.toString('utf8').trim();
-        log.info(`Processing RELAY_DATA_RECEIVED from ${clientId}: ${rawStr}`);
+        log.debug(`正在处理来自 ${clientId} 的继电器数据: ${rawStr}`);
         if (!rawStr.startsWith('dostatus')) return;
 
         try {
@@ -65,11 +64,11 @@ export const monitorMachine = setup({
           const combinedUpdate = context.aggregator.update(clientId as RelayClientId, status);
 
           if (combinedUpdate && combinedUpdate.changed) {
-            log.info(`Detected change in ${clientId}, total change count: ${combinedUpdate.changeDescriptions.length}`);
+            log.info(`检测到 ${clientId} 的状态变化, 总变化计数: ${combinedUpdate.changeDescriptions.length}`);
             // 1. 处理申请逻辑 (CH1)
             if (context.aggregator.hasIndexChanged(config.APPLY_INDEX, combinedUpdate)) {
               const isClosed = combinedUpdate.combinedState[config.APPLY_INDEX];
-              log.info(`[Logic] CH1 (Apply) changed. Closed: ${isClosed}`);
+              log.info(`[逻辑] CH1 (申请) 已变化. 闭合: ${isClosed}`);
               enqueue.sendParent({
                 type: isClosed ? 'apply_request' : 'finish_request',
                 priority: EventPriority.P2
@@ -77,9 +76,9 @@ export const monitorMachine = setup({
             }
 
             // 2. 处理授权逻辑 (CH13)
-            if (context.aggregator.hasIndexChanged(config.AUTH_INDEX, combinedUpdate)) {
-              const isClosed = combinedUpdate.combinedState[config.AUTH_INDEX];
-              log.info(`[Logic] AUTH_INDEX changed. Closed: ${isClosed}`);
+            if (context.aggregator.hasIndexChanged(config.ELECTRIC_LOCK_OUT_INDEX, combinedUpdate)) {
+              const isClosed = combinedUpdate.combinedState[config.ELECTRIC_LOCK_OUT_INDEX];
+              log.info(`[逻辑] AUTH_INDEX 已变化. 闭合: ${isClosed}`);
               enqueue.sendParent({
                 type: isClosed ? 'authorize_request' : 'refuse_request',
                 priority: EventPriority.P2
@@ -89,7 +88,7 @@ export const monitorMachine = setup({
             // 3. 处理门锁逻辑 (CH2)
             if (context.aggregator.hasIndexChanged(config.ELECTRIC_LOCK_OUT_INDEX, combinedUpdate)) {
               const isClosed = combinedUpdate.combinedState[config.ELECTRIC_LOCK_OUT_INDEX];
-              log.info(`[Logic] CH2 (Lock) changed. Closed: ${isClosed}`);
+              log.info(`[逻辑] CH2 (门锁) 已变化. 闭合: ${isClosed}`);
               enqueue.sendParent({
                 type: 'cabinet_lock_changed',
                 priority: EventPriority.P2,
@@ -100,11 +99,9 @@ export const monitorMachine = setup({
             if (combinedUpdate.changeDescriptions.length > 0) {
               log.info(`[combined] 继电器状态变化: ${combinedUpdate.changeDescriptions.join(', ')}`);
             }
-          } else if (combinedUpdate) {
-            log.info(`No semantic change detected for ${clientId}`);
           }
         } catch (err) {
-          log.error('Failed to parse relay status in MonitorMachine', err as Error);
+          log.error('在 MonitorMachine 中解析继电器状态失败', err as Error);
         }
       })
     }

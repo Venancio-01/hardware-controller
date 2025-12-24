@@ -16,7 +16,7 @@ async function startApp() {
   const appLogger = createModuleLogger('App');
   const manager = new HardwareCommunicationManager();
   const relayAggregator = new RelayStatusAggregator();
-  
+
   // Create Main State Machine Actor
   const mainActor = createMainActor(manager, appLogger);
 
@@ -52,22 +52,22 @@ async function startApp() {
             );
 
             if (combinedUpdate && combinedUpdate.changed) {
-              // Handle Apply Button (Cabinet Relay 1, index 0)
+              // 处理申请逻辑
               if (combinedUpdate.changeDescriptions.some(d => d.includes('CH1'))) {
-                const isCabinetRelay1Closed = (combinedUpdate.combinedState[0]);
-                appLogger.debug(`[Logic] CH1 changed. Closed: ${isCabinetRelay1Closed}`);
+                const isCabinetRelay1Closed = (combinedUpdate.combinedState[config.APPLY_INDEX]);
+                appLogger.debug(`CH1 状态改变. 闭合: ${isCabinetRelay1Closed}`);
                 if (isCabinetRelay1Closed) {
-                   appLogger.info('[Logic] Sending apply_request to MainMachine');
+                  appLogger.info('发送 apply_request 到 MainMachine');
                    mainActor.send({ type: 'apply_request', priority: EventPriority.P2 });
                 } else {
-                   appLogger.info('[Logic] Sending finish_request to MainMachine');
+                  appLogger.info('发送 finish_request 到 MainMachine');
                    mainActor.send({ type: 'finish_request', priority: EventPriority.P2 });
                 }
               }
 
-              // Handle Authorization (Control Relay 5, index 12)
+              // 处理授权逻辑
               if (combinedUpdate.changeDescriptions.some(d => d.includes('CH13'))) {
-                 const isControlRelay5Closed = (combinedUpdate.combinedState[12]);
+                const isControlRelay5Closed = (combinedUpdate.combinedState[config.AUTH_INDEX]);
                  if (isControlRelay5Closed) {
                     mainActor.send({ type: 'authorize_request', priority: EventPriority.P2 });
                  } else {
@@ -75,9 +75,9 @@ async function startApp() {
                  }
               }
 
-              // Handle Door Sensor (Cabinet Relay 2, index 1)
+              // 处理门锁逻辑
               if (combinedUpdate.changeDescriptions.some(d => d.includes('CH2'))) {
-                 const isCabinetRelay2Closed = (combinedUpdate.combinedState[1]);
+                const isCabinetRelay2Closed = (combinedUpdate.combinedState[config.ELECTRIC_LOCK_OUT_INDEX]);
                  mainActor.send({
                    type: 'cabinet_lock_changed',
                    priority: EventPriority.P2,
@@ -105,12 +105,12 @@ async function startApp() {
       }
 
       // 其他响应
-      appLogger.debug(`[${protocol.toUpperCase()}] Response from ${clientId}:`, { raw: rawStr, ...parsedResponse });
+      appLogger.debug(`[${protocol.toUpperCase()}] 来自 ${clientId} 的响应:`, { raw: rawStr, ...parsedResponse });
     };
 
     // 启动主状态机
     mainActor.start();
-    
+
     // 启动 Monitor 子状态机 (Initial START)
     mainActor.send({ type: 'monitor_tick', priority: EventPriority.P3 });
 
