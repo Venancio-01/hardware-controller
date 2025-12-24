@@ -60,6 +60,22 @@ export class RelayStatusAggregator {
     };
   }
 
+  /**
+   * 检查指定索引的继电器是否发生变化
+   * @param index 继电器索引（0-based）
+   * @param combinedUpdate 继电器状态更新对象
+   * @returns 如果该继电器状态发生变化返回 true，否则返回 false
+   */
+  hasIndexChanged(index: number, combinedUpdate: RelayCombinedUpdate): boolean {
+    if (!combinedUpdate.previousCombined) {
+      return false;
+    }
+    if (index < 0 || index >= combinedUpdate.combinedState.length) {
+      return false;
+    }
+    return combinedUpdate.previousCombined[index] !== combinedUpdate.combinedState[index];
+  }
+
   private isSameCombinedState(previous: boolean[], current: boolean[]): boolean {
     if (previous.length !== current.length) {
       return false;
