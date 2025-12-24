@@ -17,7 +17,7 @@
 - [x] Task: Update the hardware initializer/manager to use the new `MainMachine` as the single point of entry for state. [1bfc270]
 - [x] Task: Conductor - User Manual Verification 'Phase 3: Integration' (Protocol in workflow.md) [5bc7c39]
 
-## Phase 4: Final Verification & Cleanup
+## Phase 4: Final Verification & Cleanup [checkpoint: 7dd983b]
 - [x] Task: Update existing integration tests (`test/integration/`) and orchestration tests to work with the new hierarchy. [e0160ef]
 - [x] Task: Final verification of P0 event interruption (Key/Vibration interrupting a normal flow). [26d5c3a]
-- [ ] Task: Conductor - User Manual Verification 'Phase 4: Final Verification' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 4: Final Verification' (Protocol in workflow.md) [7dd983b]
