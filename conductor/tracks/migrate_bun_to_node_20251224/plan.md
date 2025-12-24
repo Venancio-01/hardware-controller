@@ -27,7 +27,8 @@
 ## 阶段 4: 最终验证与清理
 目标：确保项目在 Node.js 环境下能够完整构建、运行并保持功能一致性。
 
-- [ ] 任务: 完整构建验证。运行 `pnpm run build` 确保 TypeScript 编译无误。
-- [ ] 任务: 运行时验证。在 Node.js 环境下启动项目，验证 TCP/UDP 通信、语音播报及业务流转是否正常。
-- [ ] 任务: 清理冗余文件。删除任何残留的 Bun 相关配置文件。
+- [x] 任务: 完整构建验证。运行 `pnpm run build` 确保 TypeScript 编译无误。 14778
+- [x] 任务: 修复环境变量加载。安装 `dotenv` 并更新 `start` 脚本以加载 `.env` 文件。
+- [x] 任务: 运行时验证。在 Node.js 环境下启动项目，验证 TCP/UDP 通信、语音播报及业务流转是否正常。 14938
+- [x] 任务: 清理冗余文件。删除任何残留的 Bun 相关配置文件。 14938
 - [ ] 任务: Conductor - User Manual Verification '阶段 4: 最终验证与清理' (Protocol in workflow.md)
