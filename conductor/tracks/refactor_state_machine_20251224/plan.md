@@ -12,9 +12,9 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Main Coordinator' (Protocol in workflow.md) [92297e7]
 
 ## Phase 3: Sub-machine Integration
-- [ ] Task: Refactor `monitor-machine.ts` (formerly poller) to act as a child actor and raise anomaly events to the parent.
-- [ ] Task: Refactor `apply-ammo-machine.ts` to act as a child actor and notify parent of completion/cancellation.
-- [ ] Task: Update the hardware initializer/manager to use the new `MainMachine` as the single point of entry for state.
+- [x] Task: Refactor `monitor-machine.ts` (formerly poller) to act as a child actor and raise anomaly events to the parent. [499bffa]
+- [x] Task: Refactor `apply-ammo-machine.ts` to act as a child actor and notify parent of completion/cancellation. [c78321b]
+- [~] Task: Update the hardware initializer/manager to use the new `MainMachine` as the single point of entry for state.
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Integration' (Protocol in workflow.md)
 
 ## Phase 4: Final Verification & Cleanup
