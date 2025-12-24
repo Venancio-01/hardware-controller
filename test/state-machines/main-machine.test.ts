@@ -117,9 +117,8 @@ describe('MainMachine', () => {
     
     const applyAmmoActor = actor.getSnapshot().children.applyAmmo;
     
-    // Initial state of child
-    expect(applyAmmoActor.getSnapshot().value).toBe('idle');
-    applyAmmoActor.send({ type: 'APPLY' });
+    // Initial state of child - now 'applying' because of auto-trigger in entry
+    expect(applyAmmoActor.getSnapshot().value).toBe('applying');
     applyAmmoActor.send({ type: 'AUTHORIZED' });
     expect(applyAmmoActor.getSnapshot().value).toBe('authorized');
 

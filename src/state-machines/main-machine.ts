@@ -40,7 +40,10 @@ export const mainMachine = setup({
   states: {
     idle: {
       on: {
-        apply_request: 'normal'
+        apply_request: {
+          target: 'normal',
+          actions: ({ context }) => context.logger.info('[MainMachine] Received apply_request in idle, transitioning to normal')
+        }
       }
     },
     normal: {
@@ -52,10 +55,17 @@ export const mainMachine = setup({
           manager: context.hardware
         })
       },
+      entry: [
+        ({ context }) => context.logger.info('[MainMachine] Entering normal state, triggering APPLY on applyAmmo'),
+        sendTo('applyAmmo', { type: 'APPLY' })
+      ],
       on: {
         operation_complete: 'idle',
         apply_request: {
-          actions: sendTo('applyAmmo', { type: 'APPLY' })
+          actions: [
+            ({ context }) => context.logger.info('[MainMachine] Received apply_request in normal, forwarding to applyAmmo'),
+            sendTo('applyAmmo', { type: 'APPLY' })
+          ]
         },
         authorize_request: {
           actions: sendTo('applyAmmo', { type: 'AUTHORIZED' })

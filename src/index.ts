@@ -55,9 +55,12 @@ async function startApp() {
               // Handle Apply Button (Cabinet Relay 1, index 0)
               if (combinedUpdate.changeDescriptions.some(d => d.includes('CH1'))) {
                 const isCabinetRelay1Closed = (combinedUpdate.combinedState[0]);
+                appLogger.debug(`[Logic] CH1 changed. Closed: ${isCabinetRelay1Closed}`);
                 if (isCabinetRelay1Closed) {
+                   appLogger.info('[Logic] Sending apply_request to MainMachine');
                    mainActor.send({ type: 'apply_request', priority: EventPriority.P2 });
                 } else {
+                   appLogger.info('[Logic] Sending finish_request to MainMachine');
                    mainActor.send({ type: 'finish_request', priority: EventPriority.P2 });
                 }
               }
