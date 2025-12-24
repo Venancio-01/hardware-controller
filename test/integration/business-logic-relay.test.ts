@@ -1,10 +1,10 @@
-import { describe, expect, it, spyOn, beforeEach, afterEach, vi } from 'bun:test';
 import { HardwareCommunicationManager } from '../../src/hardware/manager.js';
 import { createModuleLogger } from '../../src/logger/index.js';
 import { VoiceBroadcastController } from '../../src/voice-broadcast/index.js';
 import { RelayStatusAggregator, type RelayClientId } from '../../src/business-logic/relay-status-aggregator.js';
 import { ApplyAmmoFlow } from '../../src/business-logic/apply-ammo-flow.js';
 import { parseStatusResponse } from '../../src/relay/controller.js';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock VoiceBroadcastController
 const broadcastMock = vi.fn();
@@ -30,9 +30,9 @@ describe('BusinessLogic & Relay Strategy Integration (Modularized)', () => {
     applyAmmoFlow = new ApplyAmmoFlow(logger);
     
     // Mock hardware setup
-    spyOn(manager, 'initialize').mockResolvedValue(undefined);
-    spyOn(manager, 'getAllConnectionStatus').mockReturnValue({ udp: {}, tcp: {} });
-    spyOn(manager, 'sendCommand').mockResolvedValue({}); // Default success
+    vi.spyOn(manager, 'initialize').mockResolvedValue(undefined);
+    vi.spyOn(manager, 'getAllConnectionStatus').mockReturnValue({ udp: {}, tcp: {} });
+    vi.spyOn(manager, 'sendCommand').mockResolvedValue({}); // Default success
 
     // Setup manual routing logic (same as in index.ts)
     manager.onIncomingData = async (protocol, clientId, data, remote, parsedResponse) => {

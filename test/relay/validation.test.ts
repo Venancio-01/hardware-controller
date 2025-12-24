@@ -1,4 +1,3 @@
-import { describe, it, expect } from "bun:test";
 import { RelaySchemas } from "../../src/relay/validation";
 
 describe("Relay Protocol Validation", () => {

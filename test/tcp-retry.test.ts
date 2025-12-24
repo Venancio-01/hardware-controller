@@ -1,10 +1,9 @@
-import { describe, it, expect, mock, beforeEach, afterEach } from "bun:test";
 import { TCPClient } from "../src/tcp/client";
 import * as net from "node:net";
 
 // Mock node:net
-mock.module("node:net", () => ({
-  connect: mock()
+vi.mock("node:net", () => ({
+  connect: vi.fn()
 }));
 
 describe("TCPClient Retry Logic", () => {
@@ -19,10 +18,10 @@ describe("TCPClient Retry Logic", () => {
     mockConnect.mockImplementation(() => {
         callCount++;
         const socket = new (require("events").EventEmitter)();
-        (socket as any).setTimeout = mock();
-        (socket as any).destroy = mock();
-        (socket as any).setKeepAlive = mock();
-        (socket as any).setNoDelay = mock();
+        (socket as any).setTimeout = vi.fn();
+        (socket as any).destroy = vi.fn();
+        (socket as any).setKeepAlive = vi.fn();
+        (socket as any).setNoDelay = vi.fn();
         
         process.nextTick(() => {
             if (callCount <= 2) {

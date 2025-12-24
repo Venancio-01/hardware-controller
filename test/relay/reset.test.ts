@@ -1,4 +1,3 @@
-import { describe, it, expect, mock, beforeEach } from 'bun:test';
 import { resetAllRelays } from '../../src/relay/reset.js';
 
 describe('Relay Reset', () => {
@@ -7,12 +6,12 @@ describe('Relay Reset', () => {
 
   beforeEach(() => {
     mockManager = {
-      sendCommand: mock(() => Promise.resolve({}))
+      sendCommand: vi.fn(() => Promise.resolve({}))
     };
     mockLogger = {
-      info: mock(() => {}),
-      warn: mock(() => {}),
-      error: mock(() => {})
+      info: vi.fn(() => {}),
+      warn: vi.fn(() => {}),
+      error: vi.fn(() => {})
     };
   });
 

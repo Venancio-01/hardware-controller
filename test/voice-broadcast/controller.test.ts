@@ -1,4 +1,3 @@
-import { describe, it, expect, mock, beforeEach } from "bun:test";
 import { VoiceBroadcastController } from "../../src/voice-broadcast/index.js";
 import iconv from 'iconv-lite';
 
@@ -11,10 +10,10 @@ describe("VoiceBroadcastController", () => {
     
     // Create a mock HardwareCommunicationManager
     mockHardwareManager = {
-      sendCommand: mock((protocol, data, params, clientId) => Promise.resolve({
+      sendCommand: vi.fn((protocol, data, params, clientId) => Promise.resolve({
         [clientId || 'voice-broadcast']: { success: true, data: "OK", timestamp: Date.now() }
       })),
-      log: { info: mock(), error: mock(), warn: mock(), debug: mock() }
+      log: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() }
     };
   });
 

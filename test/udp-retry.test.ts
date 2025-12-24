@@ -1,19 +1,18 @@
-import { describe, it, expect, mock } from "bun:test";
 import { UDPClient } from "../src/udp/client";
 
-const mockSend = mock();
+const mockSend = vi.fn();
 
 // Mock node:dgram
-mock.module("node:dgram", () => ({
-  createSocket: mock((type: string) => {
+vi.mock("node:dgram", () => ({
+  createSocket: vi.fn((type: string) => {
       const socket = new (require("events").EventEmitter)();
       Object.assign(socket, {
-          bind: mock(function(port: number) {
+          bind: vi.fn(function(port: number) {
               process.nextTick(() => socket.emit('listening'));
           }),
           send: mockSend,
-          address: mock(() => ({ address: '127.0.0.1', port: 1234 })),
-          close: mock((cb: any) => process.nextTick(cb))
+          address: vi.fn(() => ({ address: '127.0.0.1', port: 1234 })),
+          close: vi.fn((cb: any) => process.nextTick(cb))
       });
       return socket;
   })

@@ -1,9 +1,9 @@
-import { describe, expect, it, beforeEach, afterEach, mock, spyOn } from 'bun:test';
 import { initializeHardware } from '../../src/hardware/initializer.js';
 import { initializeVoiceBroadcast } from '../../src/voice-broadcast/initializer.js';
 import { HardwareCommunicationManager } from '../../src/hardware/manager.js';
 import { createModuleLogger } from '../../src/logger/index.js';
 import { VoiceBroadcastController } from '../../src/voice-broadcast/index.js';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 describe('Voice Initialization Integration', () => {
   let manager: HardwareCommunicationManager;
@@ -15,9 +15,9 @@ describe('Voice Initialization Integration', () => {
     
     manager = new HardwareCommunicationManager();
     // Directly mock the methods on the instance
-    manager.initialize = mock(() => Promise.resolve()) as any;
-    manager.getAllConnectionStatus = mock(() => ({ udp: {}, tcp: {} })) as any;
-    manager.sendCommand = mock(() => Promise.resolve({})) as any;
+    manager.initialize = vi.fn(() => Promise.resolve()) as any;
+    manager.getAllConnectionStatus = vi.fn(() => ({ udp: {}, tcp: {} })) as any;
+    manager.sendCommand = vi.fn(() => Promise.resolve({})) as any;
   });
 
   afterEach(() => {
@@ -25,7 +25,7 @@ describe('Voice Initialization Integration', () => {
   });
 
   it('should initialize VoiceBroadcastController with config values', async () => {
-    const initSpy = spyOn(VoiceBroadcastController, 'initialize');
+    const initSpy = vi.spyOn(VoiceBroadcastController, 'initialize');
     
     await initializeHardware(manager, logger);
     await initializeVoiceBroadcast(manager, logger);

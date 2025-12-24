@@ -1,12 +1,11 @@
-import { describe, it, expect, mock, beforeEach } from 'bun:test';
 import { createPollerActor } from '../../src/state-machines/poller-machine.js';
 import { HardwareCommunicationManager } from '../../src/hardware/manager.js';
 
 // Mock the HardwareCommunicationManager class
-mock.module('../../src/hardware/manager.js', () => {
+vi.mock('../../src/hardware/manager.js', () => {
   return {
     HardwareCommunicationManager: class {
-      sendCommand = mock(() => Promise.resolve({}));
+      sendCommand = vi.fn(() => Promise.resolve({}));
     }
   };
 });

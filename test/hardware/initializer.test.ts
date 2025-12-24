@@ -1,4 +1,3 @@
-import { describe, it, expect, mock, beforeEach } from 'bun:test';
 import { initializeHardware } from '../../src/hardware/initializer.js';
 import { HardwareCommunicationManager } from '../../src/hardware/manager.js';
 import { type StructuredLogger } from '../../src/logger/index.js';
@@ -9,13 +8,13 @@ describe('Hardware Initializer', () => {
 
   beforeEach(() => {
     mockManager = {
-      initialize: mock(() => Promise.resolve()),
-      getAllConnectionStatus: mock(() => ({ udp: {}, tcp: {} }))
+      initialize: vi.fn(() => Promise.resolve()),
+      getAllConnectionStatus: vi.fn(() => ({ udp: {}, tcp: {} }))
     };
     mockLogger = {
-      info: mock(() => {}),
-      warn: mock(() => {}),
-      error: mock(() => {})
+      info: vi.fn(() => {}),
+      warn: vi.fn(() => {}),
+      error: vi.fn(() => {})
     };
   });
 

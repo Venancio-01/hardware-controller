@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'bun:test';
 import { envSchema } from '../src/config/index.js';
 
 describe('Door Open Timeout Config Validation', () => {

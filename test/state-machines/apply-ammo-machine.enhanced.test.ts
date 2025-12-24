@@ -1,28 +1,27 @@
-import { describe, it, expect, mock, beforeEach, vi } from 'bun:test';
 import { createApplyAmmoActor } from '../../src/state-machines/apply-ammo-machine.js';
 import { VoiceBroadcastController } from '../../src/voice-broadcast/index.js';
 import { type StructuredLogger } from '../../src/logger/index.ts';
 
 // Mock VoiceBroadcastController
-const mockBroadcast = mock(() => Promise.resolve());
+const mockBroadcast = vi.fn(() => Promise.resolve());
 const mockVoiceInstance = {
   broadcast: mockBroadcast
 };
 
-mock.module('../../src/voice-broadcast/index.js', () => {
+vi.mock('../../src/voice-broadcast/index.js', () => {
   return {
     VoiceBroadcastController: {
-      isInitialized: mock(() => true),
-      getInstance: mock(() => mockVoiceInstance)
+      isInitialized: vi.fn(() => true),
+      getInstance: vi.fn(() => mockVoiceInstance)
     }
   };
 });
 
 const mockLogger = {
-  info: mock(() => {}),
-  warn: mock(() => {}),
-  error: mock(() => {}),
-  debug: mock(() => {})
+  info: vi.fn(() => {}),
+  warn: vi.fn(() => {}),
+  error: vi.fn(() => {}),
+  debug: vi.fn(() => {})
 } as unknown as StructuredLogger;
 
 describe('ApplyAmmoMachine Enhanced', () => {

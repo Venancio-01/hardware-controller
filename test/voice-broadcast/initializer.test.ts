@@ -1,4 +1,3 @@
-import { describe, it, expect, mock, beforeEach, afterEach } from 'bun:test';
 import { initializeVoiceBroadcast } from '../../src/voice-broadcast/initializer.js';
 import { VoiceBroadcastController } from '../../src/voice-broadcast/index.js';
 
@@ -11,9 +10,9 @@ describe('Voice Broadcast Initializer', () => {
   beforeEach(() => {
     mockManager = {};
     mockLogger = {
-      info: mock(() => {}),
-      warn: mock(() => {}),
-      error: mock(() => {})
+      info: vi.fn(() => {}),
+      warn: vi.fn(() => {}),
+      error: vi.fn(() => {})
     };
     
     // Ensure clean state
