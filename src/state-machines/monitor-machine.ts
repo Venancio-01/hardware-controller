@@ -78,21 +78,21 @@ export const monitorMachine = setup({
             // 2. 处理授权逻辑 (CH13)
             if (context.aggregator.hasIndexChanged(config.ELECTRIC_LOCK_OUT_INDEX, combinedUpdate)) {
               const isClosed = combinedUpdate.combinedState[config.ELECTRIC_LOCK_OUT_INDEX];
-              log.info(`[逻辑] AUTH_INDEX 已变化. 闭合: ${isClosed}`);
+              log.info(`[逻辑] ELECTRIC_LOCK_OUT_INDEX (CH10) 已变化. 闭合: ${isClosed}`);
               enqueue.sendParent({
                 type: isClosed ? 'authorize_request' : 'refuse_request',
                 priority: EventPriority.P2
               });
             }
 
-            // 3. 处理门锁逻辑 (CH2)
-            if (context.aggregator.hasIndexChanged(config.ELECTRIC_LOCK_OUT_INDEX, combinedUpdate)) {
-              const isClosed = combinedUpdate.combinedState[config.ELECTRIC_LOCK_OUT_INDEX];
-              log.info(`[逻辑] CH2 (门锁) 已变化. 闭合: ${isClosed}`);
+            // 3. 处理柜门状态逻辑 (CH2 - CABINET_DOOR_INDEX)
+            if (context.aggregator.hasIndexChanged(config.CABINET_DOOR_INDEX, combinedUpdate)) {
+              const isDoorOpen = combinedUpdate.combinedState[config.CABINET_DOOR_INDEX]; // true = high = 开门
+              log.info(`[逻辑] CH2 (柜门) 已变化. 开门: ${isDoorOpen}`);
               enqueue.sendParent({
                 type: 'cabinet_lock_changed',
                 priority: EventPriority.P2,
-                isClosed
+                isClosed: !isDoorOpen  // 反转：true = 关门, false = 开门
               });
             }
 

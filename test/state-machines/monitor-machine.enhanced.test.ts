@@ -88,29 +88,46 @@ describe('MonitorMachine - Enhanced Subscriptions', () => {
     expect(receivedEvents).toContainEqual(expect.objectContaining({ type: 'apply_request', priority: EventPriority.P2 }));
 
     receivedEvents = [];
-    controlIndexes.add(config.AUTH_INDEX);
+    controlIndexes.add(config.ELECTRIC_LOCK_OUT_INDEX);
     sendStatus('control');
     await new Promise(resolve => setTimeout(resolve, 50));
     expect(receivedEvents).toContainEqual(expect.objectContaining({ type: 'authorize_request', priority: EventPriority.P2 }));
 
-    
+
     // Ensure CH1 logic was NOT triggered again
     expect(receivedEvents.filter(e => e.type === 'apply_request').length).toBe(0);
 
-    // 4. ELECTRIC_LOCK_OUT_INDEX changed -> cabinet_lock_changed
+    // 4. CABINET_DOOR_INDEX (CH2) changed -> cabinet_lock_changed
     receivedEvents = [];
-    const lockClientId = config.ELECTRIC_LOCK_OUT_INDEX >= 8 ? 'control' : 'cabinet';
-    if (lockClientId === 'control') {
-      controlIndexes.add(config.ELECTRIC_LOCK_OUT_INDEX);
+    const doorClientId = config.CABINET_DOOR_INDEX >= 8 ? 'control' : 'cabinet';
+    if (doorClientId === 'control') {
+      controlIndexes.add(config.CABINET_DOOR_INDEX);
     } else {
-      cabinetIndexes.add(config.ELECTRIC_LOCK_OUT_INDEX);
+      cabinetIndexes.add(config.CABINET_DOOR_INDEX);
     }
-    sendStatus(lockClientId);
+    sendStatus(doorClientId);
     await new Promise(resolve => setTimeout(resolve, 50));
-    expect(receivedEvents).toContainEqual(expect.objectContaining({ 
-        type: 'cabinet_lock_changed', 
+    // 柜门状态：high (true) = 开门，所以 isClosed 应该是 false
+    expect(receivedEvents).toContainEqual(expect.objectContaining({
+        type: 'cabinet_lock_changed',
         priority: EventPriority.P2,
-        isClosed: true
+        isClosed: false  // high = 开门 = isClosed: false
+    }));
+
+    // 5. 测试柜门从 high 变为 low 的场景（关门）
+    receivedEvents = [];
+    if (doorClientId === 'control') {
+      controlIndexes.delete(config.CABINET_DOOR_INDEX);
+    } else {
+      cabinetIndexes.delete(config.CABINET_DOOR_INDEX);
+    }
+    sendStatus(doorClientId);
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    expect(receivedEvents).toContainEqual(expect.objectContaining({
+        type: 'cabinet_lock_changed',
+        priority: EventPriority.P2,
+        isClosed: true  // low = 关门 = isClosed: true
     }));
   });
 });

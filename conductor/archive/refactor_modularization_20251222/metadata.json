@@ -1,8 +1,0 @@
-{
-  "track_id": "refactor_modularization_20251222",
-  "type": "refactor",
-  "status": "new",
-  "created_at": "2025-12-22T10:00:00Z",
-  "updated_at": "2025-12-22T10:00:00Z",
-  "description": "Refactor the system architecture by eliminating src/business-logic.ts and modularizing components using XState for polling."
-}

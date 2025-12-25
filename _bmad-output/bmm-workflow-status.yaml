@@ -1,0 +1,98 @@
+# Workflow Status Template
+
+# This tracks progress through BMM methodology Analysis, Planning, and Solutioning phases.
+# Implementation phase is tracked separately in sprint-status.yaml
+
+# STATUS DEFINITIONS:
+# ==================
+# Initial Status (before completion):
+#   - required: Must be completed to progress
+#   - optional: Can be completed but not required
+#   - recommended: Strongly suggested but not required
+#   - conditional: Required only if certain conditions met (e.g., if_has_ui)
+#
+# Completion Status:
+#   - {file-path}: File created/found (e.g., "docs/product-brief.md")
+#   - skipped: Optional/conditional workflow that was skipped
+
+generated: "2025-12-24T17:42:30+08:00"
+project: "node-switch"
+project_type: "application"
+selected_track: "bmad-method"
+field_type: "brownfield"
+workflow_path: "_bmad/bmm/workflows/workflow-status/paths/method-brownfield.yaml"
+workflow_status:
+  - name: Documentation
+    items:
+      - id: document-project
+        status: "_bmad-output/index.md"
+        agent: analyst
+        command: document-project
+        description: "Understand existing codebase before planning"
+
+  - name: Discovery (Optional)
+    items:
+      - id: brainstorm-project
+        status: optional
+        agent: analyst
+        command: brainstorm-project
+        description: "Creative exploration and ideation"
+      - id: research
+        status: optional
+        agent: analyst
+        command: research
+        description: "Technical/competitive analysis"
+      - id: product-brief
+        status: optional
+        agent: analyst
+        command: product-brief
+        description: "Strategic product planning"
+
+  - name: Planning
+    items:
+      - id: prd
+        status: required
+        agent: pm
+        command: prd
+        description: "PRD focused on new features/changes"
+      - id: create-ux-design
+        status: conditional
+        agent: ux-designer
+        command: create-ux-design
+        description: "UX Design for UI components"
+
+  - name: Solutioning
+    items:
+      - id: create-architecture
+        status: recommended
+        agent: architect
+        command: create-architecture
+        description: "Integration architecture - solution design"
+      - id: create-epics-and-stories
+        status: required
+        agent: pm
+        command: create-epics-and-stories
+        description: "Break down PRD into implementable epics and stories"
+      - id: test-design
+        status: recommended
+        agent: tea
+        command: test-design
+        description: "System-level testability review"
+      - id: validate-architecture
+        status: optional
+        agent: architect
+        command: validate-architecture
+        description: "Validate architecture decisions"
+      - id: implementation-readiness
+        status: required
+        agent: architect
+        command: implementation-readiness
+        description: "Validates PRD + Architecture + Epics + UX"
+
+  - name: Implementation
+    items:
+      - id: sprint-planning
+        status: required
+        agent: sm
+        command: sprint-planning
+        description: "Creates sprint plan with stories"

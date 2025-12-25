@@ -36,82 +36,10 @@ async function startApp() {
     // 重置继电器状态
     await resetAllRelays(manager, appLogger);
 
-    // 设置数据处理逻辑
-    manager.onIncomingData = async (protocol, clientId, data, remote, parsedResponse) => {
-      const rawStr = data.toString('utf8').trim();
-
-      // 解析继电器状态响应 (dostatus)
-      if (rawStr.startsWith('dostatus')) {
-        try {
-          const status = parseStatusResponse(rawStr, 'dostatus');
-
-          if (clientId === 'cabinet' || clientId === 'control') {
-            const combinedUpdate = relayAggregator.update(
-              clientId as RelayClientId,
-              status
-            );
-
-            if (combinedUpdate && combinedUpdate.changed) {
-              // 处理申请逻辑
-              if (combinedUpdate.changeDescriptions.some(d => d.includes('CH1'))) {
-                const isCabinetRelay1Closed = (combinedUpdate.combinedState[config.APPLY_INDEX]);
-                appLogger.debug(`CH1 状态改变. 闭合: ${isCabinetRelay1Closed}`);
-                if (isCabinetRelay1Closed) {
-                  appLogger.info('发送 apply_request 到 MainMachine');
-                   mainActor.send({ type: 'apply_request', priority: EventPriority.P2 });
-                } else {
-                  appLogger.info('发送 finish_request 到 MainMachine');
-                   mainActor.send({ type: 'finish_request', priority: EventPriority.P2 });
-                }
-              }
-
-              // 处理授权逻辑
-              if (combinedUpdate.changeDescriptions.some(d => d.includes('CH13'))) {
-                const isControlRelay5Closed = (combinedUpdate.combinedState[config.AUTH_INDEX]);
-                 if (isControlRelay5Closed) {
-                    mainActor.send({ type: 'authorize_request', priority: EventPriority.P2 });
-                 } else {
-                    mainActor.send({ type: 'refuse_request', priority: EventPriority.P2 });
-                 }
-              }
-
-              // 处理门锁逻辑
-              if (combinedUpdate.changeDescriptions.some(d => d.includes('CH2'))) {
-                const isCabinetRelay2Closed = (combinedUpdate.combinedState[config.ELECTRIC_LOCK_OUT_INDEX]);
-                 mainActor.send({
-                   type: 'cabinet_lock_changed',
-                   priority: EventPriority.P2,
-                   isClosed: isCabinetRelay2Closed
-                 });
-              }
-
-              if (combinedUpdate.changeDescriptions.length > 0) {
-                appLogger.info(`[combined] 继电器状态变化: ${combinedUpdate.changeDescriptions.join(', ')}`);
-                appLogger.info(
-                  `[combined] 当前全部十六路状态: ${combinedUpdate.allStatusText} (raw: cabinet=${combinedUpdate.raw.cabinet} control=${combinedUpdate.raw.control})`
-                );
-              }
-            }
-          }
-        } catch (err) {
-          appLogger.error(`解析继电器状态失败: ${rawStr}`, err as Error);
-        }
-        return;
-      }
-
-      // 示例：模拟 P0 事件触发 (如果收到特定的硬件原始数据)
-      if (rawStr.includes('ALARM_KEY')) {
-        mainActor.send({ type: 'key_detected', priority: EventPriority.P0 });
-      }
-
-      // 其他响应
-      appLogger.debug(`[${protocol.toUpperCase()}] 来自 ${clientId} 的响应:`, { raw: rawStr, ...parsedResponse });
-    };
-
     // 启动主状态机
     mainActor.start();
 
-    // 启动 Monitor 子状态机 (Initial START)
+    // 启动 Monitor 子状态机
     mainActor.send({ type: 'monitor_tick', priority: EventPriority.P3 });
 
     appLogger.info(`开始 UDP 查询循环 (${config.QUERY_INTERVAL}ms 间隔)`);
