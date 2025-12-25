@@ -208,39 +208,39 @@ const handleSubmit = async (values: Config) => {
 
 ## Tasks / Subtasks
 
-- [ ] 完善Shared Schemas (AC: #2)
-  - [ ] 更新 `packages/shared/src/schemas/config.schema.ts`
-  - [ ] 添加详细的中文验证错误消息
-  - [ ] 确保所有字段都有min/max验证规则
-  - [ ] 编写schema单元测试
+- [x] 完善Shared Schemas (AC: #2)
+  - [x] 更新 `packages/shared/src/schemas/config.schema.ts`
+  - [x] 添加详细的中文验证错误消息
+  - [x] 确保所有字段都有min/max验证规则
+  - [x] 编写schema单元测试
 
-- [ ] 创建AppConfigCard组件 (AC: #1, #2)
-  - [ ] 创建 `packages/frontend/src/components/dashboard/AppConfigCard.tsx`
-  - [ ] 实现双列网格布局
-  - [ ] 为每个字段添加FormField
-  - [ ] 实现实时验证图标 (Check/X)
-  - [ ] 添加FormDescription提示文本
-  - [ ] 编写组件单元测试
+- [x] 创建AppConfigCard组件 (AC: #1, #2)
+  - [x] 创建 `packages/frontend/src/components/dashboard/AppConfigCard.tsx`
+  - [x] 实现双列网格布局
+  - [x] 为每个字段添加FormField
+  - [x] 实现实时验证图标 (Check/X)
+  - [x] 添加FormDescription提示文本
+  - [x] 编写组件单元测试
 
-- [ ] 重构ConfigForm组件 (AC: #1, #3)
-  - [ ] 修改 `packages/frontend/src/components/dashboard/ConfigForm.tsx`
-  - [ ] 替换mock保存为真实API调用
-  - [ ] 集成AppConfigCard组件
-  - [ ] 实现保存成功/失败的Toast通知
-  - [ ] 确保表单状态管理正确 (isDirty, isValid)
+- [x] 重构ConfigForm组件 (AC: #1, #3)
+  - [x] 修改 `packages/frontend/src/components/dashboard/ConfigForm.tsx`
+  - [x] 替换mock保存为真实API调用
+  - [x] 集成AppConfigCard组件
+  - [x] 实现保存成功/失败的Toast通知
+  - [x] 确保表单状态管理正确 (isDirty, isValid)
 
-- [ ] 表单验证测试 (AC: #2)
-  - [ ] 测试所有字段的有效值
-  - [ ] 测试所有字段的无效值
-  - [ ] 测试边界值 (min, max)
-  - [ ] 测试错误信息显示
-  - [ ] 测试保存按钮禁用逻辑
+- [x] 表单验证测试 (AC: #2)
+  - [x] 测试所有字段的有效值
+  - [x] 测试所有字段的无效值
+  - [x] 测试边界值 (min, max)
+  - [x] 测试错误信息显示
+  - [x] 测试保存按钮禁用逻辑
 
-- [ ] UI样式调整 (AC: #2)
-  - [ ] 确保与shadcn/ui主题一致
-  - [ ] 验证响应式布局
-  - [ ] 测试验证图标位置
-  - [ ] 优化表单间距和对齐
+- [x] UI样式调整 (AC: #2)
+  - [x] 确保与shadcn/ui主题一致
+  - [x] 验证响应式布局
+  - [x] 测试验证图标位置
+  - [x] 优化表单间距和对齐
 
 ### Review Follow-ups (AI)
 - [ ] [AI-Review][MEDIUM] ConfigForm组件存在API客户端不一致问题 - 同时使用apiFetch和apiClient，应统一使用一种方案

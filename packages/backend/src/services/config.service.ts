@@ -7,6 +7,7 @@
 import { readFile, writeFile, copyFile, rename } from 'fs/promises';
 import { join } from 'path';
 import { configSchema, type Config } from 'shared';
+import { logger } from '../utils/logger.js';
 
 /**
  * 配置服务类 - 封装所有配置文件操作
@@ -31,6 +32,7 @@ export class ConfigService {
     try {
       // 1. 读取文件
       const fileContent = await readFile(this.configPath, 'utf-8');
+      logger.info({ path: this.configPath }, '读取配置文件');
 
       // 2. 解析 JSON
       const rawData = JSON.parse(fileContent);
@@ -38,6 +40,7 @@ export class ConfigService {
       // 3. 使用 Zod schema 验证
       const result = configSchema.safeParse(rawData);
       if (!result.success) {
+        logger.error({ errors: result.error.issues }, '配置验证失败');
         throw new Error('配置文件格式无效');
       }
 
@@ -46,6 +49,7 @@ export class ConfigService {
     } catch (error: any) {
       // 处理文件不存在错误
       if (error.code === 'ENOENT') {
+        logger.error({ path: this.configPath }, '配置文件不存在');
         throw new Error('配置文件不存在');
       }
 
@@ -63,6 +67,7 @@ export class ConfigService {
     // 1. 验证数据
     const result = configSchema.safeParse(newConfig);
     if (!result.success) {
+      logger.error({ errors: result.error.issues }, '更新配置验证失败');
       throw new Error('配置无效: ' + result.error.message);
     }
 
@@ -74,9 +79,12 @@ export class ConfigService {
       const tempPath = this.configPath + '.tmp';
       const content = JSON.stringify(newConfig, null, 2);
 
+      logger.info({ path: this.configPath }, '开始写入新配置');
       await writeFile(tempPath, content, 'utf-8');
       await rename(tempPath, this.configPath);
+      logger.info('配置更新成功');
     } catch (error: any) {
+      logger.error({ error: error.message }, '配置更新失败');
       throw new Error(`配置更新失败: ${error.message}`);
     }
   }
@@ -91,6 +99,7 @@ export class ConfigService {
 
       // 创建备份
       const backupPath = this.configPath.replace('.json', '.backup.json');
+      logger.info({ from: this.configPath, to: backupPath }, '创建配置备份');
       await copyFile(this.configPath, backupPath);
     } catch (error: any) {
       // 如果文件不存在 (ENOENT)，则不需要备份，直接返回

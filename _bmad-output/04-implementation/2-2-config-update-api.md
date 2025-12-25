@@ -148,5 +148,5 @@ _To be filled by Dev Agent_
   - [x] Ensure `config.json` updates correctly in a manual test (optional but recommended) <!-- id: task-3-2 -->
 
 ### Review Follow-ups (AI)
-- [ ] [AI-Review][MEDIUM] 后端配置更新API需要增强日志记录，记录配置更新前后的关键信息，便于审计和调试
+- [x] [AI-Review][MEDIUM] 后端配置更新API需要增强日志记录，记录配置更新前后的关键信息，便于审计和调试
 - [ ] [AI-Review][MEDIUM] 文件系统操作缺少更详细的错误处理，应添加对特定文件系统错误的处理和重试逻辑

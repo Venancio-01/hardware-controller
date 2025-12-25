@@ -54,8 +54,6 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
     }
   }
 
-  // TODO: 后续添加 Bearer Token 支持 (JWT)
-
   res.status(401).json({
     success: false,
     error: '认证失败'

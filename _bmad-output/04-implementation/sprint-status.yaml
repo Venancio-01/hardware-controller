@@ -43,22 +43,22 @@ development_status:
   # Epic 1: 核心配置界面与状态监控
   epic-1: in-progress
   1-1-monorepo-setup: done
-  1-2-shared-validation: in-progress
-  1-3-backend-skeleton: in-progress
+  1-2-shared-validation: review
+  1-3-backend-skeleton: review
   1-4-frontend-dashboard: review
-  1-5-basic-auth: in-progress
+  1-5-basic-auth: review
   epic-1-retrospective: optional
 
   # Epic 2: 应用程序配置与验证
   epic-2: in-progress
-  2-1-app-config-form: in-progress
-  2-2-config-update-api: in-progress
+  2-1-app-config-form: review
+  2-2-config-update-api: review
   2-3-save-feedback: review
   epic-2-retrospective: optional
 
   # Epic 3: 网络配置与连接安全
-  epic-3: backlog
-  3-1-network-config-form: backlog
+  epic-3: in-progress
+  3-1-network-config-form: in-progress
   3-2-connection-test-api: backlog
   3-3-conflict-safe-save: backlog
   epic-3-retrospective: optional

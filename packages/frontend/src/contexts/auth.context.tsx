@@ -4,19 +4,14 @@ import { useRouter } from '@tanstack/react-router';
 import { z } from 'zod';
 import { loginRequestSchema, type LoginResponse } from 'shared';
 
-import { apiClient } from '../api/client';
+import { apiFetch } from '../lib/api';
 
 // API call (will be moved to api client later or here)
 const loginApi = async (credentials: z.infer<typeof loginRequestSchema>): Promise<LoginResponse> => {
-  try {
-    const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
-    return response.data;
-  } catch (error: any) {
-    if (error.response && error.response.data && error.response.data.error) {
-      throw new Error(error.response.data.error);
-    }
-    throw new Error('登录失败');
-  }
+  return apiFetch<LoginResponse>('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify(credentials),
+  });
 };
 
 interface AuthContextType {
