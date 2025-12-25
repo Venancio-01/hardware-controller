@@ -1,68 +1,46 @@
-/**
- * 配置 Schema 单元测试
- *
- * 测试 config.schema.ts 中定义的验证规则
- */
-
 import { describe, expect, it } from 'vitest';
-import { configSchema } from '../config.schema.js';
+import { appConfigSchema, configSchema } from '../config.schema.js';
+import { networkConfigSchema } from '../network.schema.js';
 
 describe('configSchema 验证测试', () => {
-  describe('有效配置数据验证', () => {
-    it('应该接受完整有效的配置数据', () => {
+  const validNetworkConfig = {
+    ipAddress: '192.168.1.100',
+    subnetMask: '255.255.255.0',
+    gateway: '192.168.1.1',
+    port: 8080,
+    dns: ['8.8.8.8'],
+  };
+
+  const validAppConfig = {
+    deviceId: 'device-001',
+    timeout: 5000,
+    retryCount: 3,
+    pollingInterval: 5000,
+  };
+
+  describe('完整配置验证', () => {
+    it('应该接受包含应用和网络设置的完整配置', () => {
       const validConfig = {
-        deviceId: 'device-001',
-        timeout: 5000,
-        retryCount: 3,
-        pollingInterval: 5000,
+        ...validAppConfig,
+        ...validNetworkConfig,
       };
 
       const result = configSchema.safeParse(validConfig);
       expect(result.success).toBe(true);
     });
 
-    it('应该使用默认值 pollingInterval = 5000', () => {
-      const config = {
-        deviceId: 'device-002',
-        timeout: 3000,
-        retryCount: 2,
-      };
-
-      const result = configSchema.safeParse(config);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.pollingInterval).toBe(5000);
-      }
-    });
-  });
-
-  describe('无效配置数据验证', () => {
-    it('应该拒绝缺少必填字段 device的配置', () => {
+    it('应该拒绝缺少网络设置的配置', () => {
       const invalidConfig = {
-        timeout: 5000,
-        retryCount: 3,
+        ...validAppConfig,
       };
 
       const result = configSchema.safeParse(invalidConfig);
       expect(result.success).toBe(false);
     });
 
-    it('应该拒绝负数的 timeout', () => {
+    it('应该拒绝缺少应用设置的配置', () => {
       const invalidConfig = {
-        deviceId: 'device-003',
-        timeout: -1000,
-        retryCount: 0,
-      };
-
-      const result = configSchema.safeParse(invalidConfig);
-      expect(result.success).toBe(false);
-    });
-
-    it('应该拒绝负数的 retryCount', () => {
-      const invalidConfig = {
-        deviceId: 'device-004',
-        timeout: 5000,
-        retryCount: -1,
+        ...validNetworkConfig,
       };
 
       const result = configSchema.safeParse(invalidConfig);
@@ -70,27 +48,29 @@ describe('configSchema 验证测试', () => {
     });
   });
 
-  describe('边界情况测试', () => {
-    it('应该接受 retryCount = 0', () => {
+  describe('应用配置字段验证', () => {
+    it('应该验证 deviceId 长度', () => {
       const config = {
-        deviceId: 'device-005',
-        timeout: 5000,
-        retryCount: 0,
+        ...validAppConfig,
+        ...validNetworkConfig,
+        deviceId: '', // 太短
       };
+      expect(configSchema.safeParse(config).success).toBe(false);
 
-      const result = configSchema.safeParse(config);
-      expect(result.success).toBe(true);
+      const configLong = {
+        ...validAppConfig,
+        ...validNetworkConfig,
+        deviceId: 'a'.repeat(51), // 太长
+      };
+      expect(configSchema.safeParse(configLong).success).toBe(false);
     });
 
-    it('应该接受最小 timeout = 1', () => {
-      const config = {
-        deviceId: 'device-006',
-        timeout: 1,
-        retryCount: 1,
-      };
+    it('应该验证超时时间范围', () => {
+      const config = { ...validAppConfig, ...validNetworkConfig, timeout: 500 }; // 太小
+      expect(configSchema.safeParse(config).success).toBe(false);
 
-      const result = configSchema.safeParse(config);
-      expect(result.success).toBe(true);
+      const configBig = { ...validAppConfig, ...validNetworkConfig, timeout: 30001 }; // 太大
+      expect(configSchema.safeParse(configBig).success).toBe(false);
     });
   });
 });

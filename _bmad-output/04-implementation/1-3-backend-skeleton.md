@@ -1,6 +1,6 @@
 # Story 1.3: 开发后端 API 骨架 (Backend Skeleton)
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -67,6 +67,13 @@ So that 前端可以获取并显示当前的配置信息。
   - [x] 启动 HTTP 服务器
   - [x] 配置优雅关闭处理 (SIGINT, SIGTERM)
   - [x] 添加启动日志和配置摘要
+
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Critical] Disable Auth by default in `auth.config.ts` to unblock Story 1.3/1.4 contract [file:packages/backend/src/config/auth.config.ts]
+- [x] [AI-Review][Medium] Update Story File List to include auth and status related files
+- [ ] [AI-Review][Low] Refactor ensureBackup to use fs.access instead of readFile [file:packages/backend/src/services/config.service.ts]
+
 
 ## Dev Notes
 
@@ -569,8 +576,12 @@ N/A - 所有测试通过，未遇到需要调试的阻塞问题
 
 - `packages/backend/src/services/config.service.ts` - 配置服务核心逻辑
 - `packages/backend/src/services/__tests__/config.service.test.ts` - ConfigService 单元测试
-- `packages/backend/src/routes/config.routes.ts` - Config API 路由
+- `packages/backend/src/routes/config.routes.ts` - 配置 API 路由
+- `packages/backend/src/routes/auth.routes.ts` - 认证 API 路由
+- `packages/backend/src/routes/status.routes.ts` - 设备状态 API 路由
 - `packages/backend/src/routes/__tests__/config.routes.test.ts` - 路由集成测试
+- `packages/backend/src/config/auth.config.ts` - 认证配置
+- `packages/backend/src/middleware/auth.middleware.ts` - 认证中间件
 - `packages/backend/src/utils/logger.ts` - Pino 日志配置
 - `packages/backend/src/server.ts` - Express 服务器配置
 - `packages/backend/tsup.config.ts` - tsup 构建配置
@@ -584,6 +595,33 @@ N/A - 所有测试通过，未遇到需要调试的阻塞问题
 - `packages/backend/tsconfig.json` - 更新 shared 包路径解析
 - `packages/shared/package.json` - 添加 src 子路径导出
 - `_bmad-output/04-implementation/sprint-status.yaml` - 更新故事状态为 in-progress
+
+## Senior Developer Review (AI)
+
+### 🔴 Critical Issues
+
+1.  **Breaking Change: Auth Enabled by Default**: The `authMiddleware` is configured to block access to `/api/config` by default (`AUTH_ENABLED` defaults to `true`).
+    -   **Impact**: Story 1.3 acceptance criteria states `GET /api/config` should return 200 OK. Currently it returns 401 Unauthorized unless headers are manually added, which breaks the expected "Backend Skeleton" contract for the upcoming frontend story.
+    -   **Fix**: Set `AUTH_ENABLED` default to `false` in `packages/backend/src/config/auth.config.ts` until Story 1.5 (Basic Auth) is formally implemented/integrated.
+
+### 🟡 Medium Issues
+
+1.  **Scope Creep**: Implementation includes full Authentication (Story 1.5) and Device Status (Story 3.2) features not requested in Story 1.3.
+    -   **Impact**: Adds complexity and potential bugs before core skeleton is verified.
+    -   **Files**: `auth.routes.ts`, `status.routes.ts`, `auth.middleware.ts`, `auth.config.ts`.
+2.  **Documentation Gap**: The "File List" in the story does not match the actual files created.
+    -   **Missing**: `packages/backend/src/config/`, `packages/backend/src/middleware/`, `packages/backend/src/routes/auth.routes.ts`, `status.routes.ts`.
+
+### 🟢 Low Issues
+
+1.  **Testing**: ConfigService `ensureBackup` relies on `readFile` to check existence. `access` or `stat` might be slightly more semantic, but `readFile` works.
+2.  **Zod Schema**: `auth.config.ts` schema definition is valid but aggressive with `default(true)`.
+
+### Action Plan
+
+1.  **Auto-Fix**: Disable Auth by default to unblock Story 1.3 and 1.4.
+2.  **Update Docs**: Add the extra files to the Story File List for accuracy.
+
 
 ### Change Log
 

@@ -15,6 +15,7 @@ describe('deviceStatusSchema 验证测试', () => {
         ipAddress: '192.168.1.50',
         port: 8080,
         protocol: 'UDP' as const,
+        uptime: 3600,
       };
 
       const result = deviceStatusSchema.safeParse(validDevice);
@@ -27,6 +28,7 @@ describe('deviceStatusSchema 验证测试', () => {
         ipAddress: '10.0.0.1',
         port: 3000,
         protocol: 'TCP' as const,
+        uptime: 1800,
       };
 
       const result = deviceStatusSchema.safeParse(device);
@@ -41,6 +43,7 @@ describe('deviceStatusSchema 验证测试', () => {
         ipAddress: '192.168.1.50',
         port: 1,
         protocol: 'UDP' as const,
+        uptime: 0,
       };
 
       const result = deviceStatusSchema.safeParse(device);
@@ -53,6 +56,7 @@ describe('deviceStatusSchema 验证测试', () => {
         ipAddress: '192.168.1.50',
         port: 65535,
         protocol: 'TCP' as const,
+        uptime: 7200,
       };
 
       const result = deviceStatusSchema.safeParse(device);
@@ -65,6 +69,7 @@ describe('deviceStatusSchema 验证测试', () => {
         ipAddress: '192.168.1.50',
         port: 0,
         protocol: 'UDP' as const,
+        uptime: 0,
       };
 
       const result = deviceStatusSchema.safeParse(device);
@@ -77,6 +82,7 @@ describe('deviceStatusSchema 验证测试', () => {
         ipAddress: '192.168.1.50',
         port: 65536,
         protocol: 'UDP' as const,
+        uptime: 3600,
       };
 
       const result = deviceStatusSchema.safeParse(device);
@@ -89,6 +95,7 @@ describe('deviceStatusSchema 验证测试', () => {
         ipAddress: '192.168.1.50',
         port: -1,
         protocol: 'TCP' as const,
+        uptime: 300,
       };
 
       const result = deviceStatusSchema.safeParse(device);
@@ -106,6 +113,7 @@ describe('deviceStatusSchema 验证测试', () => {
           ipAddress: '192.168.1.50',
           port: 8080,
           protocol,
+          uptime: 1200,
         };
 
         const result = deviceStatusSchema.safeParse(device);
@@ -119,6 +127,7 @@ describe('deviceStatusSchema 验证测试', () => {
         ipAddress: '192.168.1.50',
         port: 8080,
         protocol: 'HTTP', // 无效协议
+        uptime: 900,
       };
 
       const result = deviceStatusSchema.safeParse(device);
@@ -132,6 +141,7 @@ describe('deviceStatusSchema 验证测试', () => {
         ipAddress: '192.168.1.50',
         port: 8080,
         protocol: 'UDP',
+        uptime: 600,
       };
 
       const result = deviceStatusSchema.safeParse(device);
@@ -143,6 +153,7 @@ describe('deviceStatusSchema 验证测试', () => {
         online: true,
         port: 8080,
         protocol: 'UDP',
+        uptime: 1500,
       };
 
       const result = deviceStatusSchema.safeParse(device);

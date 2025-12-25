@@ -48,4 +48,9 @@ export const deviceStatusSchema = z.object({
    * 通信协议类型
    */
   protocol: protocolSchema,
+
+  /**
+   * 系统运行时间（秒）
+   */
+  uptime: z.number().min(0),
 });

@@ -5,6 +5,7 @@
  */
 
 import { z } from 'zod';
+import { portSchema } from './device.schema.js';
 
 /**
  * IPv4 地址验证正则表达式
@@ -48,7 +49,7 @@ function isGatewayInSubnet(gateway: string, ipAddress: string, subnetMask: strin
 /**
  * 网络配置 Schema
  *
- * 包含 IP 地址、子网掩码、网关和 DNS 服务器列表
+ * 包含 IP 地址、子网掩码、网关、端口和 DNS 服务器列表
  */
 export const networkConfigSchema = z
   .object({
@@ -66,6 +67,11 @@ export const networkConfigSchema = z
      * 网关地址
      */
     gateway: ipv4Schema,
+
+    /**
+     * 服务端口
+     */
+    port: portSchema,
 
     /**
      * DNS 服务器列表(可选)

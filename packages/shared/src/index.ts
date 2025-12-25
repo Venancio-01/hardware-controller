@@ -6,7 +6,7 @@
 
 // ============ Schemas 导出 ============
 // 配置验证 schemas
-export { configSchema } from './schemas/config.schema.js';
+export { configSchema, appConfigSchema } from './schemas/config.schema.js';
 
 // 网络配置 schemas
 export { networkConfigSchema, ipv4Schema } from './schemas/network.schema.js';
@@ -21,6 +21,10 @@ export {
   apiResponseSchema,
 } from './schemas/api-response.schema.js';
 
+// 认证 schemas
+export { loginRequestSchema, loginResponseSchema } from './schemas/auth.schema.js';
+
+
 // ============ Types 导出 ============
 // 配置类型
 export type { Config } from './types/config.types.js';
@@ -34,8 +38,5 @@ export type { DeviceStatus, Port, Protocol } from './types/device.types.js';
 // API 响应类型
 export type { ApiSuccessResponse, ApiErrorResponse, ApiResponse } from './types/api.types.js';
 
-// ============ Legacy 导出 (向后兼容) ============
-// 保留现有的导出以兼容已有代码
-export * from './types.js';
-export * from './validation.js';
-export * from './utils.js';
+// 认证类型
+export type { LoginRequest, LoginResponse } from './schemas/auth.schema.js';

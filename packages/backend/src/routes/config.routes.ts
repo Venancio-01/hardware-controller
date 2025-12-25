@@ -40,4 +40,32 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
+/**
+ * PUT /api/config
+ * 更新配置
+ */
+router.put('/', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const config = req.body;
+    await configService.updateConfig(config);
+
+    res.json({
+      success: true,
+      message: '配置已保存',
+      needsRestart: true,
+    });
+  } catch (error: any) {
+    // 处理验证错误
+    if (error.message.startsWith('配置无效')) {
+      return res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+    }
+
+    // 其他错误 (如文件系统错误) 传递给错误处理中间件
+    next(error);
+  }
+});
+
 export default router;

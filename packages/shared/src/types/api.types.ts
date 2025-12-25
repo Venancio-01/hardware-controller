@@ -8,7 +8,6 @@ import type { z } from 'zod';
 import type {
   apiSuccessResponseSchema,
   apiErrorResponseSchema,
-  apiResponseSchema,
 } from '../schemas/api-response.schema.js';
 
 /**

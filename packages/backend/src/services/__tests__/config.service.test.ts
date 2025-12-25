@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { readFile } from 'fs/promises';
+import { readFile, writeFile, copyFile, rename } from 'fs/promises';
 import { ConfigService } from '../config.service.js';
 
 // Mock fs/promises 模块
@@ -108,6 +108,69 @@ describe('ConfigService', () => {
 
       // Act & Assert: 验证抛出验证错误
       await expect(configService.getConfig()).rejects.toThrow('配置文件格式无效');
+    });
+  });
+
+  describe('updateConfig', () => {
+    const newConfig = {
+      deviceId: 'device-001',
+      timeout: 6000,
+      retryCount: 5,
+      pollingInterval: 10000,
+    };
+
+    it('应该在写入前创建备份', async () => {
+      // Arrange
+      // 模拟配置文件存在
+      vi.mocked(readFile).mockResolvedValue(JSON.stringify(newConfig)); // existing file content mock
+
+      // Act
+      await configService.updateConfig(newConfig);
+
+      // Assert
+      // 验证 copyFile 被调用 (备份)
+      // 注意：mockConfigPath 是 /test/path/config.json
+      // 备份路径应该是 /test/path/config.backup.json
+      const backupPath = mockConfigPath.replace('.json', '.backup.json');
+      expect(copyFile).toHaveBeenCalledWith(mockConfigPath, backupPath);
+    });
+
+    it('应该使用原子写入模式', async () => {
+      // Arrange
+      // 模拟文件读取（为了备份检查）
+      vi.mocked(readFile).mockResolvedValue('{}');
+
+      // Act
+      await (configService as any).updateConfig(newConfig);
+
+      // Assert
+      // 1. 验证写入临时文件
+      const tempPath = mockConfigPath + '.tmp';
+      expect(writeFile).toHaveBeenCalledWith(tempPath, expect.any(String), 'utf-8');
+
+      // 2. 验证临时文件内容是格式化的 JSON
+      const writeCall = vi.mocked(writeFile).mock.calls.find((call: any[]) => call[0] === tempPath);
+      expect(writeCall).toBeDefined();
+      expect(writeCall![1]).toBe(JSON.stringify(newConfig, null, 2));
+
+      // 3. 验证重命名
+      expect(rename).toHaveBeenCalledWith(tempPath, mockConfigPath);
+    });
+
+    it('应该在配置验证失败时抛出错误', async () => {
+      // Arrange
+      const invalidConfig = {
+        deviceId: '', // Invalid
+        timeout: -1,
+        retryCount: 3,
+        pollingInterval: 5000,
+      } as any;
+
+      // Act & Assert
+      await expect((configService as any).updateConfig(invalidConfig)).rejects.toThrow('配置无效');
+
+      // 验证没有执行写入操作
+      expect(writeFile).not.toHaveBeenCalled();
     });
   });
 });

@@ -4,7 +4,7 @@
  * 封装所有配置文件操作，包括读取、解析和验证 config.json
  */
 
-import { readFile } from 'fs/promises';
+import { readFile, writeFile, copyFile, rename } from 'fs/promises';
 import { join } from 'path';
 import { configSchema, type Config } from 'shared';
 
@@ -50,6 +50,53 @@ export class ConfigService {
       }
 
       // 重新抛出其他错误
+      throw error;
+    }
+  }
+
+  /**
+   * 更新配置文件
+   * @param newConfig 新的配置对象
+   * @throws {Error} 验证失败或写入失败时抛出错误
+   */
+  async updateConfig(newConfig: Config): Promise<void> {
+    // 1. 验证数据
+    const result = configSchema.safeParse(newConfig);
+    if (!result.success) {
+      throw new Error('配置无效: ' + result.error.message);
+    }
+
+    try {
+      // 2. 检查是否存在并备份
+      await this.ensureBackup();
+
+      // 3. 原子写入 (Write Temp -> Rename)
+      const tempPath = this.configPath + '.tmp';
+      const content = JSON.stringify(newConfig, null, 2);
+
+      await writeFile(tempPath, content, 'utf-8');
+      await rename(tempPath, this.configPath);
+    } catch (error: any) {
+      throw new Error(`配置更新失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 如果配置文件存在，创建备份
+   */
+  private async ensureBackup(): Promise<void> {
+    try {
+      // 检查文件是否存在
+      await readFile(this.configPath);
+
+      // 创建备份
+      const backupPath = this.configPath.replace('.json', '.backup.json');
+      await copyFile(this.configPath, backupPath);
+    } catch (error: any) {
+      // 如果文件不存在 (ENOENT)，则不需要备份，直接返回
+      if (error.code === 'ENOENT') {
+        return;
+      }
       throw error;
     }
   }

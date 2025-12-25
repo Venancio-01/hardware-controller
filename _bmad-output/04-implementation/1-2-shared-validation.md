@@ -1,6 +1,6 @@
 # Story 1.2: 建立共享验证架构 (Shared Validation)
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -57,6 +57,12 @@ So that 前端表单和后端 API 可以使用同一套规则验证配置数据,
   - [x] 在 frontend 的 package.json 中添加依赖: `"shared": "workspace:*"` (已存在)
   - [x] 验证 backend 可以导入: `import { configSchema } from 'shared'` (✅ 验证通过)
   - [x] 验证 frontend 可以导入: `import { configSchema } from 'shared'` (✅ 验证通过)
+
+- [x] Review Follow-ups (AI)
+  - [x] [AI-Review][CRITICAL] `configSchema` 整合失败：`appConfigSchema.intersection` 报错不是函数。应改用 `.merge()`。 [packages/shared/src/schemas/config.schema.ts:54]
+  - [x] [AI-Review][CRITICAL] `deviceStatusSchema` 验证失败：代码中新增了必填项 `uptime` 但测试数据中未包含。 [packages/shared/src/schemas/device.schema.ts]
+  - [x] [AI-Review][MEDIUM] 更新 `device.schema.test.ts` 以在所有测试用例中包含 `uptime` 字段。 [packages/shared/src/schemas/__tests__/device.schema.test.ts]
+  - [x] [AI-Review][MEDIUM] 调查 `pnpm-lock.yaml` 中的 Zod 版本不一致问题（3.25.76 vs 4.2.1）。 [pnpm-lock.yaml] - 已识别问题：zod-form-data 依赖的版本冲突，项目中所有package.json都指定了^4.2.1版本，但依赖冲突导致多个版本
 
 ## Dev Notes
 

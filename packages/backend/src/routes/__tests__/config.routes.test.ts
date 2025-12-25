@@ -79,6 +79,7 @@ describe('GET /api/config', () => {
     });
   });
 
+
   it('应该在其他错误时返回 500', async () => {
     // Arrange: Mock 未知错误
     const app2 = express();
@@ -98,5 +99,89 @@ describe('GET /api/config', () => {
     // Assert: 验证响应（应该被错误处理中间件捕获）
     expect(response.status).toBe(500);
     expect(response.body.success).toBe(false);
+  });
+});
+
+describe('PUT /api/config', () => {
+  let app: express.Application;
+  let updateConfigSpy: any;
+
+  beforeEach(() => {
+    app = express();
+    app.use(express.json());
+    app.use('/api/config', configRoutes);
+
+    // Mock ConfigService.prototype.updateConfig
+    updateConfigSpy = vi.spyOn(ConfigService.prototype, 'updateConfig');
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const validConfig = {
+    deviceId: 'device-001',
+    timeout: 5000,
+    retryCount: 3,
+    pollingInterval: 5000,
+  };
+
+  it('应该成功更新配置并返回 200', async () => {
+    // Arrange
+    updateConfigSpy.mockResolvedValue(undefined);
+
+    // Act
+    const response = await request(app)
+      .put('/api/config')
+      .send(validConfig);
+
+    // Assert
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      success: true,
+      message: '配置已保存',
+      needsRestart: true,
+    });
+    expect(updateConfigSpy).toHaveBeenCalledWith(validConfig);
+  });
+
+  it('应该在 ConfigService 抛出验证错误时返回 400', async () => {
+    // Arrange: Mock 验证错误
+    // ConfigService 抛出 "配置无效: ..."
+    updateConfigSpy.mockRejectedValue(new Error('配置无效: deviceId required'));
+
+    // Act
+    const response = await request(app)
+      .put('/api/config')
+      .send({}); // Empty body
+
+    // Assert
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      error: '配置无效: deviceId required',
+    });
+  });
+
+  it('应该在 ConfigService 抛出其他错误时返回 500', async () => {
+    // Arrange: Mock 系统错误
+    updateConfigSpy.mockRejectedValue(new Error('配置更新失败: EIO'));
+
+    // 需要错误处理中间件
+    const appWithErr = express();
+    appWithErr.use(express.json());
+    appWithErr.use('/api/config', configRoutes);
+    appWithErr.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+      res.status(500).json({ success: false, error: '服务器错误' });
+    });
+
+    // Act
+    const response = await request(appWithErr)
+      .put('/api/config')
+      .send(validConfig);
+
+    // Assert
+    expect(response.status).toBe(500);
   });
 });

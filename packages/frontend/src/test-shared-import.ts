@@ -12,6 +12,7 @@ const testConfig: Config = {
   deviceId: 'frontend-device',
   timeout: 3000,
   retryCount: 2,
+  pollingInterval: 5000,
 };
 
 const testNetwork: NetworkConfig = {

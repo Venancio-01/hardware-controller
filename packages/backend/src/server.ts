@@ -8,6 +8,9 @@ import express from 'express';
 import pinoHttp from 'pino-http';
 import { logger } from './utils/logger.js';
 import configRoutes from './routes/config.routes.js';
+import statusRoutes from './routes/status.routes.js';
+import authRoutes from './routes/auth.routes.js';
+import { authMiddleware } from './middleware/auth.middleware.js';
 
 /**
  * 创建并配置 Express 应用实例
@@ -42,7 +45,13 @@ export function createServer(): express.Application {
   });
 
   // API 路由
+  app.use('/api/auth', authRoutes); // 公开路由
+
+  // 受保护路由
+  app.use('/api', authMiddleware); // 保护 /api 下的所有其他路由 (除了白名单)
+
   app.use('/api/config', configRoutes);
+  app.use('/api/status', statusRoutes);
 
   // 错误处理中间件
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
