@@ -6,7 +6,9 @@
 
 import express, { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
+import { ZodError } from 'zod';
 import { ConfigService } from '../services/config.service.js';
+import { ConfigImportExportService } from '../services/config-import-export.service.js';
 
 const router: express.Router = Router();
 const configService = new ConfigService();
@@ -29,10 +31,11 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         error: '配置文件不存在',
       });
     }
-    if (error.message === '配置文件格式无效') {
+    if (error instanceof ZodError) {
       return res.status(400).json({
         success: false,
         error: '配置文件格式无效',
+        validationErrors: error.flatten().fieldErrors,
       });
     }
     // 将其他错误传递给错误处理中间件
@@ -56,7 +59,87 @@ router.put('/', async (req: Request, res: Response, next: NextFunction) => {
     });
   } catch (error: any) {
     // 处理验证错误
-    if (error.message.startsWith('配置无效')) {
+    if (error instanceof ZodError) {
+      return res.status(400).json({
+        success: false,
+        error: '配置验证失败',
+        validationErrors: error.flatten().fieldErrors,
+      });
+    }
+
+    // 其他错误 (如文件系统错误) 传递给错误处理中间件
+    next(error);
+  }
+});
+
+/**
+ * GET /api/config/export
+ * 导出配置文件
+ */
+router.get('/export', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const exportService = new ConfigImportExportService();
+    const configJson = await exportService.exportConfig();
+
+    // 设置响应头以触发文件下载
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename="config.json"');
+
+    res.send(configJson);
+  } catch (error: any) {
+    if (error.message === '配置文件不存在') {
+      return res.status(404).json({
+        success: false,
+        error: '配置文件不存在，无法导出',
+      });
+    }
+    if (error.constructor.name === 'ZodError' || error.name === 'ZodError') {
+      return res.status(400).json({
+        success: false,
+        error: '配置文件格式无效',
+        validationErrors: error.flatten().fieldErrors,
+      });
+    }
+    // 将其他错误传递给错误处理中间件
+    next(error);
+  }
+});
+
+/**
+ * POST /api/config/import
+ * 导入配置文件
+ */
+router.post('/import', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const exportService = new ConfigImportExportService();
+    const { config } = req.body;
+
+    if (!config) {
+      return res.status(400).json({
+        success: false,
+        error: '缺少配置数据',
+      });
+    }
+
+    const validatedConfig = await exportService.importConfig(config);
+
+    res.json({
+      success: true,
+      data: validatedConfig,
+      message: '配置导入成功',
+      needsRestart: true,
+    });
+  } catch (error: any) {
+    // 处理验证错误
+    if (error instanceof ZodError) {
+      return res.status(400).json({
+        success: false,
+        error: '配置验证失败',
+        validationErrors: error.flatten().fieldErrors,
+      });
+    }
+
+    if (error.message.includes('配置文件格式无效')) {
       return res.status(400).json({
         success: false,
         error: error.message,

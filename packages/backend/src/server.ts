@@ -10,6 +10,8 @@ import { logger } from './utils/logger.js';
 import configRoutes from './routes/config.routes.js';
 import statusRoutes from './routes/status.routes.js';
 import authRoutes from './routes/auth.routes.js';
+import systemRoutes from './routes/system.routes.js';
+import conflictDetectionRoutes from './routes/conflict-detection.routes.js';
 import { authMiddleware } from './middleware/auth.middleware.js';
 
 /**
@@ -51,7 +53,9 @@ export function createServer(): express.Application {
   app.use('/api', authMiddleware); // 保护 /api 下的所有其他路由 (除了白名单)
 
   app.use('/api/config', configRoutes);
+  app.use('/api/config/check-conflict', conflictDetectionRoutes); // 冲突检测作为config子路由
   app.use('/api/status', statusRoutes);
+  app.use('/api/system', systemRoutes);
 
   // 错误处理中间件
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

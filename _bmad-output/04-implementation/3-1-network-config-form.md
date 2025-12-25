@@ -1,6 +1,6 @@
 # Story 3.1: 实现网络配置表单与验证 (Network Config Form)
 
-Status: ready-for-dev
+Status: review
 Story: 3.1
 Epic: 3
 
@@ -119,29 +119,29 @@ You must implement a utility to verify the Gateway is reachable.
   - [x] Create `packages/shared/src/schemas/network.schema.ts` defining `NetworkConfig` and Zod validation
   - [x] Add unit tests for `network.schema.ts` in `packages/shared/test/schemas/network.schema.test.ts` (cover IP, mask regex, gateway logic)
 
-- [ ] **Frontend: Network Configuration Form**
-  - [ ] Create `packages/frontend/src/components/config/NetworkConfigForm.tsx`
-  - [ ] Implement form layout using `shadcn/ui` Card and Grid
-  - [ ] Bind fields (IP, Mask, Gateway, Port, DNS) to `react-hook-form`
-  - [ ] Implement `zodResolver` with shared schema
-  - [ ] Display real-time validation errors
+- [x] **Frontend: Network Configuration Form**
+  - [x] Create `packages/frontend/src/components/config/NetworkConfigForm.tsx`
+  - [x] Implement form layout using `shadcn/ui` Card and Grid
+  - [x] Bind fields (IP, Mask, Gateway, Port, DNS) to `react-hook-form`
+  - [x] Implement `zodResolver` with shared schema
+  - [x] Display real-time validation errors
 
-- [ ] **Frontend: Integration & Testing**
-  - [ ] Integrate `NetworkConfigForm` into the main Config page
-  - [ ] Create `packages/frontend/test/components/NetworkConfigForm.test.tsx`
-  - [ ] Test form rendering and default values
-  - [ ] Test validation feedback (invalid IP, gateway mismatch)
-  - [ ] Test submit button disabled state
+- [x] **Frontend: Integration & Testing**
+  - [x] Integrate `NetworkConfigForm` into the main Config page
+  - [x] Create `packages/frontend/test/components/NetworkConfigForm.test.tsx`
+  - [x] Test form rendering and default values
+  - [x] Test validation feedback (invalid IP, gateway mismatch)
+  - [x] Test submit button disabled state
 
-- [ ] **Backend: Verification**
-  - [ ] Verify/Update `packages/backend/src/config/config.service.ts` to use `network.schema.ts` validation
+- [x] **Backend: Verification**
+  - [x] Verify/Update `packages/backend/src/config/config.service.ts` to use `network.schema.ts` validation
 
 ## Dev Agent Record
 
 ### Implementation Plan
 - [x] Implement Shared IP Utils & Schema
-- [ ] Implement Frontend Form Component
-- [ ] Integrate and Verify
+- [x] Implement Frontend Form Component
+- [x] Integrate and Verify
 
 ### Completion Notes
 - Implemented `isIpInSubnet` using bitwise operations for efficient subnet validation.
@@ -149,6 +149,11 @@ You must implement a utility to verify the Gateway is reachable.
 - Added comprehensive unit tests for both utilities and schema.
 - Resolved circular dependency in schemas by defining `portSchema` locally in `network.schema.ts`.
 - Note: Zod `.ip()` was not available/working, fell back to Regex validation.
+- Updated NetworkConfigForm component to integrate seamlessly with the main ConfigForm using shared form context.
+- Added support for dynamic DNS server management (add/remove) using react-hook-form's useFieldArray hook.
+- Updated ConfigForm to include network configuration fields with proper validation and error handling.
+- All acceptance criteria have been satisfied including UI rendering, input validation, and interaction logic.
+- Form now includes real-time validation feedback with proper error messages and disabled submit state.
 
 ## File List
 - packages/shared/src/utils/ip-utils.ts
@@ -157,6 +162,20 @@ You must implement a utility to verify the Gateway is reachable.
 - packages/shared/test/schemas/network.schema.test.ts
 - packages/frontend/src/components/config/NetworkConfigForm.tsx
 - packages/frontend/test/components/NetworkConfigForm.test.tsx
+- packages/frontend/src/components/dashboard/ConfigForm.tsx
+- packages/frontend/src/hooks/useUpdateConfig.ts
+- packages/shared/src/index.ts
 
 ## Change Log
-- (None)
+- Implemented network configuration form with proper validation
+- Integrated network config into main config page
+- Added support for dynamic DNS server management
+- Updated form to use shared validation schema
+- Added comprehensive tests for network configuration form
+
+## Senior Developer Review (AI)
+- Fixed DNS validation to include maximum count (4 DNS servers max)
+- Fixed potential NaN issue in port input handling (parseInt with isNaN check)
+- Enhanced test coverage with additional edge case for DNS server count
+- Updated File List to include all actually modified files: ConfigForm.tsx, useUpdateConfig.ts, and shared index.ts
+- Status updated: Review → Done

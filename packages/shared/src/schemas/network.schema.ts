@@ -59,7 +59,7 @@ export const networkConfigSchema = z
     /**
      * DNS 服务器列表(可选)
      */
-    dns: z.array(ipv4Schema).optional(),
+    dns: z.array(ipv4Schema).max(4, { message: '最多只能配置4个DNS服务器' }).optional(),
   })
   .refine((data) => {
     // 验证网关是否在子网内

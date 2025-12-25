@@ -6,6 +6,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { readFile, writeFile, copyFile, rename } from 'fs/promises';
+import { ZodError } from 'zod';
 import { ConfigService } from '../config.service.js';
 
 // Mock fs/promises 模块
@@ -32,6 +33,10 @@ describe('ConfigService', () => {
         timeout: 5000,
         retryCount: 3,
         pollingInterval: 5000,
+        ipAddress: '192.168.1.100',
+        subnetMask: '255.255.255.0',
+        gateway: '192.168.1.1',
+        port: 8080
       };
       vi.mocked(readFile).mockResolvedValue(JSON.stringify(validConfig));
 
@@ -72,7 +77,7 @@ describe('ConfigService', () => {
       vi.mocked(readFile).mockResolvedValue(JSON.stringify(invalidConfig));
 
       // Act & Assert: 验证抛出验证错误
-      await expect(configService.getConfig()).rejects.toThrow('配置文件格式无效');
+      await expect(configService.getConfig()).rejects.toThrow(ZodError);
     });
 
     it('应该使用默认路径（如果未指定）', () => {
@@ -93,7 +98,7 @@ describe('ConfigService', () => {
       vi.mocked(readFile).mockResolvedValue(JSON.stringify(incompleteConfig));
 
       // Act & Assert: 验证抛出验证错误
-      await expect(configService.getConfig()).rejects.toThrow('配置文件格式无效');
+      await expect(configService.getConfig()).rejects.toThrow(ZodError);
     });
 
     it('应该在字段类型错误时抛出验证错误', async () => {
@@ -107,7 +112,7 @@ describe('ConfigService', () => {
       vi.mocked(readFile).mockResolvedValue(JSON.stringify(wrongTypeConfig));
 
       // Act & Assert: 验证抛出验证错误
-      await expect(configService.getConfig()).rejects.toThrow('配置文件格式无效');
+      await expect(configService.getConfig()).rejects.toThrow(ZodError);
     });
   });
 
@@ -117,6 +122,10 @@ describe('ConfigService', () => {
       timeout: 6000,
       retryCount: 5,
       pollingInterval: 10000,
+      ipAddress: '192.168.1.100',
+      subnetMask: '255.255.255.0',
+      gateway: '192.168.1.1',
+      port: 8080
     };
 
     it('应该在写入前创建备份', async () => {
@@ -167,7 +176,7 @@ describe('ConfigService', () => {
       } as any;
 
       // Act & Assert
-      await expect((configService as any).updateConfig(invalidConfig)).rejects.toThrow('配置无效');
+      await expect((configService as any).updateConfig(invalidConfig)).rejects.toThrow(ZodError);
 
       // 验证没有执行写入操作
       expect(writeFile).not.toHaveBeenCalled();

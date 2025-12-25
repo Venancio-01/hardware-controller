@@ -4,13 +4,16 @@ import { configSchema, type Config } from "shared";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { AppConfigCard } from "./AppConfigCard";
-import { Save, Loader2, Circle, AlertCircle } from "lucide-react";
+import { NetworkConfigForm } from "@/components/config/NetworkConfigForm";
+import { RestartButton } from "@/components/system/RestartButton";
+import { Save, Loader2, Circle, AlertCircle, Download, Upload } from "lucide-react";
 import { useEffect } from "react";
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useUpdateConfig } from "@/hooks/useUpdateConfig";
+import { useImportExportConfig } from "@/hooks/useImportExportConfig";
 
 export function ConfigForm() {
   // Fetch initial config
@@ -26,6 +29,11 @@ export function ConfigForm() {
       timeout: 3000,
       retryCount: 3,
       pollingInterval: 5000,
+      ipAddress: '',
+      subnetMask: '',
+      gateway: '',
+      port: 80,
+      dns: [],
     },
     mode: "onChange",
   });
@@ -41,11 +49,23 @@ export function ConfigForm() {
 
   const { mutate, isPending, needsRestart } = useUpdateConfig();
 
+  // 导入/导出功能
+  const { handleExport, handleImport } = useImportExportConfig({
+    form,
+    onConfigUpdate: (newConfig) => {
+      // 配置更新后可能需要提示重启
+      // 这里可以添加额外的处理逻辑
+    }
+  });
+
   const handleSubmit = (values: Config) => {
-    mutate(values, {
+    // 确保使用表单中的所有值（包括可能被 NetworkConfigForm 更新的值）
+    const formData = form.getValues();
+    const mergedValues = { ...formData, ...values };
+    mutate(mergedValues, {
       onSuccess: (data) => {
         // Reset form with new values to clear isDirty state
-        form.reset(values);
+        form.reset(mergedValues);
       }
     });
   };
@@ -87,8 +107,11 @@ export function ConfigForm() {
           {/* 应用程序配置卡片 */}
           <AppConfigCard form={form} />
 
+          {/* 网络配置卡片 */}
+          <NetworkConfigForm form={form} />
+
           {/* 操作按钮区域 */}
-          <div className="flex items-center justify-between pt-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               {isDirty && (
                 <>
@@ -98,23 +121,46 @@ export function ConfigForm() {
               )}
             </div>
 
-            <Button
-              type="submit"
-              disabled={isPending || !isValid || !isDirty}
-              size="lg"
-            >
-              {isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  保存中...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  保存配置
-                </>
-              )}
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={handleExport}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                导出配置
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={handleImport}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                导入配置
+              </Button>
+
+              <RestartButton disabled={isPending} />
+              <Button
+                type="submit"
+                disabled={isPending || !isValid || !isDirty}
+                size="lg"
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    保存中...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    保存配置
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </form>
       </Form>

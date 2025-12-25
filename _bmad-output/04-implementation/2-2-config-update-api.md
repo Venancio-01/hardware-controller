@@ -1,6 +1,6 @@
 # Story 2.2: 实现后端配置更新 API (Config Update API)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -135,18 +135,21 @@ _To be filled by Dev Agent_
 
 ## Tasks/Subtasks
 
-- [ ] Task 1: Enhance `ConfigService` with `updateConfig` <!-- id: task-1 -->
+- [x] Task 1: Enhance `ConfigService` with `updateConfig` <!-- id: task-1 -->
   - [x] Write failing unit tests for `updateConfig` (backup, atomic write, validation) <!-- id: task-1-1 -->
   - [x] Implement `updateConfig` method in `ConfigService` <!-- id: task-1-2 -->
   - [x] Verify tests pass <!-- id: task-1-3 -->
-- [ ] Task 2: Implement `PUT /api/config` Route <!-- id: task-2 -->
+- [x] Task 2: Implement `PUT /api/config` Route <!-- id: task-2 -->
   - [x] Write failing integration tests for `PUT /api/config` (success, invalid data, error handling) <!-- id: task-2-1 -->
   - [x] Implement `PUT /` route handler in `config.routes.ts` <!-- id: task-2-2 -->
   - [x] Verify tests pass <!-- id: task-2-3 -->
-- [ ] Task 3: Final Verification <!-- id: task-3 -->
+- [x] Task 3: Final Verification <!-- id: task-3 -->
   - [x] Run full backend test suite <!-- id: task-3-1 -->
   - [x] Ensure `config.json` updates correctly in a manual test (optional but recommended) <!-- id: task-3-2 -->
 
 ### Review Follow-ups (AI)
+- [x] [AI-Review][HIGH] Fix API Error Response to return structured validationErrors as per architecture
+- [x] [AI-Review][MEDIUM] Fix Fragile Error Handling in config.routes.ts (magic string dependency)
+- [x] [AI-Review][LOW] Use ZodError directly in ConfigService for better error propagation
 - [x] [AI-Review][MEDIUM] 后端配置更新API需要增强日志记录，记录配置更新前后的关键信息，便于审计和调试
-- [ ] [AI-Review][MEDIUM] 文件系统操作缺少更详细的错误处理，应添加对特定文件系统错误的处理和重试逻辑
+- [x] [AI-Review][MEDIUM] 文件系统操作缺少更详细的错误处理，应添加对特定文件系统错误的处理和重试逻辑

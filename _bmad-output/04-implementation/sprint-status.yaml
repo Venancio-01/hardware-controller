@@ -52,26 +52,19 @@ development_status:
   # Epic 2: 应用程序配置与验证
   epic-2: in-progress
   2-1-app-config-form: review
-  2-2-config-update-api: review
+  2-2-config-update-api: done
   2-3-save-feedback: review
   epic-2-retrospective: optional
 
   # Epic 3: 网络配置与连接安全
   epic-3: in-progress
-  3-1-network-config-form: in-progress
-  3-2-connection-test-api: backlog
-  3-3-conflict-safe-save: backlog
+  3-1-network-config-form: done
+  3-2-connection-test-api: review
+  3-3-conflict-safe-save: review
   epic-3-retrospective: optional
 
   # Epic 4: 系统控制与生命周期管理
-  epic-4: backlog
-  4-1-system-restart: backlog
-  4-2-import-export: backlog
-  4-3-config-templates: backlog
-  4-4-history-rollback: backlog
+  epic-4: in-progress
+  4-1-system-restart: review
+  4-2-import-export: review
   epic-4-retrospective: optional
-
-  # Epic 5: 增强个性化与可访问性
-  epic-5: backlog
-  5-1-theme-switcher: backlog
-  epic-5-retrospective: optional

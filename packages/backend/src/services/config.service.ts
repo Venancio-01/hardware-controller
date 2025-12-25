@@ -41,7 +41,7 @@ export class ConfigService {
       const result = configSchema.safeParse(rawData);
       if (!result.success) {
         logger.error({ errors: result.error.issues }, '配置验证失败');
-        throw new Error('配置文件格式无效');
+        throw result.error;
       }
 
       // 4. 返回类型化的配置对象
@@ -68,7 +68,7 @@ export class ConfigService {
     const result = configSchema.safeParse(newConfig);
     if (!result.success) {
       logger.error({ errors: result.error.issues }, '更新配置验证失败');
-      throw new Error('配置无效: ' + result.error.message);
+      throw result.error;
     }
 
     try {

@@ -24,6 +24,15 @@ export {
 // 认证 schemas
 export { loginRequestSchema, loginResponseSchema } from './schemas/auth.schema.js';
 
+// 测试连接 schemas
+export { testConnectionRequestSchema, testConnectionResultSchema } from './schemas/test-connection.schema.js';
+
+// 冲突检测 schemas
+export {
+  conflictDetectionRequestSchema,
+  conflictDetectionResultSchema
+} from './schemas/conflict-detection.schema.js';
+
 
 // ============ Types 导出 ============
 // 配置类型
@@ -40,3 +49,13 @@ export type { ApiSuccessResponse, ApiErrorResponse, ApiResponse } from './types/
 
 // 认证类型
 export type { LoginRequest, LoginResponse } from './schemas/auth.schema.js';
+
+// 测试连接类型
+export type { TestConnectionRequest, TestConnectionResult } from './schemas/test-connection.schema.js';
+
+// 冲突检测类型
+export type {
+  ConflictDetectionRequest,
+  ConflictDetectionResult,
+  ConflictCheckType
+} from './types/conflict-detection.types.js';

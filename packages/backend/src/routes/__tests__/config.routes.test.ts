@@ -7,8 +7,10 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
+import { ZodError } from 'zod';
 import configRoutes from '../config.routes.js';
 import { ConfigService } from '../../services/config.service.js';
+import { ConfigImportExportService } from '../../services/config-import-export.service.js';
 
 describe('GET /api/config', () => {
   let app: express.Application;
@@ -66,7 +68,12 @@ describe('GET /api/config', () => {
 
   it('应该在验证失败时返回 400', async () => {
     // Arrange: Mock 验证失败错误
-    getConfigSpy.mockRejectedValue(new Error('配置文件格式无效'));
+    const zodError = new ZodError([{
+      code: 'custom',
+      path: ['deviceId'],
+      message: 'Invalid deviceId'
+    }]);
+    getConfigSpy.mockRejectedValue(zodError);
 
     // Act: 发送 GET 请求
     const response = await request(app).get('/api/config');
@@ -76,6 +83,7 @@ describe('GET /api/config', () => {
     expect(response.body).toEqual({
       success: false,
       error: '配置文件格式无效',
+      validationErrors: { deviceId: ['Invalid deviceId'] }
     });
   });
 
@@ -148,8 +156,12 @@ describe('PUT /api/config', () => {
 
   it('应该在 ConfigService 抛出验证错误时返回 400', async () => {
     // Arrange: Mock 验证错误
-    // ConfigService 抛出 "配置无效: ..."
-    updateConfigSpy.mockRejectedValue(new Error('配置无效: deviceId required'));
+    const zodError = new ZodError([{
+      code: 'custom',
+      path: ['deviceId'],
+      message: 'deviceId required'
+    }]);
+    updateConfigSpy.mockRejectedValue(zodError);
 
     // Act
     const response = await request(app)
@@ -160,7 +172,8 @@ describe('PUT /api/config', () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      error: '配置无效: deviceId required',
+      error: '配置验证失败',
+      validationErrors: { deviceId: ['deviceId required'] }
     });
   });
 
@@ -183,5 +196,167 @@ describe('PUT /api/config', () => {
 
     // Assert
     expect(response.status).toBe(500);
+  });
+});
+
+describe('GET /api/config/export', () => {
+  let app: express.Application;
+  let exportConfigSpy: any;
+
+  beforeEach(() => {
+    app = express();
+    app.use(express.json());
+    app.use('/api/config', configRoutes);
+
+    // Mock ConfigImportExportService.prototype.exportConfig
+    exportConfigSpy = vi.spyOn(ConfigImportExportService.prototype, 'exportConfig');
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('应该导出配置并触发文件下载', async () => {
+    // Arrange: Mock 成功的配置导出
+    const mockConfigJson = JSON.stringify({
+      deviceId: 'device-001',
+      timeout: 5000,
+      retryCount: 3,
+      pollingInterval: 5000,
+      ipAddress: '192.168.1.100',
+      subnetMask: '255.255.255.0',
+      gateway: '192.168.1.1',
+      port: 8080
+    }, null, 2);
+    exportConfigSpy.mockResolvedValue(mockConfigJson);
+
+    // Act: 发送 GET 请求
+    const response = await request(app).get('/api/config/export');
+
+    // Assert: 验证响应
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toContain('application/json');
+    expect(response.headers['content-disposition']).toContain('attachment; filename="config.json"');
+    expect(response.text).toEqual(mockConfigJson);
+  });
+
+  it('应该在配置文件不存在时返回 404', async () => {
+    // Arrange: Mock 配置文件不存在错误
+    exportConfigSpy.mockRejectedValue(new Error('配置文件不存在'));
+
+    // Act: 发送 GET 请求
+    const response = await request(app).get('/api/config/export');
+
+    // Assert: 验证响应
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      error: '配置文件不存在，无法导出',
+    });
+  });
+});
+
+describe('POST /api/config/import', () => {
+  let app: express.Application;
+  let importConfigSpy: any;
+
+  beforeEach(() => {
+    app = express();
+    app.use(express.json());
+    app.use('/api/config', configRoutes);
+
+    // Mock ConfigImportExportService.prototype.importConfig
+    importConfigSpy = vi.spyOn(ConfigImportExportService.prototype, 'importConfig');
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const validConfig = {
+    deviceId: 'device-001',
+    timeout: 5000,
+    retryCount: 3,
+    pollingInterval: 5000,
+    ipAddress: '192.168.1.100',
+    subnetMask: '255.255.255.0',
+    gateway: '192.168.1.1',
+    port: 8080
+  };
+
+  it('应该导入配置并返回成功消息', async () => {
+    // Arrange: Mock 成功的配置导入
+    importConfigSpy.mockResolvedValue(validConfig);
+
+    // Act: 发送 POST 请求
+    const response = await request(app)
+      .post('/api/config/import')
+      .send({ config: validConfig });
+
+    // Assert: 验证响应
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      success: true,
+      data: validConfig,
+      message: '配置导入成功',
+      needsRestart: true
+    });
+    expect(importConfigSpy).toHaveBeenCalledWith(validConfig);
+  });
+
+  it('应该在缺少配置数据时返回 400', async () => {
+    // Act: 发送没有配置数据的 POST 请求
+    const response = await request(app)
+      .post('/api/config/import')
+      .send({});
+
+    // Assert: 验证响应
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      error: '缺少配置数据'
+    });
+  });
+
+  it('应该在配置验证失败时返回 400', async () => {
+    // Arrange: Mock 验证错误
+    const zodError = new ZodError([{
+      code: 'custom',
+      path: ['deviceId'],
+      message: 'Invalid deviceId'
+    }]);
+    importConfigSpy.mockRejectedValue(zodError);
+
+    // Act: 发送 POST 请求
+    const response = await request(app)
+      .post('/api/config/import')
+      .send({ config: { deviceId: '' } });
+
+    // Assert: 验证响应
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      error: '配置验证失败',
+      validationErrors: { deviceId: ['Invalid deviceId'] }
+    });
+  });
+
+  it('应该在配置格式无效时返回 400', async () => {
+    // Arrange: Mock 格式错误
+    importConfigSpy.mockRejectedValue(new Error('配置文件格式无效，无法解析 JSON'));
+
+    // Act: 发送 POST 请求
+    const response = await request(app)
+      .post('/api/config/import')
+      .send({ config: 'invalid json' });
+
+    // Assert: 验证响应
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      error: '配置文件格式无效，无法解析 JSON'
+    });
   });
 });

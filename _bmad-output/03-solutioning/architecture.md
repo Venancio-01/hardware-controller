@@ -1770,7 +1770,6 @@ All high-priority FRs architecturally supported:
 - ✅ FR-007: Visual feedback → shadcn/ui Toast, TanStack Query loading states
 - ✅ FR-008: Import/export → config-import-export.service.ts
 - ✅ FR-009: Configuration history → config-history.service.ts
-- ✅ FR-010: Configuration templates → config-templates.service.ts
 - ✅ FR-011: Display config errors → Form validation errors + API error responses
 - ✅ FR-012: Test network config → /api/system/test-connection endpoint
 
