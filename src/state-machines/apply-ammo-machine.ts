@@ -12,7 +12,8 @@ export type ApplyAmmoEvent =
   | { type: 'REFUSE' }
   | { type: 'FINISHED' }
   | { type: 'DOOR_OPEN' }
-  | { type: 'DOOR_CLOSE' };
+  | { type: 'DOOR_CLOSE' }
+  | { type: 'ALARM_CANCEL' };
 
 export const applyAmmoMachine = setup({
   types: {} as {
@@ -92,6 +93,15 @@ export const applyAmmoMachine = setup({
 
       const voiceController = VoiceBroadcastController.getInstance();
       void voiceController.broadcast('柜门超时未关');
+    },
+    broadcastAlarmCancelled: ({ context }) => {
+      if (!VoiceBroadcastController.isInitialized()) {
+        context.logger.warn('语音播报未初始化，跳过取消报警播报');
+        return;
+      }
+
+      const voiceController = VoiceBroadcastController.getInstance();
+      void voiceController.broadcast('取消报警');
     },
     resetLock: ({ context }) => {
       if (!context.manager) {
@@ -181,7 +191,24 @@ export const applyAmmoMachine = setup({
       entry: 'alarmOn',
       exit: 'alarmOff',
       on: {
-        DOOR_CLOSE: { target: 'door_closed', actions: ['broadcastDoorClosed', 'resetLock'] }
+        DOOR_CLOSE: { target: 'door_closed', actions: ['broadcastDoorClosed', 'resetLock'] },
+        ALARM_CANCEL: {
+          target: 'door_open_alarm_cancelled',
+          actions: 'broadcastAlarmCancelled'
+          // exit 钩子会自动执行 alarmOff，无需在 actions 中重复
+        }
+      }
+    },
+    door_open_alarm_cancelled: {
+      // 报警已取消，等待柜门关闭或再次超时
+      // 如果柜门已关闭，DOOR_CLOSE 事件会将状态转换到 door_closed
+      // 如果超时，会再次进入 door_open_timeout 状态
+      after: {
+        [config.DOOR_OPEN_TIMEOUT_S * 1000]: { target: 'door_open_timeout', actions: 'broadcastDoorTimeout' }
+      },
+      on: {
+        DOOR_CLOSE: { target: 'door_closed', actions: ['broadcastDoorClosed', 'resetLock'] },
+        FINISHED: { target: 'idle', actions: ['broadcastCancelled', sendParent({ type: 'operation_complete', priority: EventPriority.P2 })] }
       }
     },
     door_closed: {

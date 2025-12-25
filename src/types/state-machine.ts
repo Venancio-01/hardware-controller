@@ -33,6 +33,7 @@ export type FinishRequestEvent = BaseEvent & { type: 'finish_request'; priority:
 export type OperationCompleteEvent = BaseEvent & { type: 'operation_complete'; priority: EventPriority.P2 };
 export type CabinetLockChangedEvent = BaseEvent & { type: 'cabinet_lock_changed'; priority: EventPriority.P2; isClosed: boolean };
 export type AlarmCancelledEvent = BaseEvent & { type: 'alarm_cancelled'; priority: EventPriority.P2 };
+export type AlarmCancelToggledEvent = BaseEvent & { type: 'alarm_cancel_toggled'; priority: EventPriority.P2 };
 
 // P3 Events
 export type MaintenanceEvent = BaseEvent & { type: 'maintenance_check'; priority: EventPriority.P3 };
@@ -49,5 +50,6 @@ export type SystemEvent =
   | OperationCompleteEvent
   | CabinetLockChangedEvent
   | AlarmCancelledEvent
+  | AlarmCancelToggledEvent
   | MaintenanceEvent
   | MonitorTickEvent;

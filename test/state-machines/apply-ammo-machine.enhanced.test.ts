@@ -166,4 +166,222 @@ describe('ApplyAmmoMachine Enhanced', () => {
 
     vi.useRealTimers();
   });
+
+  it('应该在 door_open_timeout 状态下支持 ALARM_CANCEL 进入 door_open_alarm_cancelled', async () => {
+    vi.useFakeTimers();
+
+    const actor = createWrappedActor();
+
+    // 流程: applying -> authorized -> door_open -> door_open_timeout
+    actor.send({ type: 'APPLY' });
+    actor.send({ type: 'AUTHORIZED' });
+    actor.send({ type: 'DOOR_OPEN' });
+    expect(actor.getSnapshot().value).toBe('door_open');
+
+    mockBroadcast.mockClear();
+
+    // 快进时间超过30秒超时
+    await Promise.resolve();
+    await vi.advanceTimersByTime(31000);
+
+    expect(actor.getSnapshot().value).toBe('door_open_timeout');
+    expect(mockBroadcast).toHaveBeenCalledWith('柜门超时未关');
+
+    // 模拟发送硬件指令（闭锁和报警灯）
+    mockHardware.sendCommand.mockClear();
+
+    // 发送 ALARM_CANCEL 事件
+    mockBroadcast.mockClear();
+    actor.send({ type: 'ALARM_CANCEL' });
+
+    // 验证状态转换到 door_open_alarm_cancelled
+    expect(actor.getSnapshot().value).toBe('door_open_alarm_cancelled');
+
+    // 验证播报了"取消报警"
+    expect(mockBroadcast).toHaveBeenCalledWith('取消报警');
+
+    // 验证执行了 alarmOff（关闭报警灯）
+    // 柜体端 + 控制端
+    expect(mockHardware.sendCommand).toHaveBeenCalledTimes(2);
+
+    vi.useRealTimers();
+  });
+
+  it('应该在非 timeout 状态下忽略 ALARM_CANCEL 事件', () => {
+    const actor = createWrappedActor();
+
+    // 进入 idle 状态
+    expect(actor.getSnapshot().value).toBe('idle');
+
+    mockBroadcast.mockClear();
+
+    // 发送 ALARM_CANCEL 事件
+    actor.send({ type: 'ALARM_CANCEL' });
+
+    // 验证状态不变（依然在 idle）
+    expect(actor.getSnapshot().value).toBe('idle');
+
+    // 验证没有播报任何语音
+    expect(mockBroadcast).not.toHaveBeenCalled();
+  });
+
+  it('应该在 door_open 状态下忽略 ALARM_CANCEL 事件', () => {
+    const actor = createWrappedActor();
+
+    // 流程: applying -> authorized -> door_open
+    actor.send({ type: 'APPLY' });
+    actor.send({ type: 'AUTHORIZED' });
+    actor.send({ type: 'DOOR_OPEN' });
+    expect(actor.getSnapshot().value).toBe('door_open');
+
+    mockBroadcast.mockClear();
+
+    // 发送 ALARM_CANCEL 事件
+    actor.send({ type: 'ALARM_CANCEL' });
+
+    // 验证状态不变（依然在 door_open）
+    expect(actor.getSnapshot().value).toBe('door_open');
+
+    // 验证没有播报任何语音
+    expect(mockBroadcast).not.toHaveBeenCalled();
+  });
+
+  it('应该在 door_open_alarm_cancelled 状态下支持 DOOR_CLOSE 转换到 door_closed', () => {
+    vi.useFakeTimers();
+
+    const actor = createWrappedActor();
+
+    // 流程: applying -> authorized -> door_open -> door_open_timeout -> door_open_alarm_cancelled
+    actor.send({ type: 'APPLY' });
+    actor.send({ type: 'AUTHORIZED' });
+    actor.send({ type: 'DOOR_OPEN' });
+
+    // 快进到超时
+    vi.advanceTimersByTime(31000);
+    expect(actor.getSnapshot().value).toBe('door_open_timeout');
+
+    // 取消报警
+    actor.send({ type: 'ALARM_CANCEL' });
+    expect(actor.getSnapshot().value).toBe('door_open_alarm_cancelled');
+
+    mockBroadcast.mockClear();
+
+    // 关闭柜门
+    actor.send({ type: 'DOOR_CLOSE' });
+
+    // 验证状态转换到 door_closed
+    expect(actor.getSnapshot().value).toBe('door_closed');
+
+    // 验证播报了"柜门已关闭"
+    expect(mockBroadcast).toHaveBeenCalledWith('柜门已关闭');
+
+    vi.useRealTimers();
+  });
+
+  it('应该在 door_open_alarm_cancelled 状态下支持再次超时', async () => {
+    vi.useFakeTimers();
+
+    const actor = createWrappedActor();
+
+    // 流程: applying -> authorized -> door_open -> door_open_timeout -> door_open_alarm_cancelled
+    actor.send({ type: 'APPLY' });
+    actor.send({ type: 'AUTHORIZED' });
+    actor.send({ type: 'DOOR_OPEN' });
+
+    // 快进到超时
+    await Promise.resolve();
+    vi.advanceTimersByTime(31000);
+    expect(actor.getSnapshot().value).toBe('door_open_timeout');
+
+    // 取消报警
+    actor.send({ type: 'ALARM_CANCEL' });
+    expect(actor.getSnapshot().value).toBe('door_open_alarm_cancelled');
+
+    mockBroadcast.mockClear();
+    mockHardware.sendCommand.mockClear();
+
+    // 再次快进30秒
+    vi.advanceTimersByTime(31000);
+
+    // 验证状态回到 door_open_timeout
+    expect(actor.getSnapshot().value).toBe('door_open_timeout');
+
+    // 验证播报了"柜门超时未关"
+    expect(mockBroadcast).toHaveBeenCalledWith('柜门超时未关');
+
+    // 验证报警灯再次开启
+    expect(mockHardware.sendCommand).toHaveBeenCalledTimes(2);
+
+    vi.useRealTimers();
+  });
+
+  it('应该在 door_open_timeout 且柜门已关闭后，通过 DOOR_CLOSE 事件正确同步状态', () => {
+    vi.useFakeTimers();
+
+    const actor = createWrappedActor();
+
+    // 流程: applying -> authorized -> door_open -> door_open_timeout
+    actor.send({ type: 'APPLY' });
+    actor.send({ type: 'AUTHORIZED' });
+    actor.send({ type: 'DOOR_OPEN' });
+    expect(actor.getSnapshot().value).toBe('door_open');
+
+    mockBroadcast.mockClear();
+
+    // 快进时间超过30秒超时
+    vi.advanceTimersByTime(31000);
+    expect(actor.getSnapshot().value).toBe('door_open_timeout');
+
+    // 关闭柜门（硬件事件可能延迟）
+    actor.send({ type: 'DOOR_CLOSE' });
+    expect(actor.getSnapshot().value).toBe('door_closed');
+
+    // 如果用户此时按取消按钮，状态保持 door_closed（事件被忽略）
+    mockBroadcast.mockClear();
+    actor.send({ type: 'ALARM_CANCEL' });
+    expect(actor.getSnapshot().value).toBe('door_closed');
+    expect(mockBroadcast).not.toHaveBeenCalled();
+
+    vi.useRealTimers();
+  });
+
+  it('应该在 refused 状态下忽略 ALARM_CANCEL 事件', () => {
+    const actor = createWrappedActor();
+
+    // 进入 refused 状态
+    actor.send({ type: 'APPLY' });
+    actor.send({ type: 'REFUSE' });
+    expect(actor.getSnapshot().value).toBe('refused');
+
+    mockBroadcast.mockClear();
+
+    // 发送 ALARM_CANCEL 事件
+    actor.send({ type: 'ALARM_CANCEL' });
+
+    // 验证状态不变（依然在 refused）
+    expect(actor.getSnapshot().value).toBe('refused');
+
+    // 验证没有播报任何语音
+    expect(mockBroadcast).not.toHaveBeenCalled();
+  });
+
+  it('应该在 authorized 状态下忽略 ALARM_CANCEL 事件', () => {
+    const actor = createWrappedActor();
+
+    // 进入 authorized 状态
+    actor.send({ type: 'APPLY' });
+    actor.send({ type: 'AUTHORIZED' });
+    expect(actor.getSnapshot().value).toBe('authorized');
+
+    mockBroadcast.mockClear();
+
+    // 发送 ALARM_CANCEL 事件
+    actor.send({ type: 'ALARM_CANCEL' });
+
+    // 验证状态不变（依然在 authorized）
+    expect(actor.getSnapshot().value).toBe('authorized');
+
+    // 验证没有播报任何语音
+    expect(mockBroadcast).not.toHaveBeenCalled();
+  });
 });

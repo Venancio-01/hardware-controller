@@ -96,6 +96,18 @@ export const monitorMachine = setup({
               });
             }
 
+            // 4. 处理报警取消按钮逻辑 (ALARM_STATUS_INDEX)
+            // 硬件假设：ALARM_STATUS_INDEX 是一个 toggle 按钮，硬件层已提供防抖
+            // 如果硬件没有防抖，机械开关抖动会产生多次边沿变化（0→1→0→1）
+            // 软件层会检测到每次变化并触发事件，这是符合预期的
+            if (context.aggregator.hasIndexChanged(config.ALARM_STATUS_INDEX, combinedUpdate)) {
+              log.info(`[逻辑] ALARM_STATUS_INDEX (CH${config.ALARM_STATUS_INDEX + 1}) 已变化`);
+              enqueue.sendParent({
+                type: 'alarm_cancel_toggled',
+                priority: EventPriority.P2
+              });
+            }
+
             if (combinedUpdate.changeDescriptions.length > 0) {
               log.info(`[combined] 继电器状态变化: ${combinedUpdate.changeDescriptions.join(', ')}`);
             }

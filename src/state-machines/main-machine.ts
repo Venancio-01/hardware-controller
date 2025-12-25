@@ -83,6 +83,9 @@ export const mainMachine = setup({
             }
             return { type: 'UNKNOWN' };
           })
+        },
+        alarm_cancel_toggled: {
+          actions: sendTo('applyAmmo', { type: 'ALARM_CANCEL' })
         }
       }
     },

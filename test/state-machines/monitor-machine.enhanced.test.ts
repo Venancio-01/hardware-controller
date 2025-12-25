@@ -55,10 +55,10 @@ describe('MonitorMachine - Enhanced Subscriptions', () => {
       },
       on: {
         '*': {
-          actions: ({ event }) => { 
+          actions: ({ event }) => {
             // Only collect relevant business events
-            if (['apply_request', 'authorize_request', 'cabinet_lock_changed', 'finish_request', 'refuse_request'].includes(event.type)) {
-                receivedEvents.push(event); 
+            if (['apply_request', 'authorize_request', 'cabinet_lock_changed', 'finish_request', 'refuse_request', 'alarm_cancel_toggled'].includes(event.type)) {
+                receivedEvents.push(event);
             }
           }
         }
@@ -128,6 +128,38 @@ describe('MonitorMachine - Enhanced Subscriptions', () => {
         type: 'cabinet_lock_changed',
         priority: EventPriority.P2,
         isClosed: true  // low = 关门 = isClosed: true
+    }));
+
+    // 6. ALARM_STATUS_INDEX (CH11) changed -> alarm_cancel_toggled
+    receivedEvents = [];
+    const alarmClientId = config.ALARM_STATUS_INDEX >= 8 ? 'control' : 'cabinet';
+    if (alarmClientId === 'control') {
+      controlIndexes.add(config.ALARM_STATUS_INDEX);
+    } else {
+      cabinetIndexes.add(config.ALARM_STATUS_INDEX);
+    }
+    sendStatus(alarmClientId);
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    expect(receivedEvents).toContainEqual(expect.objectContaining({
+      type: 'alarm_cancel_toggled',
+      priority: EventPriority.P2
+    }));
+
+    // 测试 toggle：再次改变状态
+    receivedEvents = [];
+    if (alarmClientId === 'control') {
+      controlIndexes.delete(config.ALARM_STATUS_INDEX);
+    } else {
+      cabinetIndexes.delete(config.ALARM_STATUS_INDEX);
+    }
+    sendStatus(alarmClientId);
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    // Toggle 按钮每次状态变化都应该触发事件
+    expect(receivedEvents).toContainEqual(expect.objectContaining({
+      type: 'alarm_cancel_toggled',
+      priority: EventPriority.P2
     }));
   });
 });
