@@ -1,0 +1,102 @@
+/**
+ * Config 路由集成测试
+ *
+ * 测试 GET /api/config 端点的各种场景
+ */
+
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import express from 'express';
+import request from 'supertest';
+import configRoutes from '../config.routes.js';
+import { ConfigService } from '../../services/config.service.js';
+
+describe('GET /api/config', () => {
+  let app: express.Application;
+  let getConfigSpy: any;
+
+  beforeEach(() => {
+    app = express();
+    app.use(express.json());
+    app.use('/api/config', configRoutes);
+
+    // Mock ConfigService.prototype.getConfig
+    getConfigSpy = vi.spyOn(ConfigService.prototype, 'getConfig');
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('应该返回 200 和正确的配置数据', async () => {
+    // Arrange: Mock 成功的配置读取
+    const mockConfig = {
+      deviceId: 'device-001',
+      timeout: 5000,
+      retryCount: 3,
+      pollingInterval: 5000,
+    };
+    getConfigSpy.mockResolvedValue(mockConfig);
+
+    // Act: 发送 GET 请求
+    const response = await request(app).get('/api/config');
+
+    // Assert: 验证响应
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      success: true,
+      data: mockConfig,
+    });
+  });
+
+  it('应该在文件不存在时返回 404', async () => {
+    // Arrange: Mock 文件不存在错误
+    getConfigSpy.mockRejectedValue(new Error('配置文件不存在'));
+
+    // Act: 发送 GET 请求
+    const response = await request(app).get('/api/config');
+
+    // Assert: 验证响应
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      error: '配置文件不存在',
+    });
+  });
+
+  it('应该在验证失败时返回 400', async () => {
+    // Arrange: Mock 验证失败错误
+    getConfigSpy.mockRejectedValue(new Error('配置文件格式无效'));
+
+    // Act: 发送 GET 请求
+    const response = await request(app).get('/api/config');
+
+    // Assert: 验证响应
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      error: '配置文件格式无效',
+    });
+  });
+
+  it('应该在其他错误时返回 500', async () => {
+    // Arrange: Mock 未知错误
+    const app2 = express();
+    app2.use(express.json());
+    app2.use('/api/config', configRoutes);
+    // 添加错误处理中间件
+    app2.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+      res.status(500).json({ success: false, error: '服务器错误' });
+    });
+
+    const unknownError = new Error('Unknown error');
+    getConfigSpy.mockRejectedValue(unknownError);
+
+    // Act: 发送 GET 请求
+    const response = await request(app2).get('/api/config');
+
+    // Assert: 验证响应（应该被错误处理中间件捕获）
+    expect(response.status).toBe(500);
+    expect(response.body.success).toBe(false);
+  });
+});

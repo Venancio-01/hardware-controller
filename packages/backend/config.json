@@ -1,0 +1,6 @@
+{
+  "deviceId": "device-001",
+  "timeout": 5000,
+  "retryCount": 3,
+  "pollingInterval": 5000
+}

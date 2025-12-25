@@ -5,8 +5,8 @@
 
 project_name: node-switch
 user_skill_level: intermediate
-planning_artifacts: "{project-root}/_bmad-output/project-planning-artifacts"
-implementation_artifacts: "{project-root}/_bmad-output/implementation-artifacts"
+planning_artifacts: "{project-root}/_bmad-output/02-planning"
+implementation_artifacts: "{project-root}/_bmad-output/04-implementation"
 project_knowledge: "{project-root}/docs"
 tea_use_mcp_enhancements: false
 tea_use_playwright_utils: false
