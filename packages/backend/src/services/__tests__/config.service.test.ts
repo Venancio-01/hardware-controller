@@ -44,18 +44,24 @@ describe('ConfigService', () => {
       const result = await configService.getConfig();
 
       // Assert: 验证结果
-      expect(result).toEqual(validConfig);
+      expect(result).toMatchObject(validConfig);
       expect(readFile).toHaveBeenCalledWith(mockConfigPath, 'utf-8');
     });
 
-    it('应该在文件不存在时抛出错误', async () => {
+    it('应该在文件不存在时返回默认配置', async () => {
       // Arrange: 模拟文件不存在错误
       const fileNotFoundError: any = new Error('File not found');
       fileNotFoundError.code = 'ENOENT';
       vi.mocked(readFile).mockRejectedValue(fileNotFoundError);
 
-      // Act & Assert: 验证抛出特定错误
-      await expect(configService.getConfig()).rejects.toThrow('配置文件不存在');
+      // Act
+      const result = await configService.getConfig();
+
+      // Assert
+      expect(result.deviceId).toBe('device-001');
+      expect(result.timeout).toBe(5000);
+      expect(result.retryCount).toBe(3);
+      expect(result.pollingInterval).toBe(5000);
     });
 
     it('应该在 JSON 格式错误时抛出错误', async () => {
@@ -89,7 +95,7 @@ describe('ConfigService', () => {
       expect(serviceWithDefaultPath).toBeDefined();
     });
 
-    it('应该在缺少必需字段时抛出验证错误', async () => {
+    it('应该在缺少必需字段时补全默认值', async () => {
       // Arrange: 准备缺少字段的配置
       const incompleteConfig = {
         deviceId: 'device-001',
@@ -97,8 +103,13 @@ describe('ConfigService', () => {
       };
       vi.mocked(readFile).mockResolvedValue(JSON.stringify(incompleteConfig));
 
-      // Act & Assert: 验证抛出验证错误
-      await expect(configService.getConfig()).rejects.toThrow(ZodError);
+      // Act
+      const result = await configService.getConfig();
+
+      // Assert
+      expect(result.timeout).toBe(5000);
+      expect(result.retryCount).toBe(3);
+      expect(result.pollingInterval).toBe(5000);
     });
 
     it('应该在字段类型错误时抛出验证错误', async () => {
@@ -160,7 +171,8 @@ describe('ConfigService', () => {
       // 2. 验证临时文件内容是格式化的 JSON
       const writeCall = vi.mocked(writeFile).mock.calls.find((call: any[]) => call[0] === tempPath);
       expect(writeCall).toBeDefined();
-      expect(writeCall![1]).toBe(JSON.stringify(newConfig, null, 2));
+      const savedConfig = JSON.parse(writeCall![1] as string);
+      expect(savedConfig).toMatchObject(newConfig);
 
       // 3. 验证重命名
       expect(rename).toHaveBeenCalledWith(tempPath, mockConfigPath);

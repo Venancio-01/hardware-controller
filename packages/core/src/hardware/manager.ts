@@ -3,7 +3,7 @@ import { TCPClient } from '../tcp/client.js';
 import { SerialClient } from '../serial/client.js';
 
 import { createModuleLogger } from '../logger/index.js';
-import type { NetworkConfig, HardwareResponse, Protocol, SerialConfig } from '../types/index.js';
+import type { NetworkConfig, HardwareResponse, Protocol, SerialConfig, CommandEncoding } from '../types/index.js';
 
 /**
  * 客户端注册表接口
@@ -162,14 +162,21 @@ export class HardwareCommunicationManager {
     command: string | Buffer,
     parameters?: Record<string, unknown>,
     clientId?: string,
-    expectResponse = true
+    expectResponse = true,
+    encoding: CommandEncoding = 'hex'
   ): Promise<Record<string, HardwareResponse | undefined>> {
     let commandBuffer: Buffer;
     if (Buffer.isBuffer(command)) {
       commandBuffer = command;
+      this.log.debug('sendCommand: 使用传入的 Buffer', { bufferLength: commandBuffer.length });
+    } else if (encoding === 'hex') {
+      // 将十六进制字符串转换为 Buffer
+      // 例如: "48454C4C4F" -> <Buffer 48 45 4c 4c 4f>
+      commandBuffer = Buffer.from(String(command).replace(/\s/g, ''), 'hex');
+      this.log.debug('sendCommand: 使用 hex 编码', { original: command, bufferLength: commandBuffer.length });
     } else {
-      const encoding = protocol === 'udp' ? 'ascii' : 'utf-8';
       commandBuffer = Buffer.from(String(command), encoding);
+      this.log.debug(`sendCommand: 使用 ${encoding} 编码`, { original: command, bufferLength: commandBuffer.length });
     }
 
     const results: Record<string, HardwareResponse | undefined> = {};

@@ -51,18 +51,29 @@ describe('GET /api/config', () => {
     });
   });
 
-  it('应该在文件不存在时返回 404', async () => {
-    // Arrange: Mock 文件不存在错误
-    getConfigSpy.mockRejectedValue(new Error('配置文件不存在'));
+  it('应该在默认配置可用时返回 200', async () => {
+    // Arrange: Mock 默认配置
+    const defaultConfig = {
+      deviceId: 'device-001',
+      timeout: 5000,
+      retryCount: 3,
+      pollingInterval: 5000,
+      ipAddress: '127.0.0.1',
+      subnetMask: '255.255.255.0',
+      gateway: '127.0.0.1',
+      port: 80,
+      dns: [],
+    };
+    getConfigSpy.mockResolvedValue(defaultConfig);
 
     // Act: 发送 GET 请求
     const response = await request(app).get('/api/config');
 
     // Assert: 验证响应
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(200);
     expect(response.body).toEqual({
-      success: false,
-      error: '配置文件不存在',
+      success: true,
+      data: defaultConfig,
     });
   });
 

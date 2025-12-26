@@ -9,6 +9,13 @@ import { join } from 'path';
 import { configSchema, type Config } from 'shared';
 import { logger } from '../utils/logger.js';
 
+const createDefaultConfig = (): Config => configSchema.parse({
+  deviceId: 'device-001',
+  timeout: 5000,
+  retryCount: 3,
+  pollingInterval: 5000,
+});
+
 /**
  * 配置服务类 - 封装所有配置文件操作
  */
@@ -29,6 +36,8 @@ export class ConfigService {
    * @throws {Error} 文件不存在、解析失败或验证失败时抛出错误
    */
   async getConfig(): Promise<Config> {
+    const defaultConfig = createDefaultConfig();
+
     try {
       // 1. 读取文件
       const fileContent = await readFile(this.configPath, 'utf-8');
@@ -37,8 +46,9 @@ export class ConfigService {
       // 2. 解析 JSON
       const rawData = JSON.parse(fileContent);
 
-      // 3. 使用 Zod schema 验证
-      const result = configSchema.safeParse(rawData);
+      // 3. 合并默认配置后使用 Zod schema 验证
+      const mergedConfig = { ...defaultConfig, ...rawData };
+      const result = configSchema.safeParse(mergedConfig);
       if (!result.success) {
         logger.error({ errors: result.error.issues }, '配置验证失败');
         throw result.error;
@@ -49,8 +59,8 @@ export class ConfigService {
     } catch (error: any) {
       // 处理文件不存在错误
       if (error.code === 'ENOENT') {
-        logger.error({ path: this.configPath }, '配置文件不存在');
-        throw new Error('配置文件不存在');
+        logger.warn({ path: this.configPath }, '配置文件不存在，使用默认配置');
+        return defaultConfig;
       }
 
       // 重新抛出其他错误
@@ -71,13 +81,15 @@ export class ConfigService {
       throw result.error;
     }
 
+    const validatedConfig = result.data;
+
     try {
       // 2. 检查是否存在并备份
       await this.ensureBackup();
 
       // 3. 原子写入 (Write Temp -> Rename)
       const tempPath = this.configPath + '.tmp';
-      const content = JSON.stringify(newConfig, null, 2);
+      const content = JSON.stringify(validatedConfig, null, 2);
 
       logger.info({ path: this.configPath }, '开始写入新配置');
       await writeFile(tempPath, content, 'utf-8');

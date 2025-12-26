@@ -44,7 +44,8 @@ describe('ConfigImportExportService', () => {
       const result = await exportService.exportConfig();
 
       // Assert: 验证结果
-      expect(result).toEqual(JSON.stringify(validConfig, null, 2));
+      const parsed = JSON.parse(result);
+      expect(parsed).toMatchObject(validConfig);
       expect(readFile).toHaveBeenCalledWith(mockConfigPath, 'utf-8');
     });
 
@@ -98,11 +99,11 @@ describe('ConfigImportExportService', () => {
       const result = await exportService.importConfig(configJson);
 
       // Assert: 验证结果和保存操作
-      expect(result).toEqual(validConfig);
+      expect(result).toMatchObject(validConfig);
       // 验证写入了临时文件（原子写入）
       expect(writeFile).toHaveBeenCalledWith(
         mockConfigPath + '.tmp',
-        JSON.stringify(validConfig, null, 2),
+        expect.any(String),
         'utf-8'
       );
     });
@@ -112,11 +113,11 @@ describe('ConfigImportExportService', () => {
       const result = await exportService.importConfig(validConfig);
 
       // Assert: 验证结果和保存操作
-      expect(result).toEqual(validConfig);
+      expect(result).toMatchObject(validConfig);
       // 验证写入了临时文件（原子写入）
       expect(writeFile).toHaveBeenCalledWith(
         mockConfigPath + '.tmp',
-        JSON.stringify(validConfig, null, 2),
+        expect.any(String),
         'utf-8'
       );
     });
@@ -146,7 +147,7 @@ describe('ConfigImportExportService', () => {
       await expect(exportService.importConfig(invalidJson)).rejects.toThrow('配置文件格式无效，无法解析 JSON');
     });
 
-    it('应该在缺少必需字段时抛出验证错误', async () => {
+    it('应该在缺少网络字段时补全默认值', async () => {
       // Arrange: 准备缺少字段的配置
       const incompleteConfig = {
         deviceId: 'device-001',
@@ -156,8 +157,13 @@ describe('ConfigImportExportService', () => {
         // 缺少网络配置字段
       };
 
-      // Act & Assert: 验证抛出验证错误
-      await expect(exportService.importConfig(incompleteConfig)).rejects.toThrow(ZodError);
+      // Act
+      const result = await exportService.importConfig(incompleteConfig);
+
+      // Assert
+      expect(result).toMatchObject(incompleteConfig);
+      expect(result.ipAddress).toBe('127.0.0.1');
+      expect(result.gateway).toBe('127.0.0.1');
     });
 
     it('应该在字段类型错误时抛出验证错误', async () => {
@@ -217,8 +223,8 @@ describe('ConfigImportExportService', () => {
       const importedConfig = await exportService.importConfig(JSON.parse(exportedConfig));
 
       // Assert: 验证导入的配置与原始配置相同
-      expect(importedConfig).toEqual(originalConfig);
-      expect(JSON.parse(savedConfig!)).toEqual(originalConfig);
+      expect(importedConfig).toMatchObject(originalConfig);
+      expect(JSON.parse(savedConfig!)).toMatchObject(originalConfig);
     });
   });
 });

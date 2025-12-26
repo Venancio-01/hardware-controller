@@ -20,7 +20,7 @@ vi.mock('@/components/config/NetworkConfigForm', () => ({
 }));
 
 // Import after mocks are set up
-import { ConfigForm } from '../ConfigForm';
+import { ConfigForm, mergeConfigValues } from '../ConfigForm';
 import { apiFetch } from '@/lib/api';
 
 // Create a test query client
@@ -182,5 +182,43 @@ describe('ConfigForm Component', () => {
 
     // 注意: 由于表单组件被 mock,无法完全测试 isDirty 状态变化
     // 这是一个集成测试的限制,真实场景需要使用组件测试或E2E测试
+  });
+
+  it('should preserve hidden fields when merging config values', () => {
+    const baseConfig = {
+      deviceId: 'device-001',
+      timeout: 5000,
+      retryCount: 3,
+      pollingInterval: 5000,
+      ipAddress: '192.168.1.100',
+      subnetMask: '255.255.255.0',
+      gateway: '192.168.1.1',
+      port: 8080,
+      dns: [],
+      LOG_LEVEL: 'debug',
+      ENABLE_METRICS: false,
+    };
+
+    const formData = {
+      deviceId: 'device-001',
+      timeout: 7000,
+      retryCount: 3,
+      pollingInterval: 5000,
+    };
+
+    const submittedValues = {
+      deviceId: 'device-001',
+      timeout: 7000,
+      retryCount: 3,
+      pollingInterval: 5000,
+      ipAddress: '10.0.0.2',
+    };
+
+    const merged = mergeConfigValues(baseConfig, formData, submittedValues);
+
+    expect(merged.ipAddress).toBe('10.0.0.2');
+    expect(merged.subnetMask).toBe('255.255.255.0');
+    expect(merged.LOG_LEVEL).toBe('debug');
+    expect(merged.ENABLE_METRICS).toBe(false);
   });
 });

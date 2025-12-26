@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { appConfigSchema, configSchema } from '../config.schema.js';
-import { networkConfigSchema } from '../network.schema.js';
+import { configSchema } from '../config.schema.js';
 
 describe('configSchema 验证测试', () => {
   const validNetworkConfig = {
@@ -29,13 +28,19 @@ describe('configSchema 验证测试', () => {
       expect(result.success).toBe(true);
     });
 
-    it('应该拒绝缺少网络设置的配置', () => {
+    it('应该为缺少网络设置的配置补全默认值', () => {
       const invalidConfig = {
         ...validAppConfig,
       };
 
       const result = configSchema.safeParse(invalidConfig);
-      expect(result.success).toBe(false);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.ipAddress).toBe('127.0.0.1');
+        expect(result.data.subnetMask).toBe('255.255.255.0');
+        expect(result.data.gateway).toBe('127.0.0.1');
+        expect(result.data.port).toBe(80);
+      }
     });
 
     it('应该拒绝缺少应用设置的配置', () => {
@@ -46,6 +51,21 @@ describe('configSchema 验证测试', () => {
       const result = configSchema.safeParse(invalidConfig);
       expect(result.success).toBe(false);
     });
+  });
+
+  it('应该补全 .env.example 相关字段默认值', () => {
+    const result = configSchema.safeParse({
+      ...validAppConfig,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.NODE_ENV).toBe('development');
+      expect(result.data.PORT).toBe(3000);
+      expect(result.data.HOST).toBe('127.0.0.1');
+      expect(result.data.LOG_LEVEL).toBe('info');
+      expect(result.data.LOG_PRETTY).toBe(true);
+    }
   });
 
   describe('应用配置字段验证', () => {

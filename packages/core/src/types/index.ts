@@ -54,6 +54,14 @@ export type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'er
 
 export type Protocol = 'udp' | 'tcp' | 'serial';
 
+/**
+ * 命令编码类型
+ * - 'hex': 十六进制字符串编码，适合硬件控制命令
+ * - 'ascii': ASCII 编码，适合文本命令
+ * - 'utf-8': UTF-8 编码，适合通用文本
+ */
+export type CommandEncoding = 'hex' | 'ascii' | 'utf-8';
+
 export interface CommunicationStats {
   messagesSent: number;
   messagesReceived: number;

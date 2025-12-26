@@ -8,6 +8,84 @@ import { z } from 'zod';
 import { networkConfigSchema } from './network.schema.js';
 
 /**
+ * IP 或 localhost Schema
+ * 用于服务器与硬件目标地址配置
+ */
+const ipOrLocalhostSchema = z.string().regex(
+  /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^localhost$/,
+  { message: 'IP 地址格式无效' }
+);
+
+/**
+ * 与 .env.example 对齐的配置 Schema
+ */
+export const envConfigSchema = z.object({
+  // 应用基础配置
+  NODE_ENV: z.enum(['development', 'production', 'test']).optional().default('development'),
+
+  // 服务器配置
+  PORT: z.number().int().positive().min(1000).max(65535).optional().default(3000),
+  HOST: ipOrLocalhostSchema.optional().default('127.0.0.1'),
+
+  // 日志配置
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).optional().default('info'),
+  LOG_PRETTY: z.boolean().optional().default(true),
+
+  // 硬件通信配置 - 柜体端 (TCP)
+  CABINET_HOST: ipOrLocalhostSchema.optional().default('192.168.1.101'),
+  CABINET_PORT: z.number().int().positive().min(1).max(65535).optional().default(50000),
+
+  // 硬件通信配置 - 控制端 (Serial)
+  CONTROL_SERIAL_PATH: z.string().min(1).optional().default('/dev/ttyUSB0'),
+  CONTROL_SERIAL_BAUDRATE: z.number().int().positive().optional().default(9600),
+  CONTROL_SERIAL_DATABITS: z.number().int().min(5).max(8).optional().default(8),
+  CONTROL_SERIAL_STOPBITS: z.number().int().min(1).max(2).optional().default(1),
+  CONTROL_SERIAL_PARITY: z.enum(['none', 'even', 'mark', 'odd', 'space']).optional().default('none'),
+
+  // 语音播报配置
+  VOICE_CABINET_VOLUME: z.number().int().min(0).max(10).optional().default(10),
+  VOICE_CABINET_SPEED: z.number().int().min(0).max(10).optional().default(5),
+  VOICE_CONTROL_VOLUME: z.number().int().min(0).max(10).optional().default(10),
+  VOICE_CONTROL_SPEED: z.number().int().min(0).max(10).optional().default(5),
+
+  // 全局硬件配置
+  HARDWARE_TIMEOUT: z.number().int().positive().min(1000).max(60000).optional().default(5000),
+  HARDWARE_RETRY_ATTEMPTS: z.number().int().min(0).max(10).optional().default(3),
+
+  // 功能开关
+  ENABLE_HARDWARE_SIMULATOR: z.boolean().optional().default(false),
+  ENABLE_METRICS: z.boolean().optional().default(true),
+
+  // 新增配置
+  UDP_LOCAL_PORT: z.number().int().min(1000).max(65535).optional().default(8000),
+  QUERY_INTERVAL: z.number().int().min(100).max(60000).optional().default(1000),
+  DOOR_OPEN_TIMEOUT_S: z.number().int().positive().min(1).optional().default(30),
+
+  // 硬件输入索引配置 (0-15)
+  APPLY_INDEX: z.number().int().min(0).max(15).optional().default(0),
+  CABINET_DOOR_INDEX: z.number().int().min(0).max(15).optional().default(1),
+  ELECTRIC_LOCK_IN_INDEX: z.number().int().min(0).max(15).optional().default(2),
+  MECHANICAL_LOCK_INDEX: z.number().int().min(0).max(15).optional().default(3),
+  VIBRATION_ALARM_INDEX: z.number().int().min(0).max(15).optional().default(4),
+  SWITCH_06_INDEX: z.number().int().min(0).max(15).optional().default(5),
+  DEVICE_STATUS_INDEX: z.number().int().min(0).max(15).optional().default(6),
+  CABINET_ALARM_LIGHT_INDEX: z.number().int().min(0).max(15).optional().default(7),
+  CONTROL_ALARM_LIGHT_INDEX: z.number().int().min(0).max(15).optional().default(8),
+  ELECTRIC_LOCK_OUT_INDEX: z.number().int().min(0).max(15).optional().default(9),
+  ALARM_STATUS_INDEX: z.number().int().min(0).max(15).optional().default(10),
+  AUTH_INDEX: z.number().int().min(0).max(15).optional().default(11),
+  AUTH_CANCEL_INDEX: z.number().int().min(0).max(15).optional().default(12),
+  SWITCH_26_INDEX: z.number().int().min(0).max(15).optional().default(13),
+  SWITCH_27_INDEX: z.number().int().min(0).max(15).optional().default(14),
+  SWITCH_28_INDEX: z.number().int().min(0).max(15).optional().default(15),
+
+  // 硬件继电器索引配置 (1-32)
+  RELAY_LOCK_INDEX: z.number().int().min(1).max(32).optional().default(2),
+  RELAY_CABINET_ALARM_INDEX: z.number().int().min(1).max(32).optional().default(8),
+  RELAY_CONTROL_ALARM_INDEX: z.number().int().min(1).max(32).optional().default(1),
+});
+
+/**
  * 应用程序配置 Schema
  *
  * 包含设备 ID、超时、重试次数和轮询间隔等配置
@@ -51,4 +129,6 @@ export const appConfigSchema = z.object({
  *
  * 包含应用程序配置和网络配置
  */
-export const configSchema = appConfigSchema.merge(networkConfigSchema);
+export const configSchema = appConfigSchema
+  .merge(networkConfigSchema)
+  .merge(envConfigSchema);

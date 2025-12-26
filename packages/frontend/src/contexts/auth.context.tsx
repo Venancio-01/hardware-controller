@@ -6,7 +6,6 @@ import { loginRequestSchema, type LoginResponse } from 'shared';
 
 import { apiFetch } from '../lib/api';
 
-// API call (will be moved to api client later or here)
 const loginApi = async (credentials: z.infer<typeof loginRequestSchema>): Promise<LoginResponse> => {
   return apiFetch<LoginResponse>('/api/auth/login', {
     method: 'POST',

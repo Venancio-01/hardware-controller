@@ -6,7 +6,7 @@
 
 // ============ Schemas 导出 ============
 // 配置验证 schemas
-export { configSchema, appConfigSchema } from './schemas/config.schema.js';
+export { configSchema, appConfigSchema, envConfigSchema } from './schemas/config.schema.js';
 
 // 网络配置 schemas
 export { networkConfigSchema, ipv4Schema } from './schemas/network.schema.js';

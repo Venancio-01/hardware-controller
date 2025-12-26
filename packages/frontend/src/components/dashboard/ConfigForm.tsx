@@ -15,6 +15,16 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useUpdateConfig } from "@/hooks/useUpdateConfig";
 import { useImportExportConfig } from "@/hooks/useImportExportConfig";
 
+export const mergeConfigValues = (
+  baseConfig: Config | undefined,
+  formData: Config,
+  submittedValues: Config
+) => ({
+  ...baseConfig,
+  ...formData,
+  ...submittedValues,
+});
+
 export function ConfigForm() {
   // Fetch initial config
   const { data: config, isLoading, error } = useQuery({
@@ -61,7 +71,7 @@ export function ConfigForm() {
   const handleSubmit = (values: Config) => {
     // 确保使用表单中的所有值（包括可能被 NetworkConfigForm 更新的值）
     const formData = form.getValues();
-    const mergedValues = { ...formData, ...values };
+    const mergedValues = mergeConfigValues(config, formData, values);
     mutate(mergedValues, {
       onSuccess: (data) => {
         // Reset form with new values to clear isDirty state

@@ -38,28 +38,31 @@ export const networkConfigSchema = z
     /**
      * IP 地址
      */
-    ipAddress: ipv4Schema,
+    ipAddress: ipv4Schema.optional().default('127.0.0.1'),
 
     /**
      * 子网掩码
      * 需符合 IPv4 格式
      */
-    subnetMask: ipv4Schema,
+    subnetMask: ipv4Schema.optional().default('255.255.255.0'),
 
     /**
      * 网关地址
      */
-    gateway: ipv4Schema,
+    gateway: ipv4Schema.optional().default('127.0.0.1'),
 
     /**
      * 服务端口
      */
-    port: portSchema,
+    port: portSchema.optional().default(80),
 
     /**
      * DNS 服务器列表(可选)
      */
-    dns: z.array(ipv4Schema).max(4, { message: '最多只能配置4个DNS服务器' }).optional(),
+    dns: z.array(ipv4Schema)
+      .max(4, { message: '最多只能配置4个DNS服务器' })
+      .optional()
+      .default([]),
   })
   .refine((data) => {
     // 验证网关是否在子网内
@@ -73,4 +76,3 @@ export const networkConfigSchema = z
  * 网络配置类型定义
  */
 export type NetworkConfig = z.infer<typeof networkConfigSchema>;
-
