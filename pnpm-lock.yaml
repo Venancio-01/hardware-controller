@@ -108,6 +108,9 @@ importers:
       serialport:
         specifier: ^13.0.0
         version: 13.0.0
+      shared:
+        specifier: workspace:*
+        version: link:../shared
       xstate:
         specifier: ^5.12.1
         version: 5.25.0

@@ -54,7 +54,6 @@ export const monitorMachine = setup({
           }
 
           const report = parseActiveReportFrame(data);
-          console.log('🚀 - report:', report)
           const status: RelayStatus = {
             rawHex: report.rawHex,
             channels: report.inputState

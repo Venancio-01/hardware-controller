@@ -72,6 +72,7 @@
     "pino": "^9.0.0",
     "pino-pretty": "^11.0.0",
     "serialport": "^13.0.0",
+    "shared": "workspace:*",
     "xstate": "^5.12.1"
   },
   "peerDependencies": {

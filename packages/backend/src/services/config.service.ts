@@ -27,7 +27,12 @@ export class ConfigService {
    * @param configPath 配置文件路径（可选，默认为项目根目录的 config.json）
    */
   constructor(configPath?: string) {
-    this.configPath = configPath || join(process.cwd(), 'config.json');
+    if (configPath) {
+      this.configPath = configPath;
+    } else {
+      // 从 packages/backend 向上两级到项目根目录
+      this.configPath = join(process.cwd(), '..', '..', 'config.json');
+    }
   }
 
   /**

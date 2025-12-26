@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as matchers from '@testing-library/jest-dom/matchers';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Route } from './login';
+import { Route } from '../login';
 
 expect.extend(matchers);
 
@@ -12,7 +12,7 @@ const LoginPage = Route.options.component as React.ComponentType;
 
 // Mock useAuth
 const mockLogin = vi.fn();
-vi.mock('../contexts/auth.context', () => ({
+vi.mock('../../contexts/auth.context', () => ({
   useAuth: () => ({
     login: mockLogin,
     isLoading: false,

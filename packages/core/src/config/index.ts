@@ -1,412 +1,43 @@
-import { existsSync } from 'node:fs'
-import { resolve } from 'node:path'
-import dotenv from 'dotenv'
-import { z } from 'zod'
+/**
+ * Core 包配置模块
+ *
+ * 从项目根目录的 JSON 配置文件读取配置。
+ * 根据 NODE_ENV 环境变量选择对应的配置文件：
+ * - development: config.development.json
+ * - production: config.production.json
+ */
 
-const envLocalPath = resolve(process.cwd(), '.env.local')
-const envPath = resolve(process.cwd(), '.env')
-
-if (existsSync(envLocalPath)) {
-  dotenv.config({ path: envLocalPath })
-}
-
-if (existsSync(envPath)) {
-  dotenv.config({ path: envPath })
-}
+import { createConfigReader } from 'shared/src/config/reader.js';
+import type { Config } from 'shared';
 
 /**
- * 客户端连接配置 Schema
- * 定义单个客户端的连接参数
+ * 配置读取器实例
+ * 在模块加载时创建，同步读取配置文件
  */
-const clientConfigSchema = z.object({
-  /** 客户端唯一标识符 */
-  id: z.string().min(1, 'Client ID is required'),
-  /** 客户端本地监听端口 */
-  port: z.number().int().positive().min(1000).max(65535),
-  /** 目标服务器IP地址 */
-  targetHost: z.string().regex(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^localhost$/, 'Invalid IP address format'),
-  /** 目标服务器端口 */
-  targetPort: z.number().int().positive().min(1).max(65535),
-  /** 客户端描述（可选） */
-  description: z.string().optional(),
-})
-
-/**
- * 环境变量 Schema 定义
- * 定义了所有需要的环境变量及其类型约束
- */
-const envSchema = z.object({
-  // 应用基础配置
-  NODE_ENV: z
-    .enum(['development', 'production', 'test'])
-    .default('development'),
-
-  // 服务器配置
-  PORT: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().positive().min(1000).max(65535))
-    .default(3000),
-
-  HOST: z
-    .string()
-    .regex(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^localhost$/, 'Invalid IP address format')
-    .default('127.0.0.1'),
-
-  // 日志配置
-  LOG_LEVEL: z
-    .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
-    .default('info'),
-
-  LOG_PRETTY: z
-    .string()
-    .transform((val) => ['true', 'yes', '1', 'on'].includes(val.toLowerCase()))
-    .pipe(z.boolean())
-    .default(true),
-
-  // 硬件通信配置 - 柜体端 (TCP)
-  CABINET_HOST: z
-    .string()
-    .regex(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^localhost$/, 'Invalid IP address format')
-    .default('192.168.1.101'),
-
-  CABINET_PORT: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().positive().min(1).max(65535))
-    .default(50000),
-
-  // 硬件通信配置 - 控制端 (Serial)
-  CONTROL_SERIAL_PATH: z
-    .string()
-    .min(1)
-    .default('/dev/ttyUSB0'),
-
-  CONTROL_SERIAL_BAUDRATE: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().positive())
-    .default(9600),
-
-  CONTROL_SERIAL_DATABITS: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(5).max(8))
-    .default(8),
-
-  CONTROL_SERIAL_STOPBITS: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(1).max(2))
-    .default(1),
-
-  CONTROL_SERIAL_PARITY: z
-    .enum(['none', 'even', 'mark', 'odd', 'space'])
-    .default('none'),
-
-  // ----------------------------------------------------------------
-  // DEPRECATED CONFIGURATION (保留向后兼容)
-  // ----------------------------------------------------------------
-  CABINET_TARGET_HOST: z
-    .string()
-    .regex(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^localhost$/, 'Invalid IP address format')
-    .optional(),
-
-  CABINET_TARGET_PORT: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().positive().min(1).max(65535))
-    .optional(),
-
-  CONTROL_TARGET_HOST: z
-    .string()
-    .regex(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^localhost$/, 'Invalid IP address format')
-    .optional(),
-
-  CONTROL_TARGET_PORT: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().positive().min(1).max(65535))
-    .optional(),
-
-  // 语音播报模块配置
-  VOICE_CABINET_VOLUME: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(10))
-    .default(10),
-
-  VOICE_CABINET_SPEED: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(10))
-    .default(5),
-
-  VOICE_CONTROL_VOLUME: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(10))
-    .default(10),
-
-  VOICE_CONTROL_SPEED: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(10))
-    .default(5),
-
-  // DEPRECATED VOICE CONFIG
-  VOICE_BROADCAST_CABINET_HOST: z.preprocess(
-    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
-    z
-      .string()
-      .regex(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^localhost$/, 'Invalid IP address format')
-      .optional()
-  ),
-
-  VOICE_BROADCAST_CABINET_PORT: z.preprocess(
-    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
-    z
-      .string()
-      .transform(Number)
-      .pipe(z.number().int().positive().min(1).max(65535))
-      .optional()
-  ),
-
-  VOICE_BROADCAST_CABINET_VOLUME: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(10))
-    .optional(),
-
-  VOICE_BROADCAST_CABINET_SPEED: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(10))
-    .optional(),
-
-  VOICE_BROADCAST_CONTROL_HOST: z.preprocess(
-    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
-    z
-      .string()
-      .regex(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^localhost$/, 'Invalid IP address format')
-      .optional()
-  ),
-
-  VOICE_BROADCAST_CONTROL_PORT: z.preprocess(
-    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
-    z
-      .string()
-      .transform(Number)
-      .pipe(z.number().int().positive().min(1).max(65535))
-      .optional()
-  ),
-
-  VOICE_BROADCAST_CONTROL_VOLUME: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(10))
-    .optional(),
-
-  VOICE_BROADCAST_CONTROL_SPEED: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(10))
-    .optional(),
-
-  // 全局硬件配置（保持向后兼容）
-  HARDWARE_TIMEOUT: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().positive().min(1000).max(60000))
-    .default(5000),
-
-  HARDWARE_RETRY_ATTEMPTS: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(10))
-    .default(3),
-
-  UDP_LOCAL_PORT: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(1000).max(65535))
-    .default(8000),
-
-  QUERY_INTERVAL: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(100).max(60000))
-    .default(1000),
-
-  // 柜门状态监控配置（秒为单位）
-  DOOR_OPEN_TIMEOUT_S: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().positive().min(1))
-    .default(30),
-
-  // 硬件输入索引配置 (0-15)
-  APPLY_INDEX: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(15))
-    .default(0),
-
-  CABINET_DOOR_INDEX: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(15))
-    .default(1),
-
-  ELECTRIC_LOCK_IN_INDEX: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(15))
-    .default(2),
-
-  MECHANICAL_LOCK_INDEX: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(15))
-    .default(3),
-
-  VIBRATION_ALARM_INDEX: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(15))
-    .default(4),
-
-  SWITCH_06_INDEX: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(15))
-    .default(5),
-
-  DEVICE_STATUS_INDEX: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(15))
-    .default(6),
-
-  CABINET_ALARM_LIGHT_INDEX: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(15))
-    .default(7),
-
-  CONTROL_ALARM_LIGHT_INDEX: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(15))
-    .default(8),
-
-  ELECTRIC_LOCK_OUT_INDEX: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(15))
-    .default(9),
-
-  ALARM_STATUS_INDEX: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(15))
-    .default(10),
-
-  AUTH_INDEX: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(15))
-    .default(11),
-
-  AUTH_CANCEL_INDEX: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(15))
-    .default(12),
-
-  SWITCH_26_INDEX: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(15))
-    .default(13),
-
-  SWITCH_27_INDEX: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(15))
-    .default(14),
-
-  SWITCH_28_INDEX: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(0).max(15))
-    .default(15),
-
-  // 硬件继电器索引配置 (1-8)
-  RELAY_LOCK_INDEX: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(1).max(8))
-    .default(2),
-
-  RELAY_CABINET_ALARM_INDEX: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(1).max(8))
-    .default(8),
-
-  RELAY_CONTROL_ALARM_INDEX: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().int().min(1).max(8))
-    .default(1),
-})
-
-/**
- * 客户端配置类型推断
- */
-export type ClientConfig = z.infer<typeof clientConfigSchema>
-
-/**
- * 环境变量类型推断
- */
-export type Env = z.infer<typeof envSchema>
-
-/**
- * 验证并解析环境变量
- * 如果验证失败，程序会立即退出（Fail-fast 原则）
- */
-function validateEnv(): Env {
-  try {
-    return envSchema.parse(process.env)
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      console.error('❌ Invalid environment variables:')
-      error.issues.forEach((issue) => {
-        const path = issue.path.join('.')
-        const message = issue.message || 'Validation failed'
-        console.error(`  ${path}: ${message}`)
-      })
-      console.error('\nPlease check your .env file and fix the errors above.')
-      process.exit(1)
-    }
-    console.error('❌ Configuration validation failed:', error)
-    process.exit(1)
-  }
-}
+const configReader = createConfigReader();
 
 /**
  * 导出验证后的配置对象
  * 这是应用中唯一的配置来源
  */
-export const config = validateEnv()
+export const config = configReader.getAll();
+
+/**
+ * 导出配置类型
+ */
+export type { Config };
+
+/**
+ * 导出 Env 类型（向后兼容别名）
+ */
+export type Env = Config;
 
 /**
  * 配置对象类型守卫
  * 用于运行时检查配置是否正确加载
  */
 export function isConfigLoaded(): boolean {
-  return config !== null && typeof config === 'object'
+  return config !== null && typeof config === 'object';
 }
 
 /**
@@ -431,12 +62,12 @@ export function getConfigSummary(): Record<string, unknown> {
       },
       voiceBroadcast: {
         cabinet: {
-          volume: config.VOICE_CABINET_VOLUME ?? config.VOICE_BROADCAST_CABINET_VOLUME ?? 10,
-          speed: config.VOICE_CABINET_SPEED ?? config.VOICE_BROADCAST_CABINET_SPEED ?? 5,
+          volume: config.VOICE_CABINET_VOLUME,
+          speed: config.VOICE_CABINET_SPEED,
         },
         control: {
-          volume: config.VOICE_CONTROL_VOLUME ?? config.VOICE_BROADCAST_CONTROL_VOLUME ?? 10,
-          speed: config.VOICE_CONTROL_SPEED ?? config.VOICE_BROADCAST_CONTROL_SPEED ?? 5,
+          volume: config.VOICE_CONTROL_VOLUME,
+          speed: config.VOICE_CONTROL_SPEED,
         },
       },
       timeout: config.HARDWARE_TIMEOUT,
@@ -472,8 +103,5 @@ export function getConfigSummary(): Record<string, unknown> {
       level: config.LOG_LEVEL,
       pretty: config.LOG_PRETTY,
     },
-
-  }
+  };
 }
-
-export { envSchema, clientConfigSchema }

@@ -1,63 +1,54 @@
-import { envSchema } from '../src/config/index.js';
+/**
+ * 门开超时配置验证测试
+ *
+ * 测试 DOOR_OPEN_TIMEOUT_S 配置项的验证逻辑
+ */
+import { configSchema } from 'shared';
 
 describe('Door Open Timeout Config Validation', () => {
   it('should validate DOOR_OPEN_TIMEOUT_S with default value', () => {
-    const minimalEnv = {
-      // Required defaults
-      NODE_ENV: 'test',
-      PORT: '3000',
-      HOST: '127.0.0.1',
-      CABINET_TARGET_HOST: '127.0.0.1',
-      CABINET_TARGET_PORT: '8000',
-      CONTROL_TARGET_HOST: '127.0.0.1',
-      CONTROL_TARGET_PORT: '8000',
+    const minimalConfig = {
+      deviceId: 'device-001',
+      timeout: 5000,
+      retryCount: 3,
+      pollingInterval: 5000,
     };
 
-    const result = envSchema.safeParse(minimalEnv);
+    const result = configSchema.safeParse(minimalConfig);
     expect(result.success).toBe(true);
 
     if (result.success) {
-      // @ts-ignore - DOOR_OPEN_TIMEOUT_S might not exist yet
       expect(result.data.DOOR_OPEN_TIMEOUT_S).toBe(30);
     }
   });
 
   it('should allow overriding DOOR_OPEN_TIMEOUT_S', () => {
-    const customEnv = {
-      DOOR_OPEN_TIMEOUT_S: '60',
-      // Required defaults
-      NODE_ENV: 'test',
-      PORT: '3000',
-      HOST: '127.0.0.1',
-      CABINET_TARGET_HOST: '127.0.0.1',
-      CABINET_TARGET_PORT: '8000',
-      CONTROL_TARGET_HOST: '127.0.0.1',
-      CONTROL_TARGET_PORT: '8000',
+    const customConfig = {
+      deviceId: 'device-001',
+      timeout: 5000,
+      retryCount: 3,
+      pollingInterval: 5000,
+      DOOR_OPEN_TIMEOUT_S: 60,
     };
 
-    const result = envSchema.safeParse(customEnv);
+    const result = configSchema.safeParse(customConfig);
     expect(result.success).toBe(true);
 
     if (result.success) {
-      // @ts-ignore
       expect(result.data.DOOR_OPEN_TIMEOUT_S).toBe(60);
     }
   });
 
   it('should fail when DOOR_OPEN_TIMEOUT_S is negative', () => {
-    const invalidEnv = {
-      DOOR_OPEN_TIMEOUT_S: '-1',
-      // Required defaults
-      NODE_ENV: 'test',
-      PORT: '3000',
-      HOST: '127.0.0.1',
-      CABINET_TARGET_HOST: '127.0.0.1',
-      CABINET_TARGET_PORT: '8000',
-      CONTROL_TARGET_HOST: '127.0.0.1',
-      CONTROL_TARGET_PORT: '8000',
+    const invalidConfig = {
+      deviceId: 'device-001',
+      timeout: 5000,
+      retryCount: 3,
+      pollingInterval: 5000,
+      DOOR_OPEN_TIMEOUT_S: -1,
     };
 
-    const result = envSchema.safeParse(invalidEnv);
+    const result = configSchema.safeParse(invalidConfig);
     expect(result.success).toBe(false);
   });
 });

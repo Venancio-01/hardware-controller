@@ -2,7 +2,7 @@
 # project: node-switch
 # project_key:
 # tracking_system: file-system
-# story_location: "{project-root}/_bmad-output/04-implementation"
+# story_location: "{project-root}/_bmad-output/implementation"
 
 # STATUS DEFINITIONS:
 # ==================
@@ -37,7 +37,7 @@ generated: 2025-12-25
 project: node-switch
 project_key:
 tracking_system: file-system
-story_location: "{project-root}/_bmad-output/04-implementation"
+story_location: "{project-root}/_bmad-output/implementation"
 
 development_status:
   # Epic 1: 核心配置界面与状态监控

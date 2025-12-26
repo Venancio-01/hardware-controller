@@ -34,6 +34,11 @@ export {
 } from './schemas/conflict-detection.schema.js';
 
 
+// ============ Config Reader 导出 ============
+// 注意：ConfigReader 使用 node:fs，仅可在 Node.js 环境使用
+// 请直接导入：import { ConfigReader } from 'shared/config/reader.js'
+
+
 // ============ Types 导出 ============
 // 配置类型
 export type { Config } from './types/config.types.js';
