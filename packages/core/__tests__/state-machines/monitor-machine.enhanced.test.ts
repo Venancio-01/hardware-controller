@@ -58,9 +58,9 @@ describe('MonitorMachine - Enhanced Subscriptions', () => {
       const risingMask = maskFromIndexes(rising, offset);
       const fallingMask = maskFromIndexes(falling, offset);
       const payload = buildActiveReport(inputMask, risingMask, fallingMask);
-      mockHardware.onIncomingData?.('udp', clientId, payload, { address: '127.0.0.1', port: 8000 }, {});
+      mockHardware.onIncomingData?.('tcp', clientId, payload, { address: '127.0.0.1', port: 8000 }, {});
     };
-    
+
     const parentMachine = setup({
       actors: { monitor: monitorMachine }
     }).createMachine({
@@ -83,7 +83,7 @@ describe('MonitorMachine - Enhanced Subscriptions', () => {
 
     const parentActor = createActor(parentMachine);
     parentActor.start();
-    
+
     // Wait for actor to initialize and entry actions to run
     await new Promise(resolve => setTimeout(resolve, 50));
 

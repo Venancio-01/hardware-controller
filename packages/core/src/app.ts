@@ -60,7 +60,11 @@ if (import.meta?.url) {
     const scriptFile = process.argv[1];
 
     // Check if this is the main module being executed directly
-    if (scriptFile && (currentFile.includes('app.js') || currentFile.includes('app.ts')) && scriptFile.endsWith('app.js')) {
+    // 支持 .js (编译后) 和 .ts (tsx 直接运行) 两种情况
+    const isAppFile = currentFile.includes('app.js') || currentFile.includes('app.ts');
+    const isScriptMatch = scriptFile.endsWith('app.js') || scriptFile.endsWith('app.ts');
+
+    if (scriptFile && isAppFile && isScriptMatch) {
       startApp().catch(error => {
         console.error('Failed to start app:', error);
         process.exit(1);

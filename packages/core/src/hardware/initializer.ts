@@ -8,7 +8,7 @@ export async function initializeHardware(manager: HardwareCommunicationManager, 
       id: 'cabinet',
       targetHost: config.CABINET_HOST,
       targetPort: config.CABINET_PORT,
-      framing: true,       // Enable framing for TCP
+      framing: false,      // Relay protocol uses raw binary, no framing needed
       heartbeatStrict: true,
       description: '柜体端 (TCP)'
     }
@@ -27,13 +27,11 @@ export async function initializeHardware(manager: HardwareCommunicationManager, 
     }
   ];
 
-  const udpClientsConfig: { id: string; targetHost: string; targetPort: number; description: string }[] = [];
+
 
   await manager.initialize({
-    udpClients: udpClientsConfig,
     tcpClients: tcpClientsConfig,
     serialClients: serialClientsConfig,
-    udpPort: config.UDP_LOCAL_PORT,
     globalTimeout: config.HARDWARE_TIMEOUT,
     globalRetries: config.HARDWARE_RETRY_ATTEMPTS,
   });

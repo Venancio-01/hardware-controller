@@ -32,7 +32,7 @@ export async function resetAllRelays(manager: HardwareCommunicationManager, logg
   const results = await Promise.allSettled(targets.map(async ({ id, protocol }) => {
     try {
       logger.debug(`[${id}] 正在通过 ${protocol.toUpperCase()} 发送重置命令...`);
-      await manager.sendCommand(protocol, resetCmd, undefined, id, false);
+      await manager.sendCommand(protocol, resetCmd, id, false);
       logger.info(`[${id}] 继电器重置命令发送成功`, { protocol });
       return { id, success: true };
     } catch (err) {

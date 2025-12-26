@@ -112,7 +112,7 @@ export const applyAmmoMachine = setup({
       const command = RelayCommandBuilder.open(config.RELAY_LOCK_INDEX as RelayChannel);
       context.logger.info('正在发送闭锁指令...', { command, clientId: 'control' });
 
-      context.manager.sendCommand('udp', command, {}, 'control', false)
+      context.manager.sendCommand('udp', command, 'control', false)
         .then(() => {
           context.logger.info('闭锁指令发送成功');
         })
@@ -132,8 +132,8 @@ export const applyAmmoMachine = setup({
       const cabinetCommand8 = RelayCommandBuilder.close(config.RELAY_CABINET_ALARM_INDEX as RelayChannel);
       const controlCommand1 = RelayCommandBuilder.close(config.RELAY_CONTROL_ALARM_INDEX as RelayChannel);
 
-      void context.manager.sendCommand('udp', cabinetCommand8, {}, 'cabinet', false);
-      void context.manager.sendCommand('udp', controlCommand1, {}, 'control', false);
+      void context.manager.sendCommand('udp', cabinetCommand8, 'cabinet', false);
+      void context.manager.sendCommand('udp', controlCommand1, 'control', false);
     },
     alarmOff: ({ context }) => {
       if (!context.manager) {
@@ -147,8 +147,8 @@ export const applyAmmoMachine = setup({
       const cabinetCommand8 = RelayCommandBuilder.open(config.RELAY_CABINET_ALARM_INDEX as RelayChannel);
       const controlCommand1 = RelayCommandBuilder.open(config.RELAY_CONTROL_ALARM_INDEX as RelayChannel);
 
-      void context.manager.sendCommand('udp', cabinetCommand8, {}, 'cabinet', false);
-      void context.manager.sendCommand('udp', controlCommand1, {}, 'control', false);
+      void context.manager.sendCommand('udp', cabinetCommand8, 'cabinet', false);
+      void context.manager.sendCommand('udp', controlCommand1, 'control', false);
     }
   }
 }).createMachine({

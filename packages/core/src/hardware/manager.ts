@@ -1,4 +1,4 @@
-import { UDPClient } from '../udp/client.js';
+
 import { TCPClient } from '../tcp/client.js';
 import { SerialClient } from '../serial/client.js';
 
@@ -21,9 +21,7 @@ export class HardwareCommunicationManager {
     tcp: new Map(),
     serial: new Map(),
   };
-  private udpClient: UDPClient = new UDPClient();
-  private udpTargets: Map<string, { host: string; port: number }> = new Map();
-  private udpRemoteToId: Map<string, string> = new Map();
+
 
   private isInitialized = false;
   private log = createModuleLogger('HardwareCommunicationManager');
@@ -32,7 +30,6 @@ export class HardwareCommunicationManager {
    * 初始化通信管理器
    */
   async initialize(configs: {
-    udpClients?: { id: string; targetHost: string; targetPort: number; timeout?: number; retries?: number }[];
     tcpClients?: {
       id: string;
       localPort?: number;
@@ -47,7 +44,6 @@ export class HardwareCommunicationManager {
       heartbeatStrict?: boolean;
     }[];
     serialClients?: (SerialConfig & { id: string })[];
-    udpPort?: number;
     globalTimeout?: number;
     globalRetries?: number;
   }): Promise<void> {
@@ -57,38 +53,6 @@ export class HardwareCommunicationManager {
     }
 
     const initPromises: Promise<void>[] = [];
-
-    // 初始化 UDP 客户端 (单例)
-    if (configs.udpClients && configs.udpClients.length > 0) {
-      // 使用配置的 UDP 端口或默认端口 8000
-      const listenPort = configs.udpPort || 8000;
-
-      initPromises.push(this.udpClient.start(listenPort));
-
-      this.udpClient.setMessageHandler((data, remote) => {
-        // Find client ID by remote address
-        const remoteKey = `${remote.address}:${remote.port}`;
-        const clientId = this.udpRemoteToId.get(remoteKey);
-
-        if (clientId) {
-          this.handleIncomingData('udp', clientId, data, { address: remote.address, port: remote.port });
-        } else {
-          this.log.warn(`收到来自未知远程地址的 UDP 消息: ${remoteKey}`);
-        }
-      });
-
-      // 注册 UDP 目标
-      for (const clientConfig of configs.udpClients) {
-        this.udpTargets.set(clientConfig.id, {
-          host: clientConfig.targetHost,
-          port: clientConfig.targetPort,
-        });
-
-        // Register reverse mapping
-        const remoteKey = `${clientConfig.targetHost}:${clientConfig.targetPort}`;
-        this.udpRemoteToId.set(remoteKey, clientConfig.id);
-      }
-    }
 
     // 初始化 TCP 客户端
     if (configs.tcpClients) {
@@ -143,7 +107,6 @@ export class HardwareCommunicationManager {
     await Promise.all(initPromises);
     this.isInitialized = true;
     this.log.info('硬件通信管理器初始化成功', {
-      udpTargets: this.udpTargets.size,
       tcpClients: this.clients.tcp.size,
       serialClients: this.clients.serial.size
     });
@@ -153,69 +116,18 @@ export class HardwareCommunicationManager {
    * 发送硬件命令
    * @param protocol 协议类型
    * @param command 命令字符串
-   * @param parameters 参数
    * @param clientId 可选，指定客户端ID。如果不指定，则广播给该协议下的所有客户端
    * @param expectResponse 是否等待响应
    */
   async sendCommand(
     protocol: Protocol,
-    command: string | Buffer,
-    parameters?: Record<string, unknown>,
+    command: Buffer,
     clientId?: string,
-    expectResponse = true,
-    encoding: CommandEncoding = 'hex'
+    expectResponse = true
   ): Promise<Record<string, HardwareResponse | undefined>> {
-    let commandBuffer: Buffer;
-    if (Buffer.isBuffer(command)) {
-      commandBuffer = command;
-      this.log.debug('sendCommand: 使用传入的 Buffer', { bufferLength: commandBuffer.length });
-    } else if (encoding === 'hex') {
-      // 将十六进制字符串转换为 Buffer
-      // 例如: "48454C4C4F" -> <Buffer 48 45 4c 4c 4f>
-      commandBuffer = Buffer.from(String(command).replace(/\s/g, ''), 'hex');
-      this.log.debug('sendCommand: 使用 hex 编码', { original: command, bufferLength: commandBuffer.length });
-    } else {
-      commandBuffer = Buffer.from(String(command), encoding);
-      this.log.debug(`sendCommand: 使用 ${encoding} 编码`, { original: command, bufferLength: commandBuffer.length });
-    }
-
     const results: Record<string, HardwareResponse | undefined> = {};
 
-    if (protocol === 'udp') {
-      const targets = new Map<string, { host: string; port: number }>();
-
-      if (clientId) {
-        const target = this.udpTargets.get(clientId);
-        if (!target) throw new Error(`UDP client '${clientId}' not registered`);
-        targets.set(clientId, target);
-      } else {
-        this.udpTargets.forEach((target, id) => targets.set(id, target));
-      }
-
-      if (targets.size === 0) {
-        this.log.warn('没有活跃的 UDP 目标可发送命令');
-        return {};
-      }
-
-      const promises = Array.from(targets.entries()).map(async ([id, target]) => {
-        this.log.debug(`正在发送 UDP 命令到 ${id} (${target.host}:${target.port})`, {
-          clientId: id,
-          command: Buffer.isBuffer(command) ? '<Buffer>' : command,
-          rawCommand: commandBuffer.toString('utf8')
-        });
-
-        try {
-          await this.udpClient.send(commandBuffer, target.host, target.port);
-          results[id] = undefined;
-        } catch (error) {
-          this.log.error(`发送 UDP 命令到 ${id} 失败`, error as Error);
-          results[id] = { success: false, error: (error as Error).message, timestamp: Date.now() };
-        }
-      });
-
-      await Promise.all(promises);
-
-    } else if (protocol === 'serial') {
+    if (protocol === 'serial') {
       const clientsToSend: Map<string, SerialClient> = new Map();
 
       if (clientId) {
@@ -234,16 +146,16 @@ export class HardwareCommunicationManager {
       const promises = Array.from(clientsToSend.entries()).map(async ([id, client]) => {
         this.log.debug(`正在发送串口命令到 ${id}`, {
           clientId: id,
-          command: Buffer.isBuffer(command) ? '<Buffer>' : command
+          command
         });
 
         try {
           if (expectResponse) {
-            const response = await client.send(commandBuffer);
+            const response = await client.send(command);
             const responseData = Buffer.isBuffer(response.data) ? response.data : Buffer.from(response.data);
             results[id] = this.parseHardwareResponse(responseData);
           } else {
-            await client.sendNoWait(commandBuffer);
+            await client.sendNoWait(command);
             results[id] = undefined;
           }
         } catch (error) {
@@ -281,17 +193,17 @@ export class HardwareCommunicationManager {
       const promises = Array.from(clientsToSend.entries()).map(async ([id, client]) => {
         this.log.debug(`正在发送 TCP 命令到 ${id}`, {
           clientId: id,
-          command: Buffer.isBuffer(command) ? '<Buffer>' : command,
-          rawCommand: commandBuffer.toString('utf8')
+          command,
+          rawCommand: command.toString('utf8')
         });
 
         try {
           if (expectResponse) {
-            const response = await client.send(commandBuffer);
+            const response = await client.send(command);
             const responseData = Buffer.isBuffer(response.data) ? response.data : Buffer.from(response.data);
             results[id] = this.parseHardwareResponse(responseData);
           } else {
-            await client.sendNoWait(commandBuffer);
+            await client.sendNoWait(command);
             results[id] = undefined;
           }
         } catch (error) {
@@ -315,14 +227,9 @@ export class HardwareCommunicationManager {
    */
   getAllConnectionStatus(): Record<string, Record<string, string>> {
     const status: Record<string, Record<string, string>> = {
-      udp: {},
       tcp: {},
       serial: {},
     };
-
-    this.udpTargets.forEach((_, id) => {
-      status.udp[id] = 'registered';
-    });
 
     this.clients.tcp.forEach((client, id) => {
       status.tcp[id] = client.getStatus();
@@ -342,9 +249,6 @@ export class HardwareCommunicationManager {
     this.log.info('正在关闭硬件通信管理器...');
 
     const disconnectPromises: Promise<void>[] = [];
-
-    // Stop UDP Client
-    disconnectPromises.push(this.udpClient.stop());
 
     this.clients.tcp.forEach((client) => {
       disconnectPromises.push(client.disconnect().catch(err => this.log.error('TCP 断开连接错误', err as Error)));

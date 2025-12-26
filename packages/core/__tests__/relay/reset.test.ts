@@ -8,7 +8,6 @@ describe('Relay Reset', () => {
     mockManager = {
       sendCommand: vi.fn(() => Promise.resolve({})),
       getAllConnectionStatus: vi.fn(() => ({
-        udp: {},
         tcp: { cabinet: 'connected' },
         serial: { control: 'connected' }
       }))

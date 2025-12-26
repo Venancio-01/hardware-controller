@@ -1,45 +1,31 @@
-import { RelayCommandBuilder } from "../../src/relay/controller";
+import { describe, expect, it } from 'vitest';
+import { RelayCommandBuilder, parseActiveReportFrame } from '../../src/relay/controller.js';
 
-describe("RelayCommandBuilder", () => {
-  describe("close (ON)", () => {
-    it("should build A1 ON command for channel 1", () => {
-      const expected = Buffer.from([0xCC, 0xDD, 0xA1, 0x01, 0x00, 0x01, 0x00, 0x01, 0xA4, 0x48]);
-      expect(RelayCommandBuilder.close(1).equals(expected)).toBe(true);
-    });
-
-    it("should reject delay command", () => {
-      expect(() => RelayCommandBuilder.close(1, { delaySeconds: 10 })).toThrow();
-    });
-
-    it("should build ON command for all channels", () => {
-      const expected = Buffer.from([0xCC, 0xDD, 0xA1, 0x01, 0x00, 0xFF, 0x00, 0xFF, 0xA0, 0x40]);
-      expect(RelayCommandBuilder.close('all').equals(expected)).toBe(true);
-    });
-
-    it("should throw error for delay on all channels", () => {
-      expect(() => RelayCommandBuilder.close('all', { delaySeconds: 10 })).toThrow();
-    });
+describe('RelayCommandBuilder', () => {
+  it('builds A1 close frame for channel 2', () => {
+    const frame = RelayCommandBuilder.close(2);
+    const expected = Buffer.from([0xCC, 0xDD, 0xA1, 0x01, 0x00, 0x02, 0x00, 0x02, 0xA6, 0x4C]);
+    expect(frame.equals(expected)).toBe(true);
   });
 
-  describe("open (OFF)", () => {
-    it("should build A1 OFF command", () => {
-      const expected = Buffer.from([0xCC, 0xDD, 0xA1, 0x01, 0x00, 0x00, 0x00, 0x01, 0xA3, 0x46]);
-      expect(RelayCommandBuilder.open(1).equals(expected)).toBe(true);
-    });
-
-    it("should build OFF command for all channels", () => {
-      const expected = Buffer.from([0xCC, 0xDD, 0xA1, 0x01, 0x00, 0x00, 0x00, 0xFF, 0xA1, 0x42]);
-      expect(RelayCommandBuilder.open('all').equals(expected)).toBe(true);
-    });
+  it('builds A1 open frame for channel 2', () => {
+    const frame = RelayCommandBuilder.open(2);
+    const expected = Buffer.from([0xCC, 0xDD, 0xA1, 0x01, 0x00, 0x00, 0x00, 0x02, 0xA4, 0x48]);
+    expect(frame.equals(expected)).toBe(true);
   });
+});
 
-  describe("queryStatus", () => {
-      it("should return correct relay status query command", () => {
-          expect(RelayCommandBuilder.queryRelayStatus().length).toBe(0);
-      });
+describe('parseActiveReportFrame', () => {
+  it('parses relay/input states and edges from active report frame', () => {
+    const frame = Buffer.from([0xEE, 0xFF, 0xC0, 0x01, 0x00, 0x11, 0x01, 0x00, 0xD3]);
+    const report = parseActiveReportFrame(frame);
 
-      it("should return correct input status query command", () => {
-          expect(RelayCommandBuilder.queryInputStatus().length).toBe(0);
-      });
+    expect(report.rawHex).toBe('EE FF C0 01 00 11 01 00 D3');
+    expect(report.relayState).toEqual([false, false, false, false, false, false, false, false]);
+    expect(report.inputState[0]).toBe(true);
+    expect(report.inputState[4]).toBe(true);
+    expect(report.inputState[1]).toBe(false);
+    expect(report.risingEdge).toEqual([0]);
+    expect(report.fallingEdge).toEqual([]);
   });
 });

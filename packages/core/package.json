@@ -46,7 +46,7 @@
   },
   "scripts": {
     "build": "tsup",
-    "dev": "tsup --watch",
+    "dev": "tsx -r dotenv/config src/app.ts",
     "start": "node -r dotenv/config dist/app.js",
     "test": "vitest run",
     "test:watch": "vitest",

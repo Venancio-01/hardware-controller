@@ -9,7 +9,7 @@ describe('Hardware Initializer', () => {
   beforeEach(() => {
     mockManager = {
       initialize: vi.fn(() => Promise.resolve()),
-      getAllConnectionStatus: vi.fn(() => ({ udp: {}, tcp: {} }))
+      getAllConnectionStatus: vi.fn(() => ({ tcp: {}, serial: {} }))
     };
     mockLogger = {
       info: vi.fn(() => {}),
@@ -20,12 +20,12 @@ describe('Hardware Initializer', () => {
 
   it('should call manager.initialize with correct config', async () => {
     await initializeHardware(mockManager as any, mockLogger as any);
-    
+
     expect(mockManager.initialize).toHaveBeenCalled();
     const initConfig = mockManager.initialize.mock.calls[0][0];
-    
-    expect(initConfig.udpClients).toContainEqual(expect.objectContaining({ id: 'cabinet' }));
-    expect(initConfig.udpClients).toContainEqual(expect.objectContaining({ id: 'control' }));
+
+    expect(initConfig.tcpClients).toContainEqual(expect.objectContaining({ id: 'cabinet' }));
+    expect(initConfig.serialClients).toContainEqual(expect.objectContaining({ id: 'control' }));
     expect(mockLogger.info).toHaveBeenCalledWith('硬件通信已初始化');
   });
 });

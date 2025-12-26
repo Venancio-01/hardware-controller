@@ -52,7 +52,7 @@ export interface HardwareResponse {
 
 export type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'error';
 
-export type Protocol = 'udp' | 'tcp' | 'serial';
+export type Protocol = 'tcp' | 'serial';
 
 /**
  * 命令编码类型

@@ -1,6 +1,6 @@
 import { setup, createActor, sendParent, enqueueActions } from 'xstate';
 import { type HardwareCommunicationManager } from '../hardware/manager.js';
-import { parseActiveReportFrame, type RelayStatus } from '../relay/index.js';
+import { parseActiveReportFrame, isActiveReportFrame, type RelayStatus } from '../relay/index.js';
 import { EventPriority } from '../types/state-machine.js';
 import { RelayStatusAggregator, type RelayClientId } from '../business-logic/index.js';
 import { config } from '../config/index.js';
@@ -34,11 +34,10 @@ export const monitorMachine = setup({
   }),
   entry: [
     ({ context, self }) => {
+      // 监听所有协议的数据（TCP 和 Serial）
       context.hardware.onIncomingData = (protocol, clientId, data) => {
-        log.debug(`收到硬件数据: ${clientId} ${data.toString()}`);
-        if (protocol === 'udp') {
-          self.send({ type: 'RELAY_DATA_RECEIVED', clientId, data });
-        }
+        log.debug(`收到硬件数据: protocol=${protocol}, clientId=${clientId}, data=${data.toString('hex')}`);
+        self.send({ type: 'RELAY_DATA_RECEIVED', clientId, data });
       };
     }
   ],
@@ -49,7 +48,13 @@ export const monitorMachine = setup({
         log.debug(`正在处理来自 ${clientId} 的继电器数据: ${data.toString('hex')}`);
 
         try {
+          if (!isActiveReportFrame(data)) {
+            log.debug(`跳过非主动上报帧: ${data.toString('hex')} (可能是控制响应帧或查询响应帧)`);
+            return;
+          }
+
           const report = parseActiveReportFrame(data);
+          console.log('🚀 - report:', report)
           const status: RelayStatus = {
             rawHex: report.rawHex,
             channels: report.inputState

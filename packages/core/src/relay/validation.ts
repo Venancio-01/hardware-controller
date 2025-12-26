@@ -16,6 +16,20 @@ const ActiveReportFrameSchema = z.instanceof(Buffer)
     message: 'Active report frame function code mismatch'
   });
 
+/**
+ * 检查数据是否是有效的主动上报帧
+ * @param data - 原始字节数据
+ * @returns 是否是有效的主动上报帧
+ */
+export function isActiveReportFrame(data: Buffer): boolean {
+  return (
+    data.length === 9 &&
+    data[0] === 0xEE &&
+    data[1] === 0xFF &&
+    data[2] === 0xC0
+  );
+}
+
 export const RelaySchemas = {
   Channel: ChannelSchema,
   ActiveReportFrame: ActiveReportFrameSchema

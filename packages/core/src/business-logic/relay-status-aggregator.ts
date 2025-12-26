@@ -23,11 +23,19 @@ export class RelayStatusAggregator {
     const cabinetChannels = this.latestChannels.cabinet;
     const controlChannels = this.latestChannels.control;
 
-    if (!cabinetChannels || !controlChannels) {
+    // 支持单客户端模式：任意客户端上报都触发对比逻辑
+    // 如果只有一个客户端，使用该客户端的 8 路状态
+    // 如果两个客户端都有，合并为 16 路状态
+    let combinedState: boolean[];
+    if (cabinetChannels && controlChannels) {
+      combinedState = [...cabinetChannels, ...controlChannels];
+    } else if (cabinetChannels) {
+      combinedState = [...cabinetChannels];
+    } else if (controlChannels) {
+      combinedState = [...controlChannels];
+    } else {
       return null;
     }
-
-    const combinedState = [...cabinetChannels, ...controlChannels];
     const previousCombined = this.lastCombined;
     const changed = previousCombined ? !this.isSameCombinedState(previousCombined, combinedState) : false;
 

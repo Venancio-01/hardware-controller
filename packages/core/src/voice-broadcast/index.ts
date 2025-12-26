@@ -116,21 +116,11 @@ export class VoiceBroadcastController {
       const result = await this.hardwareManager.sendCommand(
         protocol,
         encodedCommand,
-        undefined,
-        hardwareClientId, // Send to specific hardware client ID (e.g. 'cabinet' or 'control')
+        hardwareClientId,
         false
       );
 
       if (resolvedClientId) {
-        // If we targeted a specific voice client, check result for its underlying hardware client
-        // Note: hardwareClientId is what we used. results are keyed by hardwareClientId.
-        const response = hardwareClientId ? result[hardwareClientId] : undefined;
-
-        // Wait, if hardwareClientId is undefined (broadcast), we expect results from all?
-        // But broadcast() logic here usually targets one voice client.
-        // If resolvedClientId is undefined, we might be broadcasting to all voice clients?
-        // Logic below handles this.
-
         if (hardwareClientId) {
           const response = result[hardwareClientId];
           if (response && response.success === false) {
@@ -142,17 +132,6 @@ export class VoiceBroadcastController {
           }
         }
       } else {
-        // Broadcast to all?
-        // Current implementation tries to determine protocol/clientId from 'clientConfig', which is undefined if resolvedClientId is undefined.
-        // If resolvedClientId is undefined, protocol defaults to 'tcp' and hardwareClientId to undefined.
-        // This means it broadcasts 'tcp' command to all TCP clients.
-        // This might be correct behavior if all voice modules are on TCP.
-        // But now some are Serial.
-        // If we want to broadcast to ALL voice modules (TCP + Serial), we need to iterate clientConfigs and send individually.
-        // The original code relied on manager.sendCommand('tcp', ...) broadcasting.
-        // For now, I will keep the behavior but warn or support better broadcasting later if needed.
-        // The AC doesn't mention global broadcast, usually it's per-device action.
-
         const failedClients = Object.entries(result)
           .filter(([, response]) => response && response.success === false)
           .map(([clientId]) => clientId);
@@ -189,7 +168,7 @@ export class VoiceBroadcastController {
     const hardwareClientId = clientConfig?.targetClientId;
 
     try {
-      await this.hardwareManager.sendCommand(protocol, cmd, undefined, hardwareClientId);
+      await this.hardwareManager.sendCommand(protocol, cmd, hardwareClientId);
       this.log.info('已设置为打断模式');
       return true;
     } catch (error) {
@@ -209,7 +188,7 @@ export class VoiceBroadcastController {
     const hardwareClientId = clientConfig?.targetClientId;
 
     try {
-      await this.hardwareManager.sendCommand(protocol, cmd, undefined, hardwareClientId);
+      await this.hardwareManager.sendCommand(protocol, cmd, hardwareClientId);
       this.log.info('已设置为缓存模式');
       return true;
     } catch (error) {
