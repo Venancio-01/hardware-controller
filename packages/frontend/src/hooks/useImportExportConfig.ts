@@ -6,7 +6,8 @@
 
 import { useCallback, useRef } from 'react';
 import { UseFormReturn } from 'react-hook-form';
-import { Config } from 'shared';
+import { useQueryClient } from '@tanstack/react-query';
+import { Config, configSchema } from 'shared';
 import { exportConfig as exportConfigApi, importConfig as importConfigApi } from '@/services/config-api';
 import { toast } from 'sonner';
 
@@ -26,6 +27,7 @@ export function useImportExportConfig({
   onConfigUpdate
 }: UseImportExportConfigProps): UseImportExportConfigReturn {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
 
   const handleExport = useCallback(async () => {
     try {
@@ -33,10 +35,11 @@ export function useImportExportConfig({
       toast.success('配置导出成功', {
         description: '配置文件已下载到您的设备',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('导出配置失败:', error);
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
       toast.error('配置导出失败', {
-        description: error.message || '请重试',
+        description: errorMessage || '请重试',
       });
     }
   }, []);
@@ -55,18 +58,25 @@ export function useImportExportConfig({
         try {
           // 读取文件内容
           const fileContent = await file.text();
-          const configData = JSON.parse(fileContent) as Config;
+          const configData = JSON.parse(fileContent);
 
-          // 验证配置格式
-          if (!configData.deviceId || !configData.timeout || !configData.retryCount) {
-            throw new Error('配置文件格式无效');
+          // 使用共享的 Zod schema 验证配置
+          const validationResult = configSchema.safeParse(configData);
+          if (!validationResult.success) {
+            const errorMessages = validationResult.error.issues
+              .map(issue => `${issue.path.join('.')}: ${issue.message}`)
+              .join(', ');
+            throw new Error(`配置文件格式无效: ${errorMessages}`);
           }
 
-          // 调用后端导入API
-          const result = await importConfigApi(configData);
+          // 调用后端导入API (后端会再次验证)
+          const result = await importConfigApi(validationResult.data);
 
           // 更新表单值
           form.reset(result);
+
+          // 使 TanStack Query 缓存失效,确保下次获取最新配置
+          queryClient.invalidateQueries({ queryKey: ['config'] });
 
           // 如果提供了回调函数，调用它
           if (onConfigUpdate) {
@@ -76,23 +86,25 @@ export function useImportExportConfig({
           toast.success('配置导入成功', {
             description: '配置已应用到表单，请保存配置并重启系统使更改生效',
           });
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('导入配置失败:', error);
+          const errorMessage = error instanceof Error ? error.message : '未知错误';
           toast.error('配置导入失败', {
-            description: error.message || '请检查配置文件格式',
+            description: errorMessage || '请检查配置文件格式',
           });
         }
       };
 
       // 触发文件选择
       input.click();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('导入配置失败:', error);
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
       toast.error('配置导入失败', {
-        description: error.message || '请重试',
+        description: errorMessage || '请重试',
       });
     }
-  }, [form, onConfigUpdate]);
+  }, [form, onConfigUpdate, queryClient]);
 
   return {
     handleExport,

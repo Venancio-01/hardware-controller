@@ -29,13 +29,26 @@ describe('testConnectionSchema 验证测试', () => {
     });
 
     it('应该拒绝无效的 IP 地址', () => {
-      const invalidIp = { ...validRequest, ipAddress: '999.999.999.999' };
-      // regex check might pass if just checking digits, but standard regex usually allows up to 999.
-      // Let's see the regex: /^(\d{1,3}\.){3}\d{1,3}$/
-      // This regex actually allows 999.999.999.999. It's a simple regex.
-      // But 'invalid-ip' should fail.
+      // 格式错误的 IP
       const badFormat = { ...validRequest, ipAddress: 'invalid-ip' };
       expect(testConnectionRequestSchema.safeParse(badFormat).success).toBe(false);
+
+      // 超出范围的 IP (每段必须 0-255)
+      const outOfRange1 = { ...validRequest, ipAddress: '999.999.999.999' };
+      expect(testConnectionRequestSchema.safeParse(outOfRange1).success).toBe(false);
+
+      const outOfRange2 = { ...validRequest, ipAddress: '192.168.1.256' };
+      expect(testConnectionRequestSchema.safeParse(outOfRange2).success).toBe(false);
+
+      const outOfRange3 = { ...validRequest, ipAddress: '192.168.-1.1' };
+      expect(testConnectionRequestSchema.safeParse(outOfRange3).success).toBe(false);
+
+      // 边界值测试 - 应该接受
+      const validEdge1 = { ...validRequest, ipAddress: '0.0.0.0' };
+      expect(testConnectionRequestSchema.safeParse(validEdge1).success).toBe(true);
+
+      const validEdge2 = { ...validRequest, ipAddress: '255.255.255.255' };
+      expect(testConnectionRequestSchema.safeParse(validEdge2).success).toBe(true);
     });
 
     it('应该拒绝无效的端口号', () => {

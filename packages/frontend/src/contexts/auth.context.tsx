@@ -33,7 +33,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginMutation = useMutation({
     mutationFn: loginApi,
     onSuccess: (data, variables) => {
-      if (data.success && data.token) {
+      // data 现在是 { success: true, token: "..." } 整个对象
+      if (data && data.token) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', variables.username);
         setToken(data.token);

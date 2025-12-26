@@ -105,7 +105,7 @@ describe('ConflictDetectionService', () => {
       vi.spyOn(mockConnectionTestService, 'testConnection').mockResolvedValue({
         success: true,
         latency: 10,
-        target: 'localhost:8080',
+        target: '192.168.1.100:8080',
       });
 
       const request = {
@@ -119,7 +119,7 @@ describe('ConflictDetectionService', () => {
       expect(result.success).toBe(false);
       expect(result.passedChecks).toEqual([]);
       expect(result.failedChecks).toEqual([
-        { type: 'port', error: '端口 8080 已被占用，无法使用' }
+        { type: 'port', error: '端口 8080 在 192.168.1.100 上已被占用，无法使用' }
       ]);
     });
 
@@ -190,6 +190,66 @@ describe('ConflictDetectionService', () => {
       expect(result.success).toBe(true);
       expect(result.passedChecks).toEqual(['ip', 'port']);
     });
+
+    it('should handle timeout when IP detection takes too long', async () => {
+      const mockConfig = {
+        network: {
+          ipAddress: '192.168.1.100',
+          subnetMask: '255.255.255.0',
+          gateway: '192.168.1.1',
+          port: 8080,
+        },
+      };
+
+      // Mock a slow ping that never resolves
+      vi.spyOn(conflictDetectionService as any, 'pingIP').mockImplementation(
+        () => new Promise(() => {}) // Never resolves
+      );
+
+      const request = {
+        config: mockConfig,
+        checkTypes: ['ip'],
+        timeout: 100, // Very short timeout
+      };
+
+      const result = await conflictDetectionService.checkConflict(request);
+
+      expect(result.success).toBe(false);
+      expect(result.failedChecks![0].type).toBe('ip');
+      expect(result.failedChecks![0].error).toContain('检测超时');
+    });
+
+    it('should use target IP address for port conflict detection', async () => {
+      const mockConfig = {
+        network: {
+          ipAddress: '192.168.1.100',
+          port: 8080,
+        },
+      };
+
+      // Mock connection test to check the target IP
+      vi.spyOn(mockConnectionTestService, 'testConnection').mockResolvedValue({
+        success: false,
+        latency: 10,
+        target: '192.168.1.100:8080',
+      });
+
+      const request = {
+        config: mockConfig,
+        checkTypes: ['port'],
+        timeout: 5000,
+      };
+
+      const result = await conflictDetectionService.checkConflict(request);
+
+      expect(result.success).toBe(true);
+      expect(mockConnectionTestService.testConnection).toHaveBeenCalledWith({
+        ipAddress: '192.168.1.100', // Should use target IP, not localhost
+        port: 8080,
+        protocol: 'tcp',
+        timeout: 1000,
+      });
+    });
   });
 
   describe('isValidIPv4', () => {
@@ -208,6 +268,23 @@ describe('ConflictDetectionService', () => {
       expect(service['isValidIPv4']('192.168.1.')).toBe(false);
       expect(service['isValidIPv4']('')).toBe(false);
       expect(service['isValidIPv4']('not.an.ip')).toBe(false);
+    });
+
+    it('should handle boundary values correctly', () => {
+      const service = new ConflictDetectionService();
+      // Valid boundary values
+      expect(service['isValidIPv4']('0.0.0.0')).toBe(true);
+      expect(service['isValidIPv4']('255.255.255.255')).toBe(true);
+      expect(service['isValidIPv4']('192.168.1.1')).toBe(true);
+      expect(service['isValidIPv4']('10.0.0.1')).toBe(true);
+
+      // Invalid boundary values
+      expect(service['isValidIPv4']('256.1.1.1')).toBe(false); // Octet > 255
+      expect(service['isValidIPv4']('1.256.1.1')).toBe(false);
+      expect(service['isValidIPv4']('1.1.256.1')).toBe(false);
+      expect(service['isValidIPv4']('1.1.1.256')).toBe(false);
+      expect(service['isValidIPv4']('-1.1.1.1')).toBe(false); // Negative octet
+      expect(service['isValidIPv4']('1.1.1')).toBe(false); // Missing octet
     });
   });
 

@@ -63,6 +63,21 @@ describe('configSchema 验证测试', () => {
         deviceId: 'a'.repeat(51), // 太长
       };
       expect(configSchema.safeParse(configLong).success).toBe(false);
+
+      // 边界值测试
+      const configValidLength = {
+        ...validAppConfig,
+        ...validNetworkConfig,
+        deviceId: 'a', // 最小有效长度
+      };
+      expect(configSchema.safeParse(configValidLength).success).toBe(true);
+
+      const configMaxLength = {
+        ...validAppConfig,
+        ...validNetworkConfig,
+        deviceId: 'a'.repeat(50), // 最大有效长度
+      };
+      expect(configSchema.safeParse(configMaxLength).success).toBe(true);
     });
 
     it('应该验证超时时间范围', () => {
@@ -71,6 +86,54 @@ describe('configSchema 验证测试', () => {
 
       const configBig = { ...validAppConfig, ...validNetworkConfig, timeout: 30001 }; // 太大
       expect(configSchema.safeParse(configBig).success).toBe(false);
+
+      // 边界值测试
+      const configMin = { ...validAppConfig, ...validNetworkConfig, timeout: 1000 };
+      expect(configSchema.safeParse(configMin).success).toBe(true);
+
+      const configMax = { ...validAppConfig, ...validNetworkConfig, timeout: 30000 };
+      expect(configSchema.safeParse(configMax).success).toBe(true);
+    });
+
+    it('应该验证重试次数范围', () => {
+      const configNegative = { ...validAppConfig, ...validNetworkConfig, retryCount: -1 };
+      expect(configSchema.safeParse(configNegative).success).toBe(false);
+
+      const configTooHigh = { ...validAppConfig, ...validNetworkConfig, retryCount: 11 };
+      expect(configSchema.safeParse(configTooHigh).success).toBe(false);
+
+      // 边界值测试
+      const configMin = { ...validAppConfig, ...validNetworkConfig, retryCount: 0 };
+      expect(configSchema.safeParse(configMin).success).toBe(true);
+
+      const configMax = { ...validAppConfig, ...validNetworkConfig, retryCount: 10 };
+      expect(configSchema.safeParse(configMax).success).toBe(true);
+    });
+
+    it('应该验证轮询间隔范围', () => {
+      const configTooSmall = { ...validAppConfig, ...validNetworkConfig, pollingInterval: 999 };
+      expect(configSchema.safeParse(configTooSmall).success).toBe(false);
+
+      const configTooBig = { ...validAppConfig, ...validNetworkConfig, pollingInterval: 60001 };
+      expect(configSchema.safeParse(configTooBig).success).toBe(false);
+
+      // 边界值测试
+      const configMin = { ...validAppConfig, ...validNetworkConfig, pollingInterval: 1000 };
+      expect(configSchema.safeParse(configMin).success).toBe(true);
+
+      const configMax = { ...validAppConfig, ...validNetworkConfig, pollingInterval: 60000 };
+      expect(configSchema.safeParse(configMax).success).toBe(true);
+    });
+
+    it('应该验证数字字段必须是整数', () => {
+      const configTimeoutFloat = { ...validAppConfig, ...validNetworkConfig, timeout: 1500.5 };
+      expect(configSchema.safeParse(configTimeoutFloat).success).toBe(false);
+
+      const configRetryFloat = { ...validAppConfig, ...validNetworkConfig, retryCount: 3.5 };
+      expect(configSchema.safeParse(configRetryFloat).success).toBe(false);
+
+      const configPollingFloat = { ...validAppConfig, ...validNetworkConfig, pollingInterval: 5000.1 };
+      expect(configSchema.safeParse(configPollingFloat).success).toBe(false);
     });
   });
 });

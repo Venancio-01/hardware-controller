@@ -20,7 +20,6 @@ describe('Auth Routes', () => {
       .post('/api/auth/login')
       .send(credentials);
 
-    // This should fail as implementation returns 501
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
     expect(response.body.token).toBeDefined();
@@ -36,7 +35,6 @@ describe('Auth Routes', () => {
       .post('/api/auth/login')
       .send(credentials);
 
-    // This should fail as implementation returns 501
     expect(response.status).toBe(401);
     expect(response.body.success).toBe(false);
   });

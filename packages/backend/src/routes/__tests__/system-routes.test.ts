@@ -188,6 +188,38 @@ describe('System Routes', () => {
       });
       expect(testConnectionSpy).toHaveBeenCalledWith(validRequest);
     });
+
+    it('should enforce rate limiting on connection test endpoint', async () => {
+      // Arrange: Mock successful connection test
+      const mockTestResult = {
+        success: true,
+        latency: 10,
+        target: '127.0.0.1:8080',
+      };
+      testConnectionSpy.mockResolvedValue(mockTestResult);
+
+      const validRequest = {
+        ipAddress: '127.0.0.1',
+        port: 8080,
+        protocol: 'tcp',
+        timeout: 5000,
+      };
+
+      // Act: Send 11 requests (exceeds limit of 10 per minute)
+      const responses = [];
+      for (let i = 0; i < 11; i++) {
+        const response = await request(app)
+          .post('/api/system/test-connection')
+          .send(validRequest);
+        responses.push(response);
+      }
+
+      // Assert: First 10 should succeed, 11th should be rate limited
+      expect(responses[0].status).toBe(200);
+      expect(responses[10].status).toBe(429); // Too Many Requests
+      expect(responses[10].body.success).toBe(false);
+      expect(responses[10].body.error).toContain('过于频繁');
+    });
   });
 });
 

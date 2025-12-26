@@ -10,7 +10,7 @@ import { z } from 'zod';
  * API 成功响应 Schema
  *
  * 用于包装成功的 API 响应数据
- * 注意: data 字段必须存在,可以是 any 类型或 null
+ * 注意: data 字段必须存在,可以是 unknown 类型或 null
  */
 export const apiSuccessResponseSchema = z.object({
   /**
@@ -21,7 +21,7 @@ export const apiSuccessResponseSchema = z.object({
   /**
    * 响应数据,类型由具体使用场景确定
    */
-  data: z.any(),
+  data: z.unknown(),
 
   /**
    * 可选的成功消息

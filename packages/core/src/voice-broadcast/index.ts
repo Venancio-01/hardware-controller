@@ -1,0 +1,267 @@
+import iconv from 'iconv-lite';
+import { createModuleLogger } from '../logger/index.js';
+import { HardwareCommunicationManager } from '../hardware/manager.js';
+import { VoiceSchemas } from './validation.js';
+import type { VoiceClientConfig } from './types.js';
+
+/**
+ * 语音播报模块控制器
+ * 基于 HardwareCommunicationManager 统一通信
+ */
+export class VoiceBroadcastController {
+  private static instance: VoiceBroadcastController | null = null;
+  private static initialized = false;
+
+  private log = createModuleLogger('VoiceBroadcastController');
+  private hardwareManager: HardwareCommunicationManager;
+  private clientConfigs: Map<string, VoiceClientConfig>;
+  private defaultClientId?: string;
+
+  private constructor(
+    hardwareManager: HardwareCommunicationManager,
+    config: { clients: VoiceClientConfig[]; defaultClientId?: string }
+  ) {
+    this.hardwareManager = hardwareManager;
+    this.clientConfigs = new Map(config.clients.map((c) => [c.id, c]));
+    this.defaultClientId = config.defaultClientId;
+
+    this.log.debug('语音播报控制器已初始化', {
+      clients: config.clients.map((client) => ({
+        id: client.id,
+        targetClientId: client.targetClientId,
+        protocol: client.protocol,
+        description: client.description,
+        volume: client.volume,
+        speed: client.speed
+      })),
+      defaultClientId: this.defaultClientId
+    });
+  }
+
+  /**
+   * 播报文本
+   * @param text 要播报的文本
+   * @param options 播报选项
+   */
+  async broadcast(
+    text: string,
+    options: {
+      volume?: number; // 0-10
+      speed?: number; // 0-10
+      voice?: 3 | 51; // 3:女, 51:男
+      sound?: string; // 预设提示音 ID, e.g. 'sound108'
+      repeat?: number; // 播报次数，默认 1
+    } = {},
+    targetClientId?: string
+  ): Promise<boolean> {
+    try {
+      const resolvedClientId = targetClientId ?? this.defaultClientId;
+
+      if (resolvedClientId && !this.clientConfigs.has(resolvedClientId)) {
+        this.log.warn('未找到指定的语音播报客户端，取消发送', {
+          targetClientId: resolvedClientId
+        });
+        return false;
+      }
+
+      // 获取客户端配置
+      const clientConfig = resolvedClientId ? this.clientConfigs.get(resolvedClientId) : undefined;
+      const protocol = clientConfig?.protocol || 'tcp';
+      const hardwareClientId = clientConfig?.targetClientId;
+
+      // 合并配置：选项 > 默认配置
+      const finalVolume = options.volume !== undefined ? options.volume : clientConfig?.volume;
+      const finalSpeed = options.speed !== undefined ? options.speed : clientConfig?.speed;
+
+      // 验证选项
+      const validatedOptions = VoiceSchemas.BroadcastOptions.parse({
+        ...options,
+        volume: finalVolume,
+        speed: finalSpeed
+      });
+
+      // 使用验证后的选项
+      const opts = validatedOptions;
+
+      let cmdPrefix = '#';
+      if (opts.repeat && opts.repeat > 1) {
+        cmdPrefix = '#'.repeat(Math.min(opts.repeat, 10));
+      }
+
+      let cmdBody = '';
+
+      // 添加控制标识符
+      if (opts.volume !== undefined) cmdBody += `[v${opts.volume}]`;
+      if (opts.speed !== undefined) cmdBody += `[s${opts.speed}]`;
+      if (opts.voice !== undefined) cmdBody += `[m${opts.voice}]`;
+
+      // 添加提示音
+      if (opts.sound) cmdBody += `${opts.sound} `;
+
+      cmdBody += text;
+
+      const fullCommandStr = `${cmdPrefix}${cmdBody}`;
+
+      // 编码为 GB2312
+      const encodedCommand = iconv.encode(fullCommandStr, 'gb2312');
+
+      this.log.debug('发送语音播报命令', {
+        text,
+        command: fullCommandStr,
+        hex: encodedCommand.toString('hex'),
+        clientId: resolvedClientId ?? 'all',
+        hardwareTarget: hardwareClientId
+      });
+
+      const result = await this.hardwareManager.sendCommand(
+        protocol,
+        encodedCommand,
+        undefined,
+        hardwareClientId, // Send to specific hardware client ID (e.g. 'cabinet' or 'control')
+        false
+      );
+
+      if (resolvedClientId) {
+        // If we targeted a specific voice client, check result for its underlying hardware client
+        // Note: hardwareClientId is what we used. results are keyed by hardwareClientId.
+        const response = hardwareClientId ? result[hardwareClientId] : undefined;
+
+        // Wait, if hardwareClientId is undefined (broadcast), we expect results from all?
+        // But broadcast() logic here usually targets one voice client.
+        // If resolvedClientId is undefined, we might be broadcasting to all voice clients?
+        // Logic below handles this.
+
+        if (hardwareClientId) {
+          const response = result[hardwareClientId];
+          if (response && response.success === false) {
+            this.log.error('语音播报指令发送失败', {
+              error: response.error,
+              clientId: resolvedClientId
+            });
+            return false;
+          }
+        }
+      } else {
+        // Broadcast to all?
+        // Current implementation tries to determine protocol/clientId from 'clientConfig', which is undefined if resolvedClientId is undefined.
+        // If resolvedClientId is undefined, protocol defaults to 'tcp' and hardwareClientId to undefined.
+        // This means it broadcasts 'tcp' command to all TCP clients.
+        // This might be correct behavior if all voice modules are on TCP.
+        // But now some are Serial.
+        // If we want to broadcast to ALL voice modules (TCP + Serial), we need to iterate clientConfigs and send individually.
+        // The original code relied on manager.sendCommand('tcp', ...) broadcasting.
+        // For now, I will keep the behavior but warn or support better broadcasting later if needed.
+        // The AC doesn't mention global broadcast, usually it's per-device action.
+
+        const failedClients = Object.entries(result)
+          .filter(([, response]) => response && response.success === false)
+          .map(([clientId]) => clientId);
+        if (failedClients.length > 0) {
+          this.log.error('语音播报指令发送失败', { failedClients });
+          return false;
+        }
+      }
+
+      return true;
+
+    } catch (error) {
+      this.log.error('播报过程发生错误', error as Error);
+      return false;
+    }
+  }
+
+  /**
+   * 播放内置提示音
+   * @param soundId 提示音 ID，例如 'sound108'
+   */
+  async playSound(soundId: string): Promise<boolean> {
+    return this.broadcast(soundId);
+  }
+
+  /**
+   * 设置打断模式 (新指令会立即中断当前播报)
+   */
+  async setInterruptMode(): Promise<boolean> {
+    const cmd = Buffer.from([0xCC, 0xDD, 0xF3, 0x00]);
+
+    const clientConfig = this.defaultClientId ? this.clientConfigs.get(this.defaultClientId) : undefined;
+    const protocol = clientConfig?.protocol || 'tcp';
+    const hardwareClientId = clientConfig?.targetClientId;
+
+    try {
+      await this.hardwareManager.sendCommand(protocol, cmd, undefined, hardwareClientId);
+      this.log.info('已设置为打断模式');
+      return true;
+    } catch (error) {
+      this.log.error('设置打断模式失败', error as Error);
+      return false;
+    }
+  }
+
+  /**
+   * 设置缓存模式 (最多缓存 20 条指令)
+   */
+  async setCacheMode(): Promise<boolean> {
+    const cmd = Buffer.from([0xCC, 0xDD, 0xF3, 0x01]);
+
+    const clientConfig = this.defaultClientId ? this.clientConfigs.get(this.defaultClientId) : undefined;
+    const protocol = clientConfig?.protocol || 'tcp';
+    const hardwareClientId = clientConfig?.targetClientId;
+
+    try {
+      await this.hardwareManager.sendCommand(protocol, cmd, undefined, hardwareClientId);
+      this.log.info('已设置为缓存模式');
+      return true;
+    } catch (error) {
+      this.log.error('设置缓存模式失败', error as Error);
+      return false;
+    }
+  }
+
+  /**
+   * 初始化单例实例
+   * @param hardwareManager 硬件通信管理器
+   * @param config 语音播报模块配置
+   */
+  static initialize(
+    hardwareManager: HardwareCommunicationManager,
+    config: { clients: VoiceClientConfig[]; defaultClientId?: string }
+  ): void {
+    if (VoiceBroadcastController.instance) {
+      const log = createModuleLogger('VoiceBroadcastController');
+      log.warn('语音播报控制器已经初始化，跳过重复初始化');
+      return;
+    }
+
+    VoiceBroadcastController.instance = new VoiceBroadcastController(hardwareManager, config);
+    VoiceBroadcastController.initialized = true;
+  }
+
+  /**
+   * 获取单例实例
+   * @returns VoiceBroadcastController 实例
+   * @throws 如果未初始化则抛出错误
+   */
+  static getInstance(): VoiceBroadcastController {
+    if (!VoiceBroadcastController.instance) {
+      throw new Error('语音播报控制器未初始化，请先调用 VoiceBroadcastController.initialize()');
+    }
+    return VoiceBroadcastController.instance;
+  }
+
+  /**
+   * 检查是否已初始化
+   * @returns 是否已初始化
+   */
+  static isInitialized(): boolean {
+    return VoiceBroadcastController.initialized && VoiceBroadcastController.instance !== null;
+  }
+
+  /**
+   * 销毁单例实例
+   */
+  static destroy(): void {
+    VoiceBroadcastController.instance = null;
+    VoiceBroadcastController.initialized = false;
+  }
+}

@@ -58,6 +58,8 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
     throw new Error(json.error || '未知 API 错误');
   }
 
-  // 返回数据负载 (如果有的话)
-  return json.data as T;
+  // 返回数据负载
+  // 有些API返回 { success, data: {...} }, 有些直接返回 { success, token, ... }
+  // 如果有 data 字段,返回 data; 否则返回整个响应对象
+  return json.data !== undefined ? json.data as T : json as T;
 }

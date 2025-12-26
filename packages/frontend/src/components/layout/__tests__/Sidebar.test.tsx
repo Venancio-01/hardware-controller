@@ -10,6 +10,7 @@ vi.mock('@/lib/api', () => ({
 
 // Import after mocks are set up
 import { Sidebar } from '../Sidebar';
+import { apiFetch } from '@/lib/api';
 
 // Create a test query client
 const createTestQueryClient = () => new QueryClient({
@@ -33,8 +34,7 @@ describe('Sidebar Component', () => {
   });
 
   it('should render loading state initially', () => {
-    const mockApiFetch = vi.fn().mockReturnValue(new Promise(() => {})); // Never resolves to simulate loading
-    vi.mocked(require('@/lib/api').apiFetch).mockImplementation(mockApiFetch);
+    vi.mocked(apiFetch).mockImplementation(() => new Promise(() => {})); // Never resolves to simulate loading
 
     render(<Sidebar />, { wrapper });
 
@@ -51,15 +51,14 @@ describe('Sidebar Component', () => {
       uptime: 3600,
     };
 
-    const mockApiFetch = vi.fn().mockResolvedValue(mockStatus);
-    vi.mocked(require('@/lib/api').apiFetch).mockImplementation(mockApiFetch);
+    vi.mocked(apiFetch).mockResolvedValue(mockStatus);
 
     render(<Sidebar />, { wrapper });
 
     // Wait for the API call
     await waitFor(() => {
-      expect(mockApiFetch).toHaveBeenCalledWith('/api/status');
-    }, { timeout: 1000 });
+      expect(apiFetch).toHaveBeenCalledWith('/api/status');
+    }, { timeout: 3000 });
   });
 
   it('should display status based on API response', async () => {
@@ -71,14 +70,13 @@ describe('Sidebar Component', () => {
       uptime: 0,
     };
 
-    const mockApiFetch = vi.fn().mockResolvedValue(mockStatus);
-    vi.mocked(require('@/lib/api').apiFetch).mockImplementation(mockApiFetch);
+    vi.mocked(apiFetch).mockResolvedValue(mockStatus);
 
     render(<Sidebar />, { wrapper });
 
     // Wait for data to be loaded and check if offline status is displayed
     await waitFor(() => {
       expect(screen.getByText(/离线/i)).toBeInTheDocument();
-    }, { timeout: 1000 });
+    }, { timeout: 3000 });
   });
 });

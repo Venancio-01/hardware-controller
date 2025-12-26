@@ -2,15 +2,18 @@
   "name": "shared",
   "version": "1.0.0",
   "description": "Shared utilities and types for node-switch project",
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     },
-    "./src/*": "./src/*"
+    "./src/*": "./src/*",
+    "./dist/*": "./dist/*"
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --clean",

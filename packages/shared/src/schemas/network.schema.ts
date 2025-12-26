@@ -44,7 +44,7 @@ export const networkConfigSchema = z
      * 子网掩码
      * 需符合 IPv4 格式
      */
-    subnetMask: z.string().regex(/^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/, "子网掩码格式无效"),
+    subnetMask: ipv4Schema,
 
     /**
      * 网关地址

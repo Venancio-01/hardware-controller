@@ -60,7 +60,8 @@ export class ConnectionTestService {
 
   /**
    * 测试 UDP 连接
-   * 注意：UDP 是无连接协议，我们只能通过尝试发送数据包来测试可达性
+   * 注意：UDP 是无连接协议，此测试仅验证能否向目标发送数据包
+   * 不能保证目标端口可达或服务在线
    */
   private async testUdpConnection(ipAddress: string, port: number, timeout: number): Promise<TestConnectionResult> {
     return new Promise((resolve) => {
@@ -68,7 +69,8 @@ export class ConnectionTestService {
       const startTime = Date.now();
 
       const socket = dgram.createSocket('udp4');
-      let resolved = false; // 防止多次 resolve
+      let resolved = false;
+      let timeoutId: NodeJS.Timeout;
 
       // 发送一个空数据包进行连通性测试
       const message = Buffer.from('ping');
@@ -78,27 +80,29 @@ export class ConnectionTestService {
           const latency = Date.now() - startTime;
           logger.warn(`UDP connection test failed to ${ipAddress}:${port}, error: ${err.message}, latency: ${latency}ms`);
           resolved = true;
+          if (timeoutId) clearTimeout(timeoutId);
           socket.close();
           resolve({
             success: false,
-            error: `UDP connection failed: ${err.message}`,
+            error: `UDP send failed: ${err.message}`,
             latency,
             target: `${ipAddress}:${port}`,
           });
         }
       });
 
-      // 设置超时
-      setTimeout(() => {
+      // 设置超时 - UDP 无连接，超时表示能发送（但不保证目标可达）
+      timeoutId = setTimeout(() => {
         if (!resolved) {
           resolved = true;
           const latency = Date.now() - startTime;
-          logger.info(`UDP connection test completed to ${ipAddress}:${port}, latency: ${latency}ms`);
+          logger.info(`UDP test completed: packet sent to ${ipAddress}:${port}, latency: ${latency}ms`);
           socket.close();
           resolve({
             success: true,
             latency,
             target: `${ipAddress}:${port}`,
+            error: undefined, // UDP 测试成功仅表示能发送数据包
           });
         }
       }, timeout);
@@ -109,10 +113,27 @@ export class ConnectionTestService {
           resolved = true;
           const latency = Date.now() - startTime;
           logger.warn(`UDP connection test error to ${ipAddress}:${port}, error: ${err.message}, latency: ${latency}ms`);
+          if (timeoutId) clearTimeout(timeoutId);
           socket.close();
           resolve({
             success: false,
-            error: `UDP connection error: ${err.message}`,
+            error: `UDP error: ${err.message}`,
+            latency,
+            target: `${ipAddress}:${port}`,
+          });
+        }
+      });
+
+      // 监听消息事件（如果目标响应）
+      socket.on('message', () => {
+        if (!resolved) {
+          resolved = true;
+          const latency = Date.now() - startTime;
+          logger.info(`UDP test received response from ${ipAddress}:${port}, latency: ${latency}ms`);
+          if (timeoutId) clearTimeout(timeoutId);
+          socket.close();
+          resolve({
+            success: true,
             latency,
             target: `${ipAddress}:${port}`,
           });

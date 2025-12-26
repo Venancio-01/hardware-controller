@@ -36,9 +36,7 @@ export function AppConfigCard({ form }: AppConfigCardProps) {
       return <X className="h-4 w-4 text-destructive absolute right-3 top-2.5" />;
     }
 
-    // Don't show check for empty string on string fields if they are required (though schema handles this)
-    if (typeof value === 'string' && value === '') return null;
-
+    // Show checkmark for valid values (including empty strings that are valid)
     return <Check className="h-4 w-4 text-green-500 absolute right-3 top-2.5" />;
   };
 
@@ -90,7 +88,7 @@ export function AppConfigCard({ form }: AppConfigCardProps) {
                 {getValidationIcon("timeout")}
               </div>
               <FormDescription>
-                单位: 毫秒 (1000 - 30000)
+                单位: 毫秒,必须是整数 (1000 - 30000)
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -115,7 +113,7 @@ export function AppConfigCard({ form }: AppConfigCardProps) {
                 {getValidationIcon("retryCount")}
               </div>
                <FormDescription>
-                失败后的重试次数 (0 - 10)
+                失败后的重试次数,必须是整数 (0 - 10)
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -140,7 +138,7 @@ export function AppConfigCard({ form }: AppConfigCardProps) {
                 {getValidationIcon("pollingInterval")}
               </div>
               <FormDescription>
-                单位: 毫秒 (1000 - 60000)
+                单位: 毫秒,必须是整数 (1000 - 60000)
               </FormDescription>
               <FormMessage />
             </FormItem>

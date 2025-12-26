@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,6 +21,15 @@ import { useAuth } from '../contexts/auth.context';
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
+  beforeLoad: async ({ location }) => {
+    // 如果已登录,重定向到首页
+    const token = localStorage.getItem('token');
+    if (token) {
+      throw redirect({
+        to: '/',
+      });
+    }
+  },
 });
 
 function LoginPage() {

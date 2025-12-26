@@ -1,4 +1,5 @@
 import { apiClient } from '@/api/client';
+import { log } from '@/lib/logger';
 
 export interface RestartResponse {
   success: boolean;
@@ -16,10 +17,10 @@ export const systemApi = {
    */
   async restartSystem(): Promise<RestartResponse> {
     try {
-      const response = await apiClient.post('/system/restart');
+      const response = await apiClient.post('/api/system/restart');
       return response.data;
     } catch (error) {
-      console.error('Failed to initiate system restart:', error);
+      log.error('系统重启请求失败', error);
       throw error;
     }
   }

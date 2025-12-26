@@ -20,6 +20,7 @@ export class ConflictDetectionService {
 
   /**
    * 执行冲突检测
+   * 为每个检测方法添加超时保护
    */
   async checkConflict(request: ConflictDetectionRequest): Promise<ConflictDetectionResult> {
     const { config, checkTypes = ['all'], timeout = 5000 } = request;
@@ -36,7 +37,7 @@ export class ConflictDetectionService {
       details: [],
     };
 
-    // 依次执行每种类型的检查
+    // 依次执行每种类型的检查（每个都有超时保护）
     for (const checkType of typesToCheck) {
       const checkStartTime = Date.now();
       let checkSuccess = true;
@@ -44,19 +45,13 @@ export class ConflictDetectionService {
       let checkInfo: Record<string, any> | undefined;
 
       try {
-        switch (checkType) {
-          case 'ip':
-            checkInfo = await this.checkIPConflict(config, timeout);
-            break;
-          case 'port':
-            checkInfo = await this.checkPortConflict(config, timeout);
-            break;
-          case 'network':
-            checkInfo = await this.checkNetworkConfigValidity(config);
-            break;
-          default:
-            throw new Error(`未知的冲突检测类型: ${checkType}`);
-        }
+        // 为每个检测操作添加超时保护
+        const checkPromise = this.performCheck(checkType, config, timeout);
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error(`${checkType} 检测超时`)), timeout)
+        );
+
+        checkInfo = await Promise.race([checkPromise, timeoutPromise]) as Record<string, any>;
       } catch (error) {
         checkSuccess = false;
         checkError = error instanceof Error ? error.message : '未知错误';
@@ -97,6 +92,26 @@ export class ConflictDetectionService {
   }
 
   /**
+   * 执行单个类型的检测
+   */
+  private async performCheck(
+    checkType: ConflictCheckType,
+    config: any,
+    timeout: number
+  ): Promise<Record<string, any>> {
+    switch (checkType) {
+      case 'ip':
+        return await this.checkIPConflict(config, timeout);
+      case 'port':
+        return await this.checkPortConflict(config, timeout);
+      case 'network':
+        return await this.checkNetworkConfigValidity(config);
+      default:
+        throw new Error(`未知的冲突检测类型: ${checkType}`);
+    }
+  }
+
+  /**
    * 检测IP地址冲突
    * 尝试ping目标IP地址，如果能通说明IP已被占用
    */
@@ -129,23 +144,27 @@ export class ConflictDetectionService {
       return { message: '未提供网络配置或端口，跳过端口冲突检测' };
     }
 
-    const { port } = networkConfig;
+    const { port, ipAddress } = networkConfig;
 
-    // 使用连接测试服务来测试端口是否可达
+    // 使用目标IP地址而不是localhost来检测端口冲突
+    // 如果配置了IP地址，检查目标IP的端口；否则检查本地端口
+    const targetIP = ipAddress || 'localhost';
+
     const connectionResult = await connectionTestService.testConnection({
-      ipAddress: 'localhost',
+      ipAddress: targetIP,
       port,
       protocol: 'tcp',
       timeout: Math.min(timeout, 1000), // 端口检测使用较短超时时间
     });
 
     if (connectionResult.success) {
-      logger.warn(`端口 ${port} 似乎已被占用`);
-      throw new Error(`端口 ${port} 已被占用，无法使用`);
+      logger.warn(`端口 ${port} 在 ${targetIP} 上已被占用`);
+      throw new Error(`端口 ${port} 在 ${targetIP} 上已被占用，无法使用`);
     }
 
     return {
-      message: `端口 ${port} 未检测到冲突`,
+      message: `端口 ${port} 在 ${targetIP} 上未检测到冲突`,
+      targetIP,
       portTestSuccessful: !connectionResult.success,
     };
   }
@@ -248,102 +267,64 @@ export class ConflictDetectionService {
 
   /**
    * 检测IP地址是否可达（ping操作）
-   * 这里使用一个简化的模拟实现，实际应用中可以使用真正的ping命令
+   * 使用TCP连接尝试来检测目标主机是否存在
+   * 按顺序尝试常见端口：SSH (22), HTTP (80), HTTPS (443)
    */
   private async pingIP(ipAddress: string, timeout: number): Promise<{ success: boolean; error?: string }> {
-    try {
-      // 使用 Node.js 内置的 dns 模块尝试解析 IP 地址
-      // 对于真正的ping操作，我们可以使用 net 模块尝试TCP连接到常见端口
-      // 或者执行系统ping命令（需要根据操作系统适配）
-      const net = require('net');
+    const net = require('net');
+    const portsToTry = [22, 80, 443];
 
-      return new Promise<{ success: boolean; error?: string }>((resolve) => {
-        const socket = new net.Socket();
-        let responded = false;
-
-        // 尝试连接到目标 IP 的常见端口（例如 SSH 22，HTTP 80）
-        // 这是检测设备是否存在的一个简单方法
-        socket.setTimeout(timeout);
-
-        socket.connect(22, ipAddress, () => {
-          // 端口22连接成功（SSH）- 表示目标主机存在
-          if (!responded) {
-            responded = true;
-            socket.destroy();
-            resolve({ success: true });
-          }
-        });
-
-        socket.on('error', (err: any) => {
-          // 端口22连接失败，尝试常见端口80
-          if (!responded) {
-            const httpSocket = new net.Socket();
-            httpSocket.setTimeout(timeout);
-
-            httpSocket.connect(80, ipAddress, () => {
-              // 端口80连接成功 - 表示目标主机存在
-              if (!responded) {
-                responded = true;
-                httpSocket.destroy();
-                resolve({ success: true });
-              }
-            });
-
-            httpSocket.on('error', () => {
-              // 端口80也连接失败，尝试端口443
-              if (!responded) {
-                const httpsSocket = new net.Socket();
-                httpsSocket.setTimeout(timeout);
-
-                httpsSocket.connect(443, ipAddress, () => {
-                  if (!responded) {
-                    responded = true;
-                    httpsSocket.destroy();
-                    resolve({ success: true });
-                  }
-                });
-
-                httpsSocket.on('error', () => {
-                  // 所有常见端口都连接失败，认为IP未被占用
-                  if (!responded) {
-                    responded = true;
-                    httpsSocket.destroy();
-                    resolve({ success: false });
-                  }
-                });
-
-                httpsSocket.on('timeout', () => {
-                  if (!responded) {
-                    responded = true;
-                    httpsSocket.destroy();
-                    resolve({ success: false });
-                  }
-                });
-              }
-            });
-
-            httpSocket.on('timeout', () => {
-              if (!responded) {
-                responded = true;
-                httpSocket.destroy();
-                resolve({ success: false });
-              }
-            });
-          }
-        });
-
-        socket.on('timeout', () => {
-          if (!responded) {
-            responded = true;
-            socket.destroy();
-            // 端口22连接超时，尝试其他端口（如上面的逻辑）
-          }
-        });
-      });
-    } catch (error) {
-      logger.error({ error, ipAddress }, 'ping IP 时出错');
-      return { success: false, error: (error as Error).message };
+    for (const port of portsToTry) {
+      const result = await this.tryConnectToPort(ipAddress, port, timeout);
+      if (result.success) {
+        return { success: true };
+      }
     }
+
+    // 所有端口都连接失败，认为IP未被占用
+    return { success: false };
+  }
+
+  /**
+   * 尝试连接到指定IP和端口
+   * @returns 连接成功返回 { success: true }, 失败或超时返回 { success: false }
+   */
+  private tryConnectToPort(
+    ipAddress: string,
+    port: number,
+    timeout: number
+  ): Promise<{ success: boolean }> {
+    return new Promise<{ success: boolean }>((resolve) => {
+      const net = require('net');
+      const socket = new net.Socket();
+      let resolved = false;
+
+      const cleanupAndReturn = (success: boolean) => {
+        if (!resolved) {
+          resolved = true;
+          socket.destroy();
+          resolve({ success });
+        }
+      };
+
+      socket.setTimeout(timeout);
+
+      socket.connect(port, ipAddress, () => {
+        // 连接成功 - 表示目标主机存在
+        logger.debug(`成功连接到 ${ipAddress}:${port}`);
+        cleanupAndReturn(true);
+      });
+
+      socket.on('error', () => {
+        // 连接失败 - 尝试下一个端口
+        cleanupAndReturn(false);
+      });
+
+      socket.on('timeout', () => {
+        // 连接超时 - 尝试下一个端口
+        cleanupAndReturn(false);
+      });
+    });
   }
 }
 

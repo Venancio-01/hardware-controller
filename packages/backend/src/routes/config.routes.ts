@@ -93,7 +93,7 @@ router.get('/export', async (req: Request, res: Response, next: NextFunction) =>
         error: '配置文件不存在，无法导出',
       });
     }
-    if (error.constructor.name === 'ZodError' || error.name === 'ZodError') {
+    if (error instanceof ZodError) {
       return res.status(400).json({
         success: false,
         error: '配置文件格式无效',

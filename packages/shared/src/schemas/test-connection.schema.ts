@@ -14,9 +14,18 @@ import { z } from 'zod';
 export const testConnectionRequestSchema = z.object({
   /**
    * 目标 IP 地址
+   * 必须是有效的 IPv4 地址 (每段 0-255)
    */
-  ipAddress: z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$/, {
-    message: 'IP 地址格式无效',
+  ipAddress: z.string().refine((val) => {
+    // 检查基本格式
+    const regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+    if (!regex.test(val)) return false;
+
+    // 检查每个八位组的范围 (0-255)
+    const octets = val.split('.').map(Number);
+    return octets.every(octet => octet >= 0 && octet <= 255);
+  }, {
+    message: 'IP 地址格式无效或超出范围 (每段必须为 0-255)',
   }),
 
   /**

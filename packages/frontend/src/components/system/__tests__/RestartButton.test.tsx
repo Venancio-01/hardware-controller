@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RestartButton } from '../RestartButton';
-import { MemoryRouter } from 'react-router-dom';
 
 // Mock the useRestartSystem hook
 vi.mock('@/hooks/useRestartSystem', () => ({
@@ -16,9 +15,7 @@ const queryClient = new QueryClient();
 
 const Wrapper = ({ children }: { children: React.ReactNode }) => (
   <QueryClientProvider client={queryClient}>
-    <MemoryRouter>
-      {children}
-    </MemoryRouter>
+    {children}
   </QueryClientProvider>
 );
 

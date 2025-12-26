@@ -1,0 +1,141 @@
+{
+  "workflow_version": "1.2.0",
+  "timestamps": {
+    "started": "2025-12-26T11:02:18+08:00",
+    "last_updated": "2025-12-26T11:03:30+08:00",
+    "completed": "2025-12-26T11:03:30+08:00"
+  },
+  "mode": "full_rescan",
+  "scan_level": "exhaustive",
+  "project_root": "/home/qingshan/workspace/front-end/node-switch",
+  "output_folder": "/home/qingshan/workspace/front-end/node-switch/docs",
+  "repository_type": "monorepo",
+  "project_parts": [
+    {
+      "part_id": "root",
+      "display_name": "Core Hardware Service",
+      "root_path": "src/",
+      "project_type_id": "embedded",
+      "tech_stack": "TypeScript + XState + UDP/TCP",
+      "description": "硬件通信服务核心，继电器控制和语音播报"
+    },
+    {
+      "part_id": "frontend",
+      "display_name": "Frontend Dashboard",
+      "root_path": "packages/frontend/",
+      "project_type_id": "web",
+      "tech_stack": "React 19 + Vite + TanStack + Tailwind + Shadcn",
+      "description": "配置管理和状态监控前端"
+    },
+    {
+      "part_id": "backend",
+      "display_name": "Backend API",
+      "root_path": "packages/backend/",
+      "project_type_id": "backend",
+      "tech_stack": "Express + Pino + JWT + Zod",
+      "description": "REST API 服务"
+    },
+    {
+      "part_id": "shared",
+      "display_name": "Shared Library",
+      "root_path": "packages/shared/",
+      "project_type_id": "library",
+      "tech_stack": "TypeScript + Zod",
+      "description": "共享类型和验证逻辑"
+    }
+  ],
+  "completed_steps": [
+    {
+      "step": "step_1",
+      "status": "completed",
+      "timestamp": "2025-12-26T11:02:18+08:00",
+      "summary": "Classified as monorepo with 4 parts"
+    },
+    {
+      "step": "step_2",
+      "status": "completed",
+      "timestamp": "2025-12-26T11:02:30+08:00",
+      "summary": "Found 6 existing docs"
+    },
+    {
+      "step": "step_3",
+      "status": "completed",
+      "timestamp": "2025-12-26T11:02:40+08:00",
+      "summary": "Tech stack: XState + React 19 + Express"
+    },
+    {
+      "step": "step_4",
+      "status": "completed",
+      "timestamp": "2025-12-26T11:02:50+08:00",
+      "summary": "Conditional analysis: 6 API routes, 4 state machines, 14 UI components"
+    },
+    {
+      "step": "step_5",
+      "status": "completed",
+      "timestamp": "2025-12-26T11:03:00+08:00",
+      "summary": "Source tree documented"
+    },
+    {
+      "step": "step_6",
+      "status": "completed",
+      "timestamp": "2025-12-26T11:03:05+08:00",
+      "summary": "Dev/deployment guides written"
+    },
+    {
+      "step": "step_7",
+      "status": "skipped",
+      "timestamp": "2025-12-26T11:03:05+08:00",
+      "summary": "Single integration pattern (shared lib)"
+    },
+    {
+      "step": "step_8",
+      "status": "completed",
+      "timestamp": "2025-12-26T11:03:10+08:00",
+      "summary": "Architecture docs written"
+    },
+    {
+      "step": "step_9",
+      "status": "completed",
+      "timestamp": "2025-12-26T11:03:20+08:00",
+      "summary": "All supporting docs written"
+    },
+    {
+      "step": "step_10",
+      "status": "completed",
+      "timestamp": "2025-12-26T11:03:25+08:00",
+      "summary": "Master index generated"
+    },
+    {
+      "step": "step_11",
+      "status": "completed",
+      "timestamp": "2025-12-26T11:03:28+08:00",
+      "summary": "Validation complete, no incomplete docs"
+    },
+    {
+      "step": "step_12",
+      "status": "completed",
+      "timestamp": "2025-12-26T11:03:30+08:00",
+      "summary": "Workflow complete"
+    }
+  ],
+  "current_step": "completed",
+  "findings": {
+    "project_classification": "Monorepo with 4 parts",
+    "technology_stack": "XState + React 19 + Express + Zod",
+    "api_count": 6,
+    "state_machines": 4,
+    "ui_components": 14
+  },
+  "outputs_generated": [
+    "project-scan-report.json",
+    "index.md",
+    "project-overview.md",
+    "architecture.md",
+    "source-tree-analysis.md",
+    "component-inventory-root.md",
+    "development-guide.md",
+    "api-contracts-root.md",
+    "data-models-root.md"
+  ],
+  "resume_instructions": "Completed"
+}

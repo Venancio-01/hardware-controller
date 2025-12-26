@@ -64,18 +64,63 @@ describe('AppConfigCard', () => {
     })
   })
 
-  //   it('应该在输入有效时显示验证通过状态', async () => {
-  //     // Note: Testing visual state (icons) might rely on checking classes or specifics of the icon rendering.
-  //     // For now, we check the absence of error messages.
-  //     render(<AppConfigCardTestWrapper />)
-  //     const user = userEvent.setup()
+  it('应该验证所有数字字段的边界值', async () => {
+    render(<AppConfigCardTestWrapper />)
+    const user = userEvent.setup()
 
-  //     const timeoutInput = screen.getByLabelText('操作超时')
-  //     await user.clear(timeoutInput)
-  //     await user.type(timeoutInput, '2000')
+    // 测试重试次数边界
+    const retryInput = screen.getByLabelText('重试次数')
+    await user.clear(retryInput)
+    await user.type(retryInput, '-1')
+    await user.tab()
 
-  //     await waitFor(() => {
-  //        expect(screen.queryByText(/超时时间/)).not.toBeInTheDocument()
-  //     })
-  //   })
+    await waitFor(() => {
+      expect(screen.getByText(/重试次数不能为负数/)).toBeInTheDocument()
+    })
+
+    // 测试轮询间隔边界
+    const pollingInput = screen.getByLabelText('轮询间隔')
+    await user.clear(pollingInput)
+    await user.type(pollingInput, '100')
+    await user.tab()
+
+    await waitFor(() => {
+      expect(screen.getByText(/轮询间隔不能少于1000毫秒/)).toBeInTheDocument()
+    })
+  })
+
+  it('应该验证 deviceId 的必填要求', async () => {
+    render(<AppConfigCardTestWrapper />)
+    const user = userEvent.setup()
+
+    const deviceIdInput = screen.getByLabelText('设备 ID')
+    await user.clear(deviceIdInput)
+    await user.tab()
+
+    await waitFor(() => {
+      expect(screen.getByText(/设备 ID 不能为空/)).toBeInTheDocument()
+    })
+  })
+
+  it('应该显示所有字段的帮助文本', () => {
+    render(<AppConfigCardTestWrapper />)
+
+    expect(screen.getByText('设备的唯一识别代码')).toBeInTheDocument()
+    expect(screen.getByText(/单位: 毫秒/)).toBeInTheDocument()
+    expect(screen.getByText(/失败后的重试次数/)).toBeInTheDocument()
+  })
+
+  it('应该在无效输入时显示错误图标', async () => {
+    render(<AppConfigCardTestWrapper />)
+    const user = userEvent.setup()
+
+    const timeoutInput = screen.getByLabelText('操作超时')
+    await user.clear(timeoutInput)
+    await user.type(timeoutInput, '500')
+
+    await waitFor(() => {
+      const icon = screen.getByRole('graphics-symbol', { hidden: true })
+      expect(icon).toBeInTheDocument()
+    })
+  })
 })

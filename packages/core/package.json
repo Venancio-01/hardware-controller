@@ -1,0 +1,87 @@
+{
+  "name": "@node-switch/core",
+  "version": "1.0.0",
+  "description": "Core business logic for node-switch project - relay control, hardware communication, and state machines",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "node-switch-core": "./dist/app.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./relay": {
+      "types": "./dist/relay.d.ts",
+      "import": "./dist/relay.js"
+    },
+    "./relay/*": "./dist/relay/*.js",
+    "./business-logic": {
+      "types": "./dist/business-logic.d.ts",
+      "import": "./dist/business-logic.js"
+    },
+    "./config": {
+      "types": "./dist/config.d.ts",
+      "import": "./dist/config.js"
+    },
+    "./logger": {
+      "types": "./dist/logger.d.ts",
+      "import": "./dist/logger.js"
+    },
+    "./hardware": {
+      "types": "./dist/hardware.d.ts",
+      "import": "./dist/hardware.js"
+    },
+    "./voice-broadcast": {
+      "types": "./dist/voice-broadcast.d.ts",
+      "import": "./dist/voice-broadcast.js"
+    },
+    "./state-machines": {
+      "types": "./dist/state-machines.d.ts",
+      "import": "./dist/state-machines.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "start": "node -r dotenv/config dist/app.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "relay",
+    "hardware-control",
+    "state-machine",
+    "tcp",
+    "udp",
+    "voice-broadcast"
+  ],
+  "author": "青山",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.0",
+    "iconv-lite": "^0.6.3",
+    "pino": "^9.0.0",
+    "pino-pretty": "^11.0.0",
+    "serialport": "^13.0.0",
+    "xstate": "^5.12.1"
+  },
+  "peerDependencies": {
+    "zod": "^4.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/serialport": "^10.2.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
+  }
+}

@@ -12,8 +12,23 @@ import { ConflictCheckType } from '../types/conflict-detection.types.js';
 const conflictCheckTypeSchema = z.enum(['ip', 'port', 'network', 'all']);
 
 // 冲突检测请求参数模式
+// 注意：允许部分配置，因为冲突检测可能只需要检查特定字段（如 network）
 export const conflictDetectionRequestSchema = z.object({
-  config: configSchema,
+  config: z.object({
+    // 应用配置（可选）
+    deviceId: z.string().optional(),
+    timeout: z.number().optional(),
+    retryCount: z.number().optional(),
+    pollingInterval: z.number().optional(),
+    // 网络配置（可选）
+    network: z.object({
+      ipAddress: z.string().optional(),
+      subnetMask: z.string().optional(),
+      gateway: z.string().optional(),
+      port: z.number().optional(),
+      dns: z.array(z.string()).optional(),
+    }).optional(),
+  }).optional(),
   checkTypes: z.array(conflictCheckTypeSchema).optional(),
   timeout: z.number().min(1).max(30000).optional().default(5000), // 1ms to 30s timeout
 });

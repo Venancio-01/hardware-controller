@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { connectionTestService } from '../services/connection-test.service.js';
 import { RestartService } from '../services/restart.service.js';
 import { logger } from '../utils/logger.js';
@@ -6,8 +7,20 @@ import { testConnectionRequestSchema } from 'shared';
 
 const router: Router = Router();
 
+// 连接测试速率限制 - 防止滥用和 DoS 攻击
+const connectionTestLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 分钟
+  max: 10, // 每分钟最多 10 次请求
+  message: {
+    success: false,
+    error: '连接测试请求过于频繁，请稍后再试',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // 测试连接端点
-router.post('/test-connection', async (req, res) => {
+router.post('/test-connection', connectionTestLimiter, async (req, res) => {
   try {
     // 验证请求体
     const validationResult = testConnectionRequestSchema.safeParse(req.body);
@@ -57,19 +70,19 @@ router.post('/restart', async (req, res) => {
       // 返回成功响应，但实际重启会在稍后发生
       res.status(200).json({
         success: true,
-        message: 'Restart initiated successfully'
+        message: '系统重启已启动'
       });
     } else {
       res.status(409).json({
         success: false,
-        message: 'Restart already in progress'
+        message: '系统重启已在进行中'
       });
     }
   } catch (error) {
     logger.error({ error }, 'Failed to process restart request');
     res.status(500).json({
       success: false,
-      message: 'Failed to initiate restart'
+      message: '启动系统重启失败'
     });
   }
 });
