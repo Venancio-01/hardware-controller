@@ -12,6 +12,11 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
+    "./logger": {
+      "types": "./dist/logger/index.d.ts",
+      "import": "./dist/logger/index.js",
+      "require": "./dist/logger/index.cjs"
+    },
     "./src/*": "./src/*",
     "./dist/*": "./dist/*"
   },
@@ -35,12 +40,15 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
+    "json5": "^2.2.3",
+    "pino": "^9.0.0",
+    "pino-pretty": "^11.0.0",
     "zod": "^4.2.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.16",
-    "tsup": "^8.5.1"
+    "vitest": "^4.0.16"
   }
 }

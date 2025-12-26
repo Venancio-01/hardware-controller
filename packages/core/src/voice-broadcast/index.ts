@@ -1,5 +1,5 @@
 import iconv from 'iconv-lite';
-import { createModuleLogger } from '../logger/index.js';
+import { createModuleLogger } from 'shared';
 import { HardwareCommunicationManager } from '../hardware/manager.js';
 import { VoiceSchemas } from './validation.js';
 import type { VoiceClientConfig } from './types.js';

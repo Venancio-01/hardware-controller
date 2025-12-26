@@ -7,7 +7,9 @@
 import { readFile, writeFile, copyFile, rename } from 'fs/promises';
 import { join } from 'path';
 import { configSchema, type Config } from 'shared';
-import { logger } from '../utils/logger.js';
+import { createSimpleLogger } from 'shared';
+
+const logger = createSimpleLogger();
 
 const createDefaultConfig = (): Config => configSchema.parse({
   deviceId: 'device-001',

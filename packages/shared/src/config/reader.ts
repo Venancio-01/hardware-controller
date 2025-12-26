@@ -5,6 +5,7 @@
  * 开发和生产环境都使用同一个 config.json 文件。
  */
 
+import JSON5 from 'json5';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { configSchema } from '../schemas/config.schema.js';
@@ -57,7 +58,7 @@ export class ConfigReader {
     } else {
       // 在项目根目录查找 config.json
       const projectRoot = findProjectRoot();
-      this.configPath = join(projectRoot, 'config.json');
+      this.configPath = join(projectRoot, 'config.json5');
     }
     this.config = this.loadSync(this.configPath);
   }
@@ -71,7 +72,7 @@ export class ConfigReader {
   private loadSync(path: string): Config {
     try {
       const content = readFileSync(path, 'utf-8');
-      const data = JSON.parse(content);
+      const data = JSON5.parse(content);
       return configSchema.parse(data);
     } catch (error: unknown) {
       if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {

@@ -1,5 +1,5 @@
 import { getConfigSummary } from './config/index.js';
-import { createModuleLogger } from './logger/index.js';
+import { createModuleLogger } from 'shared';
 import { HardwareCommunicationManager } from './hardware/manager.js';
 import { initializeHardware } from './hardware/initializer.js';
 import { initializeVoiceBroadcast } from './voice-broadcast/initializer.js';

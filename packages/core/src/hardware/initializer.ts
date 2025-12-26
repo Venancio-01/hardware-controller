@@ -1,6 +1,6 @@
 import { config } from '../config/index.js';
 import { type HardwareCommunicationManager } from './manager.js';
-import { type StructuredLogger } from '../logger/index.js';
+import { type StructuredLogger } from 'shared';
 
 export async function initializeHardware(manager: HardwareCommunicationManager, logger: StructuredLogger) {
   const tcpClientsConfig = [

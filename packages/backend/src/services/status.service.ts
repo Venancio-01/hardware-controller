@@ -1,4 +1,6 @@
-import { logger } from '../utils/logger.js';
+import { createSimpleLogger } from 'shared';
+
+const logger = createSimpleLogger();
 import type { DeviceStatus } from 'shared';
 
 export class StatusService {

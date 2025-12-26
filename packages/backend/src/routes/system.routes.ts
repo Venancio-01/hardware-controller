@@ -2,7 +2,9 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { connectionTestService } from '../services/connection-test.service.js';
 import { RestartService } from '../services/restart.service.js';
-import { logger } from '../utils/logger.js';
+import { createSimpleLogger } from 'shared';
+
+const logger = createSimpleLogger();
 import { testConnectionRequestSchema } from 'shared';
 
 const router: Router = Router();

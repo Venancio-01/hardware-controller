@@ -4,7 +4,7 @@ import { parseActiveReportFrame, isActiveReportFrame, type RelayStatus } from '.
 import { EventPriority } from '../types/state-machine.js';
 import { RelayStatusAggregator, type RelayClientId } from '../business-logic/index.js';
 import { config } from '../config/index.js';
-import { createModuleLogger } from '../logger/index.js';
+import { createModuleLogger } from 'shared';
 
 const log = createModuleLogger('MonitorMachine');
 
@@ -76,10 +76,10 @@ export const monitorMachine = setup({
             });
           }
 
-          // 2. 处理授权逻辑 (CH13)
-          if (hasEdgeChanged(report, clientId, config.ELECTRIC_LOCK_OUT_INDEX)) {
-            const isClosed = combinedUpdate.combinedState[config.ELECTRIC_LOCK_OUT_INDEX];
-            log.info(`[逻辑] ELECTRIC_LOCK_OUT_INDEX (CH10) 已变化. 闭合: ${isClosed}`);
+          // 2. 处理授权逻辑 (CH12 - 授权通过)
+          if (hasEdgeChanged(report, clientId, config.AUTH_PASS_INDEX)) {
+            const isClosed = combinedUpdate.combinedState[config.AUTH_PASS_INDEX];
+            log.info(`[逻辑] AUTH_PASS_INDEX (CH13) 已变化. 闭合: ${isClosed}`);
             enqueue.sendParent({
               type: isClosed ? 'authorize_request' : 'refuse_request',
               priority: EventPriority.P2
@@ -97,12 +97,12 @@ export const monitorMachine = setup({
             });
           }
 
-          // 4. 处理报警取消按钮逻辑 (ALARM_STATUS_INDEX)
-          // 硬件假设：ALARM_STATUS_INDEX 是一个 toggle 按钮，硬件层已提供防抖
+          // 4. 处理报警取消按钮逻辑 (ALARM_CANCEL_INDEX)
+          // 硬件假设：ALARM_CANCEL_INDEX 是一个 toggle 按钮，硬件层已提供防抖
           // 如果硬件没有防抖，机械开关抖动会产生多次边沿变化（0→1→0→1）
           // 软件层会检测到每次变化并触发事件，这是符合预期的
-          if (hasEdgeChanged(report, clientId, config.ALARM_STATUS_INDEX)) {
-            log.info(`[逻辑] ALARM_STATUS_INDEX (CH${config.ALARM_STATUS_INDEX + 1}) 已变化`);
+          if (hasEdgeChanged(report, clientId, config.ALARM_CANCEL_INDEX)) {
+            log.info(`[逻辑] ALARM_CANCEL_INDEX (CH${config.ALARM_CANCEL_INDEX + 1}) 已变化`);
             enqueue.sendParent({
               type: 'alarm_cancel_toggled',
               priority: EventPriority.P2

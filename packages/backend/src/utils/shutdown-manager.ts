@@ -1,4 +1,4 @@
-import { logger } from './logger.js';
+import { logger } from 'shared';
 
 /**
  * 关闭处理器类型
@@ -84,7 +84,7 @@ export class ShutdownManager {
           await handler();
           logger.info(`Shutdown handler completed: ${name}`);
         } catch (error) {
-          logger.error({ err: error }, `Shutdown handler failed: ${name}`);
+          logger.error(`Shutdown handler failed: ${name}`, error as Error);
           // 继续执行其他处理器，即使某个失败
         }
       }
@@ -92,7 +92,7 @@ export class ShutdownManager {
       logger.info('Graceful shutdown completed successfully');
       return true;
     } catch (error) {
-      logger.error({ err: error }, 'Graceful shutdown failed');
+      logger.error('Graceful shutdown failed', error as Error);
       return false;
     }
   }

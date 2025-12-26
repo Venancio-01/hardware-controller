@@ -77,12 +77,6 @@ export class StructuredLogger {
     }
 
     this.pinoLogger = pino(pinoConfig);
-
-    // 如果有默认标签，创建子 logger
-    // 移除默认 tag 绑定
-    // if (this.defaultTag) {
-    //   this.pinoLogger = this.pinoLogger.child({ tag: this.defaultTag });
-    // }
   }
 
   /**
@@ -149,8 +143,6 @@ export class StructuredLogger {
       ...metadata,
       timestamp: timeStr,
     };
-
-    // 移除 logs tag 字段
 
     // 添加调用栈信息（如果启用）
     if (this.config.includeStackTrace && level >= LogLevel.ERROR) {
@@ -235,7 +227,7 @@ export const logger = new StructuredLogger({
   level: LogLevel.INFO,
   enableColors: process.env.NODE_ENV !== 'production',
   timestampFormat: 'iso',
-  defaultTag: 'NodeSwitch',
+  defaultTag: 'App',
 });
 
 /**
@@ -249,3 +241,8 @@ export function createModuleLogger(moduleName: string): StructuredLogger {
  * 导出日志级别枚举（方便外部使用）
  */
 export { LogLevel, LOG_LEVEL_NAMES };
+
+/**
+ * 导出类型定义
+ */
+export type { LoggerConfig, LogEntry, LogFormatter, LogWriter, LogStats, FileWriterConfig } from './types.js';

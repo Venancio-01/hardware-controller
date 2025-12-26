@@ -1,6 +1,6 @@
 import { config } from '../config/index.js';
 import { type HardwareCommunicationManager } from '../hardware/manager.js';
-import { type StructuredLogger } from '../logger/index.js';
+import { type StructuredLogger } from 'shared';
 import { VoiceBroadcastController } from './index.js';
 import { type VoiceClientConfig } from './types.js';
 

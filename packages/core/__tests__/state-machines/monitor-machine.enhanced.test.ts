@@ -104,8 +104,8 @@ describe('MonitorMachine - Enhanced Subscriptions', () => {
     expect(receivedEvents).toContainEqual(expect.objectContaining({ type: 'apply_request', priority: EventPriority.P2 }));
 
     receivedEvents = [];
-    controlIndexes.add(config.ELECTRIC_LOCK_OUT_INDEX);
-    sendReport('control', new Set([config.ELECTRIC_LOCK_OUT_INDEX]));
+    controlIndexes.add(config.AUTH_PASS_INDEX);
+    sendReport('control', new Set([config.AUTH_PASS_INDEX]));
     await new Promise(resolve => setTimeout(resolve, 50));
     expect(receivedEvents).toContainEqual(expect.objectContaining({ type: 'authorize_request', priority: EventPriority.P2 }));
 
@@ -146,15 +146,15 @@ describe('MonitorMachine - Enhanced Subscriptions', () => {
         isClosed: true  // low = 关门 = isClosed: true
     }));
 
-    // 6. ALARM_STATUS_INDEX (CH11) changed -> alarm_cancel_toggled
+    // 6. ALARM_CANCEL_INDEX (CH11) changed -> alarm_cancel_toggled
     receivedEvents = [];
-    const alarmClientId = config.ALARM_STATUS_INDEX >= 8 ? 'control' : 'cabinet';
+    const alarmClientId = config.ALARM_CANCEL_INDEX >= 8 ? 'control' : 'cabinet';
     if (alarmClientId === 'control') {
-      controlIndexes.add(config.ALARM_STATUS_INDEX);
+      controlIndexes.add(config.ALARM_CANCEL_INDEX);
     } else {
-      cabinetIndexes.add(config.ALARM_STATUS_INDEX);
+      cabinetIndexes.add(config.ALARM_CANCEL_INDEX);
     }
-    sendReport(alarmClientId, new Set([config.ALARM_STATUS_INDEX]));
+    sendReport(alarmClientId, new Set([config.ALARM_CANCEL_INDEX]));
     await new Promise(resolve => setTimeout(resolve, 50));
 
     expect(receivedEvents).toContainEqual(expect.objectContaining({
@@ -165,11 +165,11 @@ describe('MonitorMachine - Enhanced Subscriptions', () => {
     // 测试 toggle：再次改变状态
     receivedEvents = [];
     if (alarmClientId === 'control') {
-      controlIndexes.delete(config.ALARM_STATUS_INDEX);
+      controlIndexes.delete(config.ALARM_CANCEL_INDEX);
     } else {
-      cabinetIndexes.delete(config.ALARM_STATUS_INDEX);
+      cabinetIndexes.delete(config.ALARM_CANCEL_INDEX);
     }
-    sendReport(alarmClientId, new Set(), new Set([config.ALARM_STATUS_INDEX]));
+    sendReport(alarmClientId, new Set(), new Set([config.ALARM_CANCEL_INDEX]));
     await new Promise(resolve => setTimeout(resolve, 50));
 
     // Toggle 按钮每次状态变化都应该触发事件

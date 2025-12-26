@@ -1,6 +1,6 @@
 import { TCPClient } from './src/tcp/client.js';
 import { RelayCommandBuilder, parseActiveReportFrame } from './src/relay/controller.js';
-import { createModuleLogger } from './src/logger/index.js';
+import { createModuleLogger } from 'shared';
 
 const log = createModuleLogger('ManualTest');
 

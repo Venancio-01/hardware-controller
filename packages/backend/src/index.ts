@@ -1,12 +1,14 @@
 /**
  * 后端服务入口点
  *
- * 初始化并启动 Express 服务器，配置优雅关闭处理
+ * 初始化并启动 Express 服务器和 Core 应用程序，配置优雅关闭处理
  */
 
 import express from 'express';
 import { createServer } from './server.js';
-import { logger } from './utils/logger.js';
+import { logger } from 'shared';
+import * as path from 'path';
+import { CoreProcessManager } from './services/core-process-manager.js';
 import { shutdownManager } from './utils/shutdown-manager.js';
 
 const PORT = parseInt(process.env.PORT || '3000');
@@ -18,6 +20,28 @@ const server = app.listen(PORT, () => {
   logger.info(`🚀 服务器运行在端口 ${PORT}`);
   logger.info(`📦 环境: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`📝 日志级别: ${process.env.LOG_LEVEL || 'info'}`);
+});
+
+// 启动 Core Process Manager
+const coreProcessManager = new CoreProcessManager();
+const isDev = process.env.NODE_ENV === 'development';
+
+// 确定 Core 脚本路径
+const scriptPath = isDev
+  ? path.resolve(__dirname, '../../../core/src/app.ts')
+  : path.resolve(__dirname, '../../../core/dist/app.js');
+
+// 启动选项
+const startOptions = isDev
+  ? { execArgv: ['-r', 'dotenv/config', '--import', 'tsx'] } // 使用 tsx 加载器运行 TS 文件
+  : { execArgv: ['-r', 'dotenv/config'] };
+
+logger.info(`正在启动 Core 进程: ${scriptPath}`);
+coreProcessManager.start(scriptPath, startOptions);
+
+// 注册 Core 关闭处理器
+shutdownManager.registerHandler('core-process', async () => {
+  await coreProcessManager.stop();
 });
 
 // 注册 HTTP 服务器关闭处理器

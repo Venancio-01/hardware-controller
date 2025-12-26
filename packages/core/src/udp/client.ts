@@ -1,5 +1,5 @@
 import { createSocket, Socket, RemoteInfo } from 'node:dgram';
-import { createModuleLogger } from '../logger/index.js';
+import { createModuleLogger } from 'shared';
 import type { NetworkConfig } from '../types/index.js';
 
 export class UDPClient {

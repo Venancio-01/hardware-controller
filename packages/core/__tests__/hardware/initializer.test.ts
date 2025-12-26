@@ -1,6 +1,6 @@
 import { initializeHardware } from '../../src/hardware/initializer.js';
 import { HardwareCommunicationManager } from '../../src/hardware/manager.js';
-import { type StructuredLogger } from '../../src/logger/index.js';
+import { type StructuredLogger } from 'shared';
 
 describe('Hardware Initializer', () => {
   let mockManager: any;

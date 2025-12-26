@@ -68,7 +68,7 @@ describe('Config Validation', () => {
       pollingInterval: 5000,
       APPLY_INDEX: 0,
       CABINET_DOOR_INDEX: 1,
-      ELECTRIC_LOCK_IN_INDEX: 2,
+      DOOR_JUMP_SWITCH_INDEX: 2,
     };
 
     const result = configSchema.safeParse(validConfig);

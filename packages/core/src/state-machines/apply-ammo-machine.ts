@@ -1,6 +1,6 @@
 import { setup, createActor, sendParent } from 'xstate';
 import { VoiceBroadcastController } from '../voice-broadcast/index.js';
-import { type StructuredLogger } from '../logger/index.js';
+import { type StructuredLogger } from 'shared';
 import { type HardwareCommunicationManager } from '../hardware/manager.js';
 import { RelayCommandBuilder, type RelayChannel } from '../relay/index.js';
 import { config } from '../config/index.js';

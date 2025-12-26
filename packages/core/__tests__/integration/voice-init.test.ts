@@ -1,7 +1,7 @@
 import { initializeHardware } from '../../src/hardware/initializer.js';
 import { initializeVoiceBroadcast } from '../../src/voice-broadcast/initializer.js';
 import { HardwareCommunicationManager } from '../../src/hardware/manager.js';
-import { createModuleLogger } from '../../src/logger/index.js';
+import { createModuleLogger } from 'shared';
 import { VoiceBroadcastController } from '../../src/voice-broadcast/index.js';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 

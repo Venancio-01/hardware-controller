@@ -1,0 +1,66 @@
+{
+  // ==================== 基本设置 ====================
+  deviceId: "device-001",
+  timeout: 5000,
+  retryCount: 3,
+  pollingInterval: 5000,
+
+  // ==================== 运行环境 ====================
+  NODE_ENV: "development",
+  PORT: 3000,
+  HOST: "127.0.0.1",
+
+  // ==================== 日志配置 ====================
+  LOG_LEVEL: "info",
+  LOG_PRETTY: true,
+
+  // ==================== 柜体继电器板配置 ====================
+  CABINET_HOST: "192.168.0.18",
+  CABINET_PORT: 50000,
+
+  // ==================== 操作台继电器板配置 ====================
+  CONTROL_SERIAL_PATH: "/dev/ttyUSB0",
+  CONTROL_SERIAL_BAUDRATE: 9600,
+  CONTROL_SERIAL_DATABITS: 8,
+  CONTROL_SERIAL_STOPBITS: 1,
+  CONTROL_SERIAL_PARITY: "none",
+
+  // ==================== 语音播报配置 ====================
+  VOICE_CABINET_VOLUME: 1,
+  VOICE_CABINET_SPEED: 5,
+  VOICE_CONTROL_VOLUME: 1,
+  VOICE_CONTROL_SPEED: 5,
+
+  // ==================== 硬件通用配置 ====================
+  HARDWARE_TIMEOUT: 5000,
+  HARDWARE_RETRY_ATTEMPTS: 3,
+  ENABLE_HARDWARE_SIMULATOR: false,
+  ENABLE_METRICS: true,
+  UDP_LOCAL_PORT: 8000,
+  QUERY_INTERVAL: 1000,
+  DOOR_OPEN_TIMEOUT_S: 30,
+
+  // ==================== 柜体输入索引 ====================
+  // 柜体继电器板的输入端口索引配置
+  APPLY_INDEX: 0,              // 申请按钮
+  CABINET_DOOR_INDEX: 1,       // 柜门状态
+  DOOR_JUMP_SWITCH_INDEX: 2,   // 门跳开关
+  KEY_SWITCH_INDEX: 3,         // 钥匙开关
+  VIBRATION_SWITCH_INDEX: 4,   // 振动开关
+  CABINET_INPUT_06_INDEX: 5,   // 预留输入06
+  CABINET_INPUT_07_INDEX: 6,   // 预留输入07
+  CABINET_INPUT_08_INDEX: 7,   // 预留输入08
+
+  // ==================== 操作台输入索引 ====================
+  // 操作台继电器板的输入端口索引配置
+  STORE_RETURN_INDEX: 8,       // 存/取按钮
+  CONTROL_INPUT_INDEX: 9,      // 操作台输入
+  ALARM_CANCEL_INDEX: 10,      // 报警取消
+  AUTH_CANCEL_INDEX: 11,       // 授权取消
+  AUTH_PASS_INDEX: 12,         // 授权通过
+
+  // ==================== 继电器输出索引 ====================
+  RELAY_LOCK_INDEX: 2,             // 电磁锁
+  RELAY_CABINET_ALARM_INDEX: 8,    // 柜体报警器
+  RELAY_CONTROL_ALARM_INDEX: 1,    // 操作台报警器
+}

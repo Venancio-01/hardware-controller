@@ -2,7 +2,7 @@
 import { TCPClient } from '../tcp/client.js';
 import { SerialClient } from '../serial/client.js';
 
-import { createModuleLogger } from '../logger/index.js';
+import { createModuleLogger } from 'shared';
 import type { NetworkConfig, HardwareResponse, Protocol, SerialConfig, CommandEncoding } from '../types/index.js';
 
 /**

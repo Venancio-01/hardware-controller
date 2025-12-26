@@ -1,5 +1,5 @@
 import { HardwareCommunicationManager } from '../../src/hardware/manager.js';
-import { createModuleLogger } from '../../src/logger/index.js';
+import { createModuleLogger } from 'shared';
 import { VoiceBroadcastController } from '../../src/voice-broadcast/index.js';
 import { RelayStatusAggregator, type RelayClientId } from '../../src/business-logic/relay-status-aggregator.js';
 import { createMainActor } from '../../src/state-machines/main-machine.js';

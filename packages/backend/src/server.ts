@@ -6,7 +6,7 @@
 
 import express from 'express';
 import pinoHttp from 'pino-http';
-import { logger } from './utils/logger.js';
+import { logger } from 'shared';
 import configRoutes from './routes/config.routes.js';
 import statusRoutes from './routes/status.routes.js';
 import authRoutes from './routes/auth.routes.js';
@@ -22,7 +22,7 @@ export function createServer(): express.Application {
   const app = express();
 
   // Pino HTTP 日志中间件
-  app.use(pinoHttp({ logger }));
+  app.use(pinoHttp({ logger: logger.getRawLogger() }));
 
   // JSON body parser 中间件
   app.use(express.json());

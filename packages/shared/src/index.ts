@@ -64,3 +64,25 @@ export type {
   ConflictDetectionResult,
   ConflictCheckType
 } from './types/conflict-detection.types.js';
+
+// IPC Types
+export { IpcMessages } from './types/ipc.js';
+export type { IpcPacket, IpcMessageType } from './types/ipc.js';
+
+// ============ Logger 导出 ============
+export {
+  logger,
+  StructuredLogger,
+  createModuleLogger,
+  LogLevel,
+  LOG_LEVEL_NAMES,
+} from './logger/index.js';
+
+export type {
+  LoggerConfig,
+  LogEntry,
+  LogFormatter,
+  LogWriter,
+  LogStats,
+  FileWriterConfig,
+} from './logger/index.js';

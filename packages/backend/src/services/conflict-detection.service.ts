@@ -5,7 +5,9 @@
  */
 
 import { ConflictDetectionRequest, ConflictDetectionResult, ConflictCheckType } from 'shared';
-import { logger as baseLogger } from '../utils/logger.js';
+import { createSimpleLogger } from 'shared';
+
+const baseLogger = createSimpleLogger();
 import { ConfigService } from './config.service.js';
 import { connectionTestService } from './connection-test.service.js';
 

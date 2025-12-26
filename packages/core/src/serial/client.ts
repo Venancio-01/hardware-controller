@@ -1,5 +1,5 @@
 import { SerialPort } from 'serialport';
-import { createModuleLogger } from '../logger/index.js';
+import { createModuleLogger } from 'shared';
 import type { SerialConfig, MessagePayload, ConnectionStatus, CommunicationStats } from '../types/index.js';
 
 interface ResponseHandler {

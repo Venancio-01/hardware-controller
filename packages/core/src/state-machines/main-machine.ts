@@ -1,6 +1,6 @@
 import { setup, createActor, sendTo } from 'xstate';
 import { type HardwareCommunicationManager } from '../hardware/manager.js';
-import { type StructuredLogger } from '../logger/index.js';
+import { type StructuredLogger } from 'shared';
 import { monitorMachine } from './monitor-machine.js';
 import { alarmMachine } from './alarm-machine.js';
 import { applyAmmoMachine } from './apply-ammo-machine.js';

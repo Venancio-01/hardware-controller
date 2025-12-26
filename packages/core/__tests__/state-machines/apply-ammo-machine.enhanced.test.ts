@@ -1,7 +1,7 @@
 import { setup, createActor } from 'xstate';
 import { applyAmmoMachine } from '../../src/state-machines/apply-ammo-machine.js';
 import { VoiceBroadcastController } from '../../src/voice-broadcast/index.js';
-import { type StructuredLogger } from '../../src/logger/index.ts';
+import { type StructuredLogger } from 'shared';
 
 // Mock VoiceBroadcastController
 const mockBroadcast = vi.fn(() => Promise.resolve());

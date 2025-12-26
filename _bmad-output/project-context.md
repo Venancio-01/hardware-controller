@@ -24,6 +24,20 @@ _本文档包含 AI 代理在此项目中实现代码时必须遵循的关键规
 - **测试**: vitest 作为测试框架
 - **环境管理**: dotenv 用于配置加载
 
+## 架构原则 (Node Switch 2.0)
+
+### 进程分离架构
+- **Supervisor/Worker**: Backend (Supervisor) 负责启动和管理 Core (Worker) 子进程。
+- **IPC 通信**: 唯一的通信方式是 Node.js 原生 IPC (`fork`/`send`/`on`)。
+- **状态单一事实来源**: Backend 维护 Core 状态的影子副本，API 仅查询 Backend 状态。
+
+### 目录结构 (Monorepo)
+- `packages/core`: **[NEW]** 硬件控制服务（原 `src/`），作为独立子进程运行。
+- `packages/backend`: Web API 服务，充当 Supervisor。
+- `packages/shared`: **[Source of Truth]** 包含所有 IPC 协议定义、Zod 验证 Schema 和共享类型。
+- `packages/frontend`: React 客户端。
+
+
 ## 关键实现规则
 
 ### 语言特定规则
@@ -143,4 +157,19 @@ _本文档包含 AI 代理在此项目中实现代码时必须遵循的关键规
 - 避免在高频事件路径中执行阻塞操作
 - 在状态机中对耗时操作使用异步处理
 - 优化高频路径中的日志频率以防止性能下降
+- 优化高频路径中的日志频率以防止性能下降
 - 在长时间运行的进程中考虑维护状态的内存使用
+
+### IPC 与集成规则 (关键)
+
+#### IPC 模式
+- **事件命名**: 必须使用 `NAMESPACE:ACTION` 格式 (SCREAMING_SNAKE_CASE).
+    - 正确: `CORE:READY`, `CMD:RESTART`
+    - 错误: `coreReady`, `restart-command`
+- **Payload**: 必须遵循 `packages/shared` 中定义的 `IpcPacket` 接口。
+- **异步性**: 不要假设 IPC 消息是同步的；使用通过相关 ID (Correlation ID) 的请求-响应模式（如需要）。
+
+#### 边界控制
+- **配置写入**: 仅允许 `packages/backend` 写入 `config.json`。
+- **配置读取**: `packages/core` 在收到 IPC 更新信号 (`CMD:UPDATE_CONFIG`) 后重新读取配置。
+- **禁止直接引用**: Backend 代码绝不应导入 Core 的运行时代码，仅可导入 Shared 的类型。

@@ -7,7 +7,9 @@
 import { readFile, writeFile, rename, copyFile } from 'fs/promises';
 import { join } from 'path';
 import { configSchema, type Config } from 'shared';
-import { logger } from '../utils/logger.js';
+import { createSimpleLogger } from 'shared';
+
+const logger = createSimpleLogger();
 
 /**
  * 配置导入/导出服务类 - 提供配置文件的导入和导出功能

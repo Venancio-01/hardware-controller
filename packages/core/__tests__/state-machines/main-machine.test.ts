@@ -1,7 +1,7 @@
 import { createMainActor } from '../../src/state-machines/main-machine.js';
 import { HardwareCommunicationManager } from '../../src/hardware/manager.js';
 import { EventPriority } from '../../src/types/state-machine.js';
-import { type StructuredLogger } from '../../src/logger/index.js';
+import { type StructuredLogger } from 'shared';
 
 // Mock the HardwareCommunicationManager class
 vi.mock('../../src/hardware/manager.js', () => {

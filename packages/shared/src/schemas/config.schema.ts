@@ -62,22 +62,21 @@ export const envConfigSchema = z.object({
   DOOR_OPEN_TIMEOUT_S: z.number().int().positive().min(1).optional().default(30),
 
   // 硬件输入索引配置 (0-15)
+  // 存放柜输入 (0-7)
   APPLY_INDEX: z.number().int().min(0).max(15).optional().default(0),
   CABINET_DOOR_INDEX: z.number().int().min(0).max(15).optional().default(1),
-  ELECTRIC_LOCK_IN_INDEX: z.number().int().min(0).max(15).optional().default(2),
-  MECHANICAL_LOCK_INDEX: z.number().int().min(0).max(15).optional().default(3),
-  VIBRATION_ALARM_INDEX: z.number().int().min(0).max(15).optional().default(4),
-  SWITCH_06_INDEX: z.number().int().min(0).max(15).optional().default(5),
-  DEVICE_STATUS_INDEX: z.number().int().min(0).max(15).optional().default(6),
-  CABINET_ALARM_LIGHT_INDEX: z.number().int().min(0).max(15).optional().default(7),
-  CONTROL_ALARM_LIGHT_INDEX: z.number().int().min(0).max(15).optional().default(8),
-  ELECTRIC_LOCK_OUT_INDEX: z.number().int().min(0).max(15).optional().default(9),
-  ALARM_STATUS_INDEX: z.number().int().min(0).max(15).optional().default(10),
-  AUTH_INDEX: z.number().int().min(0).max(15).optional().default(11),
-  AUTH_CANCEL_INDEX: z.number().int().min(0).max(15).optional().default(12),
-  SWITCH_26_INDEX: z.number().int().min(0).max(15).optional().default(13),
-  SWITCH_27_INDEX: z.number().int().min(0).max(15).optional().default(14),
-  SWITCH_28_INDEX: z.number().int().min(0).max(15).optional().default(15),
+  DOOR_JUMP_SWITCH_INDEX: z.number().int().min(0).max(15).optional().default(2),
+  KEY_SWITCH_INDEX: z.number().int().min(0).max(15).optional().default(3),
+  VIBRATION_SWITCH_INDEX: z.number().int().min(0).max(15).optional().default(4),
+  CABINET_INPUT_06_INDEX: z.number().int().min(0).max(15).optional().default(5),
+  CABINET_INPUT_07_INDEX: z.number().int().min(0).max(15).optional().default(6),
+  CABINET_INPUT_08_INDEX: z.number().int().min(0).max(15).optional().default(7),
+  // 控制柜输入 (8-15)
+  STORE_RETURN_INDEX: z.number().int().min(0).max(15).optional().default(8),
+  CONTROL_INPUT_INDEX: z.number().int().min(0).max(15).optional().default(9),
+  ALARM_CANCEL_INDEX: z.number().int().min(0).max(15).optional().default(10),
+  AUTH_CANCEL_INDEX: z.number().int().min(0).max(15).optional().default(11),
+  AUTH_PASS_INDEX: z.number().int().min(0).max(15).optional().default(12),
 
   // 硬件继电器索引配置 (1-32)
   RELAY_LOCK_INDEX: z.number().int().min(1).max(32).optional().default(2),

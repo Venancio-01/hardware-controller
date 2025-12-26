@@ -1,5 +1,5 @@
 import { connect, Socket } from 'node:net';
-import { createModuleLogger } from '../logger/index.js';
+import { createModuleLogger } from 'shared';
 import type { NetworkConfig, MessagePayload, ConnectionStatus, CommunicationStats } from '../types/index.js';
 
 interface ResponseHandler {

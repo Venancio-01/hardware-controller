@@ -1,6 +1,6 @@
 // ==================== 基础设施 ====================
 export * from './config/index.js';
-export * from './logger/index.js';
+export * from 'shared';
 
 // ==================== 类型定义 ====================
 export * from './types/index.js';
@@ -28,3 +28,6 @@ export * from './relay/index.js';
 
 // ==================== 业务逻辑 ====================
 export * from './business-logic/index.js';
+
+// ==================== 应用入口 ====================
+export { startApp } from './app.js';

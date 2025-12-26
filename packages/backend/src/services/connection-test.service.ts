@@ -5,7 +5,9 @@
  */
 
 import { TestConnectionRequest, TestConnectionResult } from 'shared';
-import { logger as baseLogger } from '../utils/logger.js';
+import { createSimpleLogger } from 'shared';
+
+const baseLogger = createSimpleLogger();
 
 const logger = baseLogger.child({ module: 'ConnectionTestService' });
 

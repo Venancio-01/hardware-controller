@@ -22,7 +22,12 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "shared": ["../shared/src"]
+      "shared": [
+        "../shared/src/index.ts"
+      ],
+      "shared/*": [
+        "../shared/src/*"
+      ]
     }
   },
   "include": [
