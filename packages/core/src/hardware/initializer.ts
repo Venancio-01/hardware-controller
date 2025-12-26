@@ -3,7 +3,6 @@ import { type HardwareCommunicationManager } from './manager.js';
 import { type StructuredLogger } from '../logger/index.js';
 
 export async function initializeHardware(manager: HardwareCommunicationManager, logger: StructuredLogger) {
-  // Cabinet is now TCP-based (unified relay + voice)
   const tcpClientsConfig = [
     {
       id: 'cabinet',
@@ -28,7 +27,6 @@ export async function initializeHardware(manager: HardwareCommunicationManager, 
     }
   ];
 
-  // Remove deprecated UDP and Voice-specific TCP configs
   const udpClientsConfig: { id: string; targetHost: string; targetPort: number; description: string }[] = [];
 
   await manager.initialize({
