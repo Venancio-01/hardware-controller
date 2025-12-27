@@ -60,15 +60,15 @@ development_status:
   3-1-retrieve-and-display-current-configuration: done
   3-2-implement-configuration-update-logic: done
   3-3-implement-config-form-with-real-time-validation: done
-  3-4-implement-save-restart-flow: in-progress
-  3-5-handle-validation-system-errors: backlog
+  3-4-implement-save-restart-flow: done
+  3-5-handle-validation-system-errors: done
   epic-3-retrospective: optional
 
   # Epic 4: Advanced System Network Operations
-  epic-4: backlog
-  4-1-manage-network-configuration: backlog
-  4-2-implement-network-connection-test: backlog
-  4-3-implement-configuration-export: backlog
-  4-4-implement-configuration-import: backlog
-  4-5-system-wide-network-validation: backlog
+  epic-4: in-progress
+  4-1-manage-network-configuration: done
+  4-2-implement-network-connection-test: done
+  4-3-implement-configuration-export: done
+  4-4-implement-configuration-import: done
+  4-5-system-wide-network-validation: done
   epic-4-retrospective: optional

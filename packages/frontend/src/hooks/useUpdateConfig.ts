@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api';
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 import { type Config, type ConflictDetectionRequest, type ConflictDetectionResult } from 'shared';
+import { ApiError } from '@/lib/errors';
 
 const RESTART_ALERT_KEY = 'config_needs_restart';
 
@@ -172,6 +173,21 @@ export function useUpdateConfig(beforeSave: BeforeSaveHook = defaultConflictDete
       }
     },
     onError: (error: unknown) => {
+      // 检查是否是 ApiError 且包含验证错误
+      // 如果有验证错误，不显示 toast，因为表单字段会显示错误
+      if (error instanceof ApiError) {
+        if (error.hasValidationErrors()) {
+          // 不显示 toast，让表单字段显示验证错误
+          return;
+        }
+        // 没有验证错误的 ApiError（如 500 错误），显示 toast
+        const errorMessage = error.message || '服务器错误';
+        toast.error("保存失败", {
+          description: errorMessage,
+        });
+        return;
+      }
+
       // 根据错误类型提供不同的提示
       const errorMessage = error instanceof Error ? error.message : '未知错误';
 

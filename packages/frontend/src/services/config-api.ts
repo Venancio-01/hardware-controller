@@ -6,6 +6,7 @@
 
 import { apiFetch } from '@/lib/api';
 import { Config } from 'shared';
+import { ApiError } from '@/lib/errors';
 
 /**
  * 导出配置
@@ -14,17 +15,40 @@ import { Config } from 'shared';
  */
 export async function exportConfig(): Promise<void> {
   try {
-    // 直接使用 fetch，因为需要处理文件下载
+    // 获取本地存储的 Token 以支持认证
+    const token = localStorage.getItem('token');
+
+    // 使用 fetch 处理文件下载，但添加认证支持（与 apiFetch 保持一致）
     const response = await fetch('/api/config/export', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
 
+    // 处理认证失效 (401) - 与 apiFetch 逻辑一致
+    if (response.status === 401) {
+      localStorage.removeItem('token');
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+      throw new Error('认证已过期，请重新登录');
+    }
+
+    // 处理非 OK 响应 (4xx, 5xx)
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || '导出配置失败');
+      let errorMsg = `导出失败: ${response.status} ${response.statusText}`;
+      let errorData: any = {};
+
+      try {
+        errorData = await response.json();
+        errorMsg = errorData.error || errorMsg;
+      } catch {
+        // 无法解析 JSON 则保持默认错误消息
+      }
+
+      throw new ApiError(errorMsg, response.status, errorData);
     }
 
     // 处理文件下载
@@ -32,7 +56,9 @@ export async function exportConfig(): Promise<void> {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'config.json';
+    // 添加时间戳以便区分不同时间导出的配置文件
+    const timestamp = new Date().toISOString().split('T')[0];
+    a.download = `config-${timestamp}.json`;
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);

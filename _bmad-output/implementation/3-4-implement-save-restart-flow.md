@@ -1,6 +1,6 @@
 # Story 3.4: Implement Save & Restart Flow
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -38,6 +38,11 @@ so that **I can be sure the system is updated**.
   - [x] 3.2 Verify that clicking the button inside the Alert calls the restart handler
 
 ## Dev Notes
+
+- **State Persistence**: The "Restart Required" state (`needsRestart`) is persisted in `localStorage` (`config_needs_restart`) to ensure the alert survives page refreshes until a restart is triggered.
+- **Conflict Detection**: The `useUpdateConfig` hook integrates conflict detection via `beforeSave` hook, ensuring configuration safety. Tests mock the global fetch to handle this pre-check.
+- **Form Reset**: The form is automatically reset after a successful save to clear the `isDirty` state, disabling the save button until further changes.
+- **Testing**: `ConfigForm.test.tsx` uses robust mocks for `AppConfigCard` and `NetworkConfigForm` to register all required fields (including optional environment variables) to satisfy Zod validation during testing.
 
 ### Existing Implementation Analysis
 - **Core Logic Exists**: `ConfigForm.tsx` already handles the `needsRestart` state and displays an Alert. `useUpdateConfig.ts` already triggers the Toast notification.
@@ -89,3 +94,5 @@ gemini-2.5-pro (Claude Antigravity)
 ### File List
 - packages/frontend/src/components/dashboard/ConfigForm.tsx
 - packages/frontend/src/components/dashboard/__tests__/ConfigForm.test.tsx
+- packages/frontend/src/hooks/useUpdateConfig.ts
+- packages/frontend/src/components/dashboard/AppConfigCard.tsx

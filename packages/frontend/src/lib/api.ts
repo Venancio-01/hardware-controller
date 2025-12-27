@@ -4,6 +4,8 @@
  * 封装原生 fetch，自动处理认证 Token 和 401 错误
  */
 
+import { ApiError } from './errors';
+
 /**
  * 带有认证支持的 fetch 包装器
  */
@@ -41,13 +43,16 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
   // 5. 处理非 OK 响应 (4xx, 5xx)
   if (!response.ok) {
     let errorMsg = `API 错误: ${response.status} ${response.statusText}`;
+    let errorData: any = {};
+
     try {
-      const errorData = await response.json();
+      errorData = await response.json();
       errorMsg = errorData.error || errorMsg;
     } catch {
       // 无法解析 JSON 则保持默认错误消息
     }
-    throw new Error(errorMsg);
+
+    throw new ApiError(errorMsg, response.status, errorData);
   }
 
   // 6. 解析响应内容

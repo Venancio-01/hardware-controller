@@ -60,11 +60,8 @@ describe('networkConfigSchema 验证测试', () => {
       const result = networkConfigSchema.safeParse(invalidNetwork);
       expect(result.success).toBe(false);
     });
-    // ... (rest of IP tests omitted for brevity but would be updated similarly if they existed in full replacement) ...
   });
 
-  // ... (Subnet/Gateway tests updated similarly) ...
-  
   describe('端口号验证', () => {
     const baseValidConfig = {
       ipAddress: '192.168.1.100',
@@ -116,6 +113,8 @@ describe('networkConfigSchema 验证测试', () => {
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.issues.some(issue => issue.path.includes('gateway'))).toBe(true);
+        expect(result.error.issues[0].message).toContain('网关 192.168.2.1 不在子网');
+        expect(result.error.issues[0].message).toContain('192.168.1.0');
       }
     });
 
@@ -129,6 +128,30 @@ describe('networkConfigSchema 验证测试', () => {
 
       const result = networkConfigSchema.safeParse(network);
       expect(result.success).toBe(false);
+      if (!result.success) {
+         expect(result.error.issues.some(issue => issue.path.includes('gateway'))).toBe(true);
+         expect(result.error.issues[0].message).toContain('172.17.0.1');
+         expect(result.error.issues[0].message).toContain('172.16.0.0');
+      }
+    });
+
+    it('应该能够处理复杂的子网掩码 (如 /25)', () => {
+        // 192.168.1.0/25 -> Range 192.168.1.0 - 192.168.1.127
+        const network = {
+            ipAddress: '192.168.1.10',
+            subnetMask: '255.255.255.128',
+            gateway: '192.168.1.1', // Valid
+            port: 80
+        };
+        expect(networkConfigSchema.safeParse(network).success).toBe(true);
+
+        const invalidNetwork = {
+            ipAddress: '192.168.1.10',
+            subnetMask: '255.255.255.128',
+            gateway: '192.168.1.129', // Invalid (in upper half)
+            port: 80
+        };
+        expect(networkConfigSchema.safeParse(invalidNetwork).success).toBe(false);
     });
   });
 
@@ -144,7 +167,7 @@ describe('networkConfigSchema 验证测试', () => {
       expect(result.success).toBe(false);
     });
 
-    it('应该拒绝缺少端口的配置', () => {
+    it('应该接受缺少端口的配置（使用默认值 80）', () => {
       const network = {
         ipAddress: '192.168.1.100',
         subnetMask: '255.255.255.0',
@@ -152,10 +175,13 @@ describe('networkConfigSchema 验证测试', () => {
       };
 
       const result = networkConfigSchema.safeParse(network);
-      expect(result.success).toBe(false);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.port).toBe(80); // 验证默认值
+      }
     });
   });
-  
+
   describe('DNS 数组验证', () => {
     it('应该接受多个有效的 DNS 服务器', () => {
       const network = {
@@ -181,6 +207,144 @@ describe('networkConfigSchema 验证测试', () => {
 
       const result = networkConfigSchema.safeParse(network);
       expect(result.success).toBe(false);
+    });
+  });
+
+  describe('边界情况验证', () => {
+    it('应该拒绝 IP 地址为网络地址', () => {
+      const network = {
+        ipAddress: '192.168.1.0', // 网络地址
+        subnetMask: '255.255.255.0',
+        gateway: '192.168.1.1',
+        port: 8080,
+      };
+
+      const result = networkConfigSchema.safeParse(network);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some(issue => issue.path.includes('ipAddress'))).toBe(true);
+        expect(result.error.issues.some(issue => issue.message.includes('不能是网络地址'))).toBe(true);
+      }
+    });
+
+    it('应该拒绝 IP 地址为广播地址', () => {
+      const network = {
+        ipAddress: '192.168.1.255', // 广播地址
+        subnetMask: '255.255.255.0',
+        gateway: '192.168.1.1',
+        port: 8080,
+      };
+
+      const result = networkConfigSchema.safeParse(network);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some(issue => issue.path.includes('ipAddress'))).toBe(true);
+        // 错误消息包含 "广播地址" 即可
+        expect(result.error.issues.some(issue => issue.message.includes('广播地址'))).toBe(true);
+      }
+    });
+
+    it('应该拒绝网关为网络地址', () => {
+      const network = {
+        ipAddress: '192.168.1.100',
+        subnetMask: '255.255.255.0',
+        gateway: '192.168.1.0', // 网络地址
+        port: 8080,
+      };
+
+      const result = networkConfigSchema.safeParse(network);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some(issue => issue.path.includes('gateway'))).toBe(true);
+        // 网关是网络地址会在同一子网内，但会被主机地址验证捕获
+        expect(result.error.issues.some(issue => issue.message.includes('网关不能是网络地址') || issue.message.includes('网络地址'))).toBe(true);
+      }
+    });
+
+    it('应该拒绝网关为广播地址', () => {
+      const network = {
+        ipAddress: '192.168.1.100',
+        subnetMask: '255.255.255.0',
+        gateway: '192.168.1.255', // 广播地址
+        port: 8080,
+      };
+
+      const result = networkConfigSchema.safeParse(network);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some(issue => issue.path.includes('gateway'))).toBe(true);
+        // 广播地址在同一子网内，但会被主机地址验证捕获
+        expect(result.error.issues.some(issue => issue.message.includes('广播地址'))).toBe(true);
+      }
+    });
+
+    it('应该接受网关与 IP 相同（技术上有效）', () => {
+      const network = {
+        ipAddress: '192.168.1.100',
+        subnetMask: '255.255.255.0',
+        gateway: '192.168.1.100', // 与 IP 相同
+        port: 8080,
+      };
+
+      const result = networkConfigSchema.safeParse(network);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('子网掩码格式验证', () => {
+    it('应该拒绝无效的子网掩码（不连续的1）', () => {
+      const network = {
+        ipAddress: '192.168.1.100',
+        subnetMask: '255.0.255.0', // 无效的子网掩码
+        gateway: '192.168.1.1',
+        port: 8080,
+      };
+
+      const result = networkConfigSchema.safeParse(network);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some(issue => issue.path.includes('subnetMask'))).toBe(true);
+        expect(result.error.issues[0].message).toContain('子网掩码格式无效');
+      }
+    });
+
+    it('应该接受有效的标准子网掩码', () => {
+      const validMasks = [
+        { mask: '255.0.0.0', ip: '10.1.1.1', gateway: '10.0.0.1' },
+        { mask: '255.255.0.0', ip: '172.16.1.1', gateway: '172.16.0.1' },
+        { mask: '255.255.255.0', ip: '192.168.1.100', gateway: '192.168.1.1' },
+        { mask: '255.255.255.128', ip: '192.168.1.10', gateway: '192.168.1.1' },
+        { mask: '255.255.255.192', ip: '192.168.1.10', gateway: '192.168.1.1' },
+        { mask: '255.255.255.224', ip: '192.168.1.10', gateway: '192.168.1.1' },
+        { mask: '255.255.255.240', ip: '192.168.1.10', gateway: '192.168.1.1' },
+        { mask: '255.255.255.248', ip: '192.168.1.10', gateway: '192.168.1.9' },
+        { mask: '255.255.255.252', ip: '192.168.1.9', gateway: '192.168.1.10' },
+      ];
+
+      validMasks.forEach(({ mask, ip, gateway }) => {
+        const network = {
+          ipAddress: ip,
+          subnetMask: mask,
+          gateway: gateway,
+          port: 8080,
+        };
+
+        const result = networkConfigSchema.safeParse(network);
+        expect(result.success).toBe(true);
+      });
+    });
+
+    it('应该拒绝 /31 子网掩码（点对点，但没有有效主机地址）', () => {
+      const network = {
+        ipAddress: '192.168.1.0',
+        subnetMask: '255.255.255.254',
+        gateway: '192.168.1.1',
+        port: 8080,
+      };
+
+      const result = networkConfigSchema.safeParse(network);
+      expect(result.success).toBe(false);
+      // IP 是网络地址，会被拒绝
     });
   });
 });
