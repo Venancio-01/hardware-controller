@@ -28,10 +28,10 @@ export function AmmoCabinetConfigForm({ form }: AmmoCabinetConfigFormProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Archive className="h-5 w-5" />
+    <Card className="transition-all duration-300 hover:shadow-md border-border/50">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Archive className="h-5 w-5 text-muted-foreground" />
           供弹柜配置
         </CardTitle>
       </CardHeader>

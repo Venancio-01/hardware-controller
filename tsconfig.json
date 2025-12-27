@@ -14,7 +14,6 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "dist",
-    "rootDir": "src",
     "removeComments": false,
     "noImplicitAny": true,
     "strictNullChecks": true,
@@ -35,7 +34,12 @@
   "exclude": [
     "node_modules",
     "dist",
+    "packages",
+    "scripts",
+    "*.js",
+    "*.config.js",
     "**/*.test.ts",
     "**/*.spec.ts"
   ]
 }
+

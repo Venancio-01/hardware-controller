@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "pnpm --recursive run build",
+    "build:arm7": "bash scripts/build-arm7.sh",
+    "build:arm7:clean": "bash scripts/build-arm7.sh --clean",
     "dev": "pnpm --recursive run dev",
     "test": "pnpm --recursive run test",
     "lint": "pnpm --recursive run lint",
@@ -18,7 +20,7 @@
   "author": "",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=20.0.0"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

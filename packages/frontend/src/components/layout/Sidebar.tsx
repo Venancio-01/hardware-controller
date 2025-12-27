@@ -74,7 +74,7 @@ export function Sidebar() {
   return (
     <aside className="lg:col-span-1 space-y-4">
       {/* Core 进程状态卡片 */}
-      <Card className="transition-all duration-300">
+      <Card className="transition-all duration-300 hover:shadow-md border-border/50 bg-card/50 backdrop-blur-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-medium flex items-center gap-2">
             <Cpu className="h-4 w-4" />

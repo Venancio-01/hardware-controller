@@ -7,9 +7,10 @@
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 
-// ES Module __dirname polyfill
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// ES Module __dirname polyfill compatible with CJS
+const _dirname = typeof __dirname !== 'undefined'
+  ? __dirname
+  : dirname(fileURLToPath(import.meta.url));
 
 import express from 'express';
 import { createServer } from './server.js';
@@ -40,8 +41,8 @@ const isDev = process.env.NODE_ENV === 'development';
 
 // 确定 Core 脚本路径
 const scriptPath = isDev
-  ? path.resolve(__dirname, '../../core/src/app.ts')
-  : path.resolve(__dirname, '../../core/dist/app.js');
+  ? path.resolve(_dirname, '../../core/src/app.ts')
+  : path.resolve(_dirname, '../../core/dist/app.cjs');
 
 // 启动选项
 const startOptions = isDev

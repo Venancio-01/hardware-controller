@@ -23,7 +23,7 @@ export const logger = pino({
       send: (level, logEvent) => {
         // TODO: 实现远程日志发送
         if (isDevelopment) {
-          console[level](logEvent);
+          (console as any)[level](logEvent);
         }
       }
     }

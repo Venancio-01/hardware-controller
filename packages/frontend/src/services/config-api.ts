@@ -69,6 +69,12 @@ export async function exportConfig(): Promise<void> {
   }
 }
 
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  error?: string;
+}
+
 /**
  * 导入配置
  *
@@ -77,7 +83,7 @@ export async function exportConfig(): Promise<void> {
  */
 export async function importConfig(config: Config): Promise<Config> {
   try {
-    const response = await apiFetch('/api/config/import', {
+    const response = await apiFetch<ApiResponse<Config>>('/api/config/import', {
       method: 'POST',
       body: JSON.stringify({ config }),
     });

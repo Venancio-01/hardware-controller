@@ -31,9 +31,12 @@ export function NetworkConfigForm({ form }: NetworkConfigFormProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>网络配置</CardTitle>
+    <Card className="transition-all duration-300 hover:shadow-md border-border/50">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Wifi className="h-5 w-5 text-muted-foreground" />
+          网络配置
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
@@ -140,7 +143,7 @@ function CheckConflictButton({ form }: CheckConflictButtonProps) {
 
     const conflictRequest = {
       config: formData,
-      checkTypes: ['all'],
+      checkTypes: ['all'] as any,
       timeout: 5000,
     };
 
