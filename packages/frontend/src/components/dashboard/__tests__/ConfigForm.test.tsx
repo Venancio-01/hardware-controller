@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RESTART_ALERT_KEY } from '@/hooks/useUpdateConfig';
@@ -63,10 +63,10 @@ describe('ConfigForm Component', () => {
     const mockApiFetch = vi.fn().mockReturnValue(new Promise(() => { })); // Never resolves to simulate loading
     vi.mocked(apiFetch).mockImplementation(mockApiFetch);
 
-    render(<ConfigForm />, { wrapper });
+    const { container } = render(<ConfigForm />, { wrapper });
 
-    // Should show skeleton (loading state)
-    expect(screen.getByRole('status')).toBeInTheDocument(); // Loading skeleton based on skeleton.tsx
+    // Should show skeleton (loading state) - Skeleton uses animate-pulse class
+    expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
   });
 
   it('should call apiFetch with the correct endpoint', async () => {
@@ -99,7 +99,24 @@ describe('ConfigForm Component', () => {
     render(<ConfigForm />, { wrapper });
 
     await waitFor(() => {
-      expect(screen.getByText(/需要重启系统才能生效/)).toBeInTheDocument();
+      // Find the alert by its text content
+      const alertText = screen.getByText(/需要重启系统才能生效/);
+      // Traverse up to find the visible Alert container (the one with the border/bg classes)
+      // Note: checking specifically for the button near the text
+      const alertContainer = (alertText as HTMLElement).closest('div[role="alert"]') || (alertText as HTMLElement).closest('.border-amber-500');
+
+      expect(alertContainer).toBeInTheDocument();
+      if (alertContainer) {
+        // Check for the presence of the Restart button WITHIN the alert
+        // Using getAllByRole because there might be other buttons in the DOM,
+        // but using within() scopes it to the alert.
+        // However, verifying it is simply present in the document is acceptable if we know we added it.
+        // But "getByRole" fails if multiple.
+
+        // Assuming we want to verify the button IS in the alert:
+        const button = within(alertContainer as HTMLElement).getByRole('button', { name: /立即重启/ });
+        expect(button).toBeInTheDocument();
+      }
     });
   });
 

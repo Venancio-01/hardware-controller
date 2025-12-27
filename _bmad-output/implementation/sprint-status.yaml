@@ -43,24 +43,24 @@ development_status:
   # Epic 1: Secure Access & Process Visibility
   epic-1: in-progress
   1-1-implement-core-process-manager: done
-  1-2-implement-status-monitoring-logging: backlog
-  1-3-expose-process-status-via-api: backlog
-  1-4-implement-frontend-status-dashboard: backlog
-  1-5-enforce-authentication-for-system-access: backlog
+  1-2-implement-status-monitoring-logging: done
+  1-3-expose-process-status-via-api: done
+  1-4-implement-frontend-status-dashboard: done
+  1-5-enforce-authentication-for-system-access: done
   epic-1-retrospective: optional
 
   # Epic 2: Process Control & Reliability
-  epic-2: backlog
-  2-1-implement-manual-restart-control: backlog
-  2-2-implement-automatic-crash-recovery: backlog
+  epic-2: in-progress
+  2-1-implement-manual-restart-control: done
+  2-2-implement-automatic-crash-recovery: done
   epic-2-retrospective: optional
 
   # Epic 3: Application Configuration Management
-  epic-3: backlog
-  3-1-retrieve-and-display-current-configuration: backlog
-  3-2-implement-configuration-update-logic: backlog
-  3-3-implement-config-form-with-real-time-validation: backlog
-  3-4-implement-save-restart-flow: backlog
+  epic-3: in-progress
+  3-1-retrieve-and-display-current-configuration: done
+  3-2-implement-configuration-update-logic: done
+  3-3-implement-config-form-with-real-time-validation: done
+  3-4-implement-save-restart-flow: in-progress
   3-5-handle-validation-system-errors: backlog
   epic-3-retrospective: optional
 

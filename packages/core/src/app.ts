@@ -5,11 +5,14 @@ import { initializeHardware } from './hardware/initializer.js';
 import { initializeVoiceBroadcast } from './voice-broadcast/initializer.js';
 import { resetAllRelays } from './relay/index.js';
 import { createMainActor } from './state-machines/main-machine.js';
+import { sendReady, sendError } from './ipc/status-reporter.js';
+import { forwardLog } from './ipc/log-forwarder.js';
 
 /**
  * 启动应用程序
  */
 export async function startApp() {
+  // 使用标准 logger，关键日志通过 forwardLog 手动转发到 Backend
   const appLogger = createModuleLogger('App');
   const manager = new HardwareCommunicationManager();
 
@@ -33,6 +36,10 @@ export async function startApp() {
     // 启动主状态机
     mainActor.start();
 
+    // 发送 CORE:READY 消息通知 Backend
+    sendReady();
+    appLogger.info('Core 进程已就绪，已通知 Backend');
+
     // 关闭处理
     const shutdown = async () => {
       appLogger.info('\n正在关闭...');
@@ -46,6 +53,8 @@ export async function startApp() {
     process.on('SIGTERM', shutdown);
 
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    sendError(errorMessage);
     appLogger.error('启动应用程序失败', error as Error);
     process.exit(1);
   }

@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { StatusService } from '../services/status.service.js';
-import { createSimpleLogger } from 'shared';
+import { createModuleLogger } from 'shared';
 
-const logger = createSimpleLogger();
+const logger = createModuleLogger('StatusRoutes');
 
 const router: Router = Router();
 const statusService = new StatusService();

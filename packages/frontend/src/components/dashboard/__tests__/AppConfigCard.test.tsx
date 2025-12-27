@@ -111,15 +111,24 @@ describe('AppConfigCard', () => {
   })
 
   it('应该在无效输入时显示错误图标', async () => {
-    render(<AppConfigCardTestWrapper />)
+    const { container } = render(<AppConfigCardTestWrapper />)
     const user = userEvent.setup()
 
     const timeoutInput = screen.getByLabelText('操作超时')
     await user.clear(timeoutInput)
     await user.type(timeoutInput, '500')
+    // 触发 blur 事件以完成验证
+    await user.tab()
 
+    // 先等待验证错误消息出现，证明验证已完成
     await waitFor(() => {
-      const icon = screen.getByRole('graphics-symbol', { hidden: true })
+      expect(screen.getByText(/超时时间不能少于1000毫秒/)).toBeInTheDocument()
+    })
+
+    // 验证错误出现后，检查错误图标
+    await waitFor(() => {
+      // 验证图标应该是 X (destructive) 图标，使用 SVG 选择器
+      const icon = container.querySelector('svg.text-destructive')
       expect(icon).toBeInTheDocument()
     })
   })

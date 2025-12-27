@@ -11,6 +11,7 @@ import configRoutes from './routes/config.routes.js';
 import statusRoutes from './routes/status.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import systemRoutes from './routes/system.routes.js';
+import coreStatusRoutes from './routes/core-status.routes.js';
 import conflictDetectionRoutes from './routes/conflict-detection.routes.js';
 import { authMiddleware } from './middleware/auth.middleware.js';
 
@@ -32,7 +33,7 @@ export function createServer(): express.Application {
     app.use((req, res, next) => {
       res.header('Access-Control-Allow-Origin', 'http://localhost:5173');
       res.header('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE');
-      res.header('Access-Control-Allow-Headers', 'Content-Type');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
       if (req.method === 'OPTIONS') {
         res.sendStatus(200);
         return;
@@ -56,6 +57,7 @@ export function createServer(): express.Application {
   app.use('/api/config/check-conflict', conflictDetectionRoutes); // 冲突检测作为config子路由
   app.use('/api/status', statusRoutes);
   app.use('/api/system', systemRoutes);
+  app.use('/api/system/core', coreStatusRoutes);
 
   // 错误处理中间件
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

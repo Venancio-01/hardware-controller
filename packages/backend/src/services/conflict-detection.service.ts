@@ -4,14 +4,11 @@
  * 提供网络配置冲突检测功能，包括IP冲突检测、端口占用检测和网络配置合理性检查
  */
 
-import { ConflictDetectionRequest, ConflictDetectionResult, ConflictCheckType } from 'shared';
-import { createSimpleLogger } from 'shared';
-
-const baseLogger = createSimpleLogger();
+import { ConflictDetectionRequest, ConflictDetectionResult, ConflictCheckType, createModuleLogger } from 'shared';
 import { ConfigService } from './config.service.js';
 import { connectionTestService } from './connection-test.service.js';
 
-const logger = baseLogger.child({ module: 'ConflictDetectionService' });
+const logger = createModuleLogger('ConflictDetectionService');
 
 export class ConflictDetectionService {
   private configService: ConfigService;

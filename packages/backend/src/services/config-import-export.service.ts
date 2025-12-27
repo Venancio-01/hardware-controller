@@ -6,10 +6,9 @@
 
 import { readFile, writeFile, rename, copyFile } from 'fs/promises';
 import { join } from 'path';
-import { configSchema, type Config } from 'shared';
-import { createSimpleLogger } from 'shared';
+import { configSchema, type Config, createModuleLogger } from 'shared';
 
-const logger = createSimpleLogger();
+const logger = createModuleLogger('ConfigImportExportService');
 
 /**
  * 配置导入/导出服务类 - 提供配置文件的导入和导出功能

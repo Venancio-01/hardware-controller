@@ -1,8 +1,7 @@
 import { Router } from 'express';
-import { createSimpleLogger } from 'shared';
+import { createModuleLogger, loginRequestSchema } from 'shared';
 
-const logger = createSimpleLogger();
-import { loginRequestSchema } from 'shared';
+const logger = createModuleLogger('AuthRoutes');
 import jwt from 'jsonwebtoken';
 import { authConfig } from '../config/auth.config.js';
 

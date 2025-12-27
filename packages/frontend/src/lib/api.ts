@@ -63,3 +63,12 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
   // 如果有 data 字段,返回 data; 否则返回整个响应对象
   return json.data !== undefined ? json.data as T : json as T;
 }
+
+/**
+ * 重启 Core 进程
+ */
+export async function restartCore(): Promise<{ success: boolean; message: string }> {
+  return apiFetch<{ success: boolean; message: string }>('/api/system/core/restart', {
+    method: 'POST',
+  });
+}

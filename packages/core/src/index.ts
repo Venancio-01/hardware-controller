@@ -2,6 +2,9 @@
 export * from './config/index.js';
 export * from 'shared';
 
+// ==================== IPC 通信 ====================
+export * from './ipc/index.js';
+
 // ==================== 类型定义 ====================
 export * from './types/index.js';
 export * from './types/state-machine.js';

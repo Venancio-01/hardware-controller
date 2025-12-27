@@ -1,6 +1,5 @@
-import React from 'react';
 import { UseFormReturn, useFieldArray } from 'react-hook-form';
-import { networkConfigSchema, type Config } from 'shared';
+import { type Config } from 'shared';
 import {
   FormControl,
   FormField,
@@ -12,10 +11,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { X, Plus, Wifi, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, Wifi, Loader2, AlertTriangle, X } from 'lucide-react';
 import { useTestConnection } from '@/hooks/useTestConnection';
 import { useCheckConflict } from '@/hooks/useCheckConflict';
 import { toast } from 'sonner';
+import { getValidationIcon } from '@/components/ui/ValidationIcon';
 
 interface NetworkConfigFormProps {
   form: UseFormReturn<Config>; // 使用父表单的实例
@@ -26,6 +26,13 @@ export function NetworkConfigForm({ form }: NetworkConfigFormProps) {
     control: form.control,
     name: 'dns',
   });
+
+  // 验证图标辅助函数
+  const renderValidationIcon = (
+    fieldName: keyof Config | `dns.${number}`
+  ) => {
+    return getValidationIcon(form, fieldName as any);
+  };
 
   return (
     <Card>
@@ -41,9 +48,12 @@ export function NetworkConfigForm({ form }: NetworkConfigFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>IP 地址</FormLabel>
-                  <FormControl>
-                    <Input placeholder="192.168.1.100" {...field} />
-                  </FormControl>
+                  <div className="relative">
+                    <FormControl>
+                      <Input placeholder="192.168.1.100" {...field} />
+                    </FormControl>
+                    {renderValidationIcon("ipAddress")}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
@@ -55,9 +65,12 @@ export function NetworkConfigForm({ form }: NetworkConfigFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>子网掩码</FormLabel>
-                  <FormControl>
-                    <Input placeholder="255.255.255.0" {...field} />
-                  </FormControl>
+                  <div className="relative">
+                    <FormControl>
+                      <Input placeholder="255.255.255.0" {...field} />
+                    </FormControl>
+                    {renderValidationIcon("subnetMask")}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
@@ -69,9 +82,12 @@ export function NetworkConfigForm({ form }: NetworkConfigFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>网关</FormLabel>
-                  <FormControl>
-                    <Input placeholder="192.168.1.1" {...field} />
-                  </FormControl>
+                  <div className="relative">
+                    <FormControl>
+                      <Input placeholder="192.168.1.1" {...field} />
+                    </FormControl>
+                    {renderValidationIcon("gateway")}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
@@ -83,17 +99,20 @@ export function NetworkConfigForm({ form }: NetworkConfigFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>端口</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="8080"
-                      {...field}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value, 10);
-                        field.onChange(isNaN(value) ? 0 : value);
-                      }}
-                    />
-                  </FormControl>
+                  <div className="relative">
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="8080"
+                        {...field}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value, 10);
+                          field.onChange(isNaN(value) ? 0 : value);
+                        }}
+                      />
+                    </FormControl>
+                    {renderValidationIcon("port")}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
@@ -123,9 +142,12 @@ export function NetworkConfigForm({ form }: NetworkConfigFormProps) {
                 render={({ field: inputField }) => (
                   <FormItem>
                     <div className="flex items-center space-x-2">
-                      <FormControl>
-                        <Input placeholder="8.8.8.8" {...inputField} />
-                      </FormControl>
+                      <div className="relative flex-1">
+                        <FormControl>
+                          <Input placeholder="8.8.8.8" {...inputField} />
+                        </FormControl>
+                        {renderValidationIcon(`dns.${index}` as keyof Config)}
+                      </div>
                       <Button
                         type="button"
                         variant="ghost"

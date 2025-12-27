@@ -4,12 +4,9 @@
  * 提供网络连接测试功能，包括 TCP/UDP 连接性测试
  */
 
-import { TestConnectionRequest, TestConnectionResult } from 'shared';
-import { createSimpleLogger } from 'shared';
+import { TestConnectionRequest, TestConnectionResult, createModuleLogger } from 'shared';
 
-const baseLogger = createSimpleLogger();
-
-const logger = baseLogger.child({ module: 'ConnectionTestService' });
+const logger = createModuleLogger('ConnectionTestService');
 
 export class ConnectionTestService {
   /**

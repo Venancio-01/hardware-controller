@@ -9,6 +9,7 @@ import { createServer } from './server.js';
 import { logger } from 'shared';
 import * as path from 'path';
 import { CoreProcessManager } from './services/core-process-manager.js';
+import { WebSocketService } from './services/websocket.service.js';
 import { shutdownManager } from './utils/shutdown-manager.js';
 
 const PORT = parseInt(process.env.PORT || '3000');
@@ -20,10 +21,14 @@ const server = app.listen(PORT, () => {
   logger.info(`🚀 服务器运行在端口 ${PORT}`);
   logger.info(`📦 环境: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`📝 日志级别: ${process.env.LOG_LEVEL || 'info'}`);
+
+  // 初始化 WebSocket 服务
+  WebSocketService.initialize(server);
+  logger.info('🔌 WebSocket 服务已初始化');
 });
 
 // 启动 Core Process Manager
-const coreProcessManager = new CoreProcessManager();
+const coreProcessManager = CoreProcessManager.getInstance();
 const isDev = process.env.NODE_ENV === 'development';
 
 // 确定 Core 脚本路径
@@ -52,6 +57,11 @@ shutdownManager.registerHandler('http-server', async () => {
       resolve();
     });
   });
+});
+
+// 注册 WebSocket 服务关闭处理器
+shutdownManager.registerHandler('websocket', async () => {
+  await WebSocketService.close();
 });
 
 // 优雅关闭处理

@@ -2,10 +2,10 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { connectionTestService } from '../services/connection-test.service.js';
 import { RestartService } from '../services/restart.service.js';
-import { createSimpleLogger } from 'shared';
+import { CoreProcessManager } from '../services/core-process-manager.js';
+import { createModuleLogger, testConnectionRequestSchema } from 'shared';
 
-const logger = createSimpleLogger();
-import { testConnectionRequestSchema } from 'shared';
+const logger = createModuleLogger('SystemRoutes');
 
 const router: Router = Router();
 
@@ -85,6 +85,47 @@ router.post('/restart', async (req, res) => {
     res.status(500).json({
       success: false,
       message: '启动系统重启失败'
+    });
+  }
+});
+
+const coreProcessManager = CoreProcessManager.getInstance();
+
+// Core 重启速率限制 - 防止频繁重启
+const coreRestartLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 分钟
+  max: 3, // 每分钟最多 3 次请求
+  message: {
+    success: false,
+    error: 'Core 重启请求过于频繁，请稍后再试',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
+ * POST /api/system/core/restart
+ * 重启 Core 进程
+ */
+router.post('/core/restart', coreRestartLimiter, async (req, res) => {
+  try {
+    logger.info('Received Core restart request');
+
+    await coreProcessManager.restart();
+
+    logger.info('Core restart initiated successfully');
+
+    res.status(200).json({
+      success: true,
+      message: 'Core 进程重启已启动',
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error(`Failed to restart Core process: ${errorMessage}`);
+    res.status(500).json({
+      success: false,
+      error: '重启 Core 进程失败',
+      message: errorMessage,
     });
   }
 });

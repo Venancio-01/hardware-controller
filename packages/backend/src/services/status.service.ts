@@ -1,6 +1,6 @@
-import { createSimpleLogger } from 'shared';
+import { createModuleLogger } from 'shared';
 
-const logger = createSimpleLogger();
+const logger = createModuleLogger('StatusService');
 import type { DeviceStatus } from 'shared';
 
 export class StatusService {

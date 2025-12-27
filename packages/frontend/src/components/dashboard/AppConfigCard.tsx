@@ -17,7 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Check, X } from "lucide-react";
+import { getValidationIcon } from "@/components/ui/ValidationIcon";
 
 interface AppConfigCardProps {
   form: UseFormReturn<Config>;
@@ -25,19 +25,9 @@ interface AppConfigCardProps {
 
 export function AppConfigCard({ form }: AppConfigCardProps) {
   // Helper to render validation icon
-  const getValidationIcon = (fieldName: keyof Config) => {
-    const fieldState = form.getFieldState(fieldName);
-    const value = form.getValues(fieldName);
-
-    // Only show icons if field is dirty or touched
-    if (!fieldState.isDirty && !fieldState.isTouched) return null;
-
-    if (fieldState.invalid) {
-      return <X className="h-4 w-4 text-destructive absolute right-3 top-2.5" />;
-    }
-
-    // Show checkmark for valid values (including empty strings that are valid)
-    return <Check className="h-4 w-4 text-green-500 absolute right-3 top-2.5" />;
+  // Helper to render validation icon
+  const renderValidationIcon = (fieldName: keyof Config) => {
+    return getValidationIcon(form, fieldName);
   };
 
   return (
@@ -60,7 +50,7 @@ export function AppConfigCard({ form }: AppConfigCardProps) {
                 <FormControl>
                   <Input placeholder="输入设备 ID..." {...field} />
                 </FormControl>
-                {getValidationIcon("deviceId")}
+                {renderValidationIcon("deviceId")}
               </div>
               <FormDescription>
                 设备的唯一识别代码
@@ -85,7 +75,7 @@ export function AppConfigCard({ form }: AppConfigCardProps) {
                     onChange={e => field.onChange(Number(e.target.value))}
                   />
                 </FormControl>
-                {getValidationIcon("timeout")}
+                {renderValidationIcon("timeout")}
               </div>
               <FormDescription>
                 单位: 毫秒,必须是整数 (1000 - 30000)
@@ -110,7 +100,7 @@ export function AppConfigCard({ form }: AppConfigCardProps) {
                     onChange={e => field.onChange(Number(e.target.value))}
                   />
                 </FormControl>
-                {getValidationIcon("retryCount")}
+                {renderValidationIcon("retryCount")}
               </div>
                <FormDescription>
                 失败后的重试次数,必须是整数 (0 - 10)
@@ -135,7 +125,7 @@ export function AppConfigCard({ form }: AppConfigCardProps) {
                     onChange={e => field.onChange(Number(e.target.value))}
                   />
                 </FormControl>
-                {getValidationIcon("pollingInterval")}
+                {renderValidationIcon("pollingInterval")}
               </div>
               <FormDescription>
                 单位: 毫秒,必须是整数 (1000 - 60000)

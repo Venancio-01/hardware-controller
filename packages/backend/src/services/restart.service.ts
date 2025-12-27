@@ -1,7 +1,7 @@
 import { spawn } from 'child_process';
-import { createSimpleLogger } from 'shared';
+import { createModuleLogger } from 'shared';
 
-const logger = createSimpleLogger();
+const logger = createModuleLogger('RestartService');
 import { shutdownManager } from '../utils/shutdown-manager.js';
 
 /**

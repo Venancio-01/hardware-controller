@@ -103,12 +103,17 @@ export function ConfigForm() {
   return (
     <div className="space-y-6">
       {needsRestart && (
-        <Alert variant="default" className="border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>配置已保存</AlertTitle>
-          <AlertDescription>
-            需要重启系统才能生效。
-          </AlertDescription>
+        <Alert variant="default" className="border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100 flex items-center justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle className="mb-0">配置已保存</AlertTitle>
+            </div>
+            <AlertDescription>
+              需要重启系统才能生效。
+            </AlertDescription>
+          </div>
+          <RestartButton />
         </Alert>
       )}
 

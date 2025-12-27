@@ -50,7 +50,7 @@ export type { NetworkConfig, IPv4Address } from './types/network.types.js';
 export type { DeviceStatus, Port, Protocol } from './types/device.types.js';
 
 // API 响应类型
-export type { ApiSuccessResponse, ApiErrorResponse, ApiResponse } from './types/api.types.js';
+export type { ApiSuccessResponse, ApiErrorResponse, ApiResponse, CoreStatusResponse } from './types/api.types.js';
 
 // 认证类型
 export type { LoginRequest, LoginResponse } from './schemas/auth.schema.js';
@@ -67,7 +67,14 @@ export type {
 
 // IPC Types
 export { IpcMessages } from './types/ipc.js';
-export type { IpcPacket, IpcMessageType } from './types/ipc.js';
+export type {
+  IpcPacket,
+  IpcMessageType,
+  CoreStatus,
+  IpcLogLevel,
+  LogPayload,
+  StatusPayload,
+} from './types/ipc.js';
 
 // ============ Logger 导出 ============
 export {

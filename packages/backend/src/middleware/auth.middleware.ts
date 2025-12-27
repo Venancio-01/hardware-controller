@@ -8,7 +8,7 @@ import jwt from 'jsonwebtoken';
  */
 export function authMiddleware(req: Request, res: Response, next: NextFunction) {
   // 公开路由白名单
-  const publicPaths = ['/api/auth/login', '/api/status', '/health'];
+  const publicPaths = ['/api/auth/login', '/health'];
   if (publicPaths.includes(req.path)) {
     return next();
   }

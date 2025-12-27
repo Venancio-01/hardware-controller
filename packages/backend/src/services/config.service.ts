@@ -4,12 +4,11 @@
  * 封装所有配置文件操作，包括读取、解析和验证 config.json
  */
 
-import { readFile, writeFile, copyFile, rename } from 'fs/promises';
-import { join } from 'path';
-import { configSchema, type Config } from 'shared';
-import { createSimpleLogger } from 'shared';
+import { readFile, writeFile, copyFile, rename, unlink } from 'fs/promises';
+import { join, resolve } from 'path';
+import { configSchema, type Config, createModuleLogger } from 'shared';
 
-const logger = createSimpleLogger();
+const logger = createModuleLogger('ConfigService');
 
 const createDefaultConfig = (): Config => configSchema.parse({
   deviceId: 'device-001',
@@ -31,9 +30,12 @@ export class ConfigService {
   constructor(configPath?: string) {
     if (configPath) {
       this.configPath = configPath;
+    } else if (process.env.CONFIG_PATH) {
+      this.configPath = process.env.CONFIG_PATH;
     } else {
-      // 从 packages/backend 向上两级到项目根目录
-      this.configPath = join(process.cwd(), '..', '..', 'config.json');
+      // 默认假设运行在 packages/backend 或类似深度，尝试向上查找
+      // 生产环境通常会设置 CONFIG_PATH 环境变量
+      this.configPath = resolve(process.cwd(), '..', '..', 'config.json');
     }
   }
 
@@ -48,7 +50,7 @@ export class ConfigService {
     try {
       // 1. 读取文件
       const fileContent = await readFile(this.configPath, 'utf-8');
-      logger.info({ path: this.configPath }, '读取配置文件');
+      logger.info('读取配置文件', { path: this.configPath });
 
       // 2. 解析 JSON
       const rawData = JSON.parse(fileContent);
@@ -57,7 +59,7 @@ export class ConfigService {
       const mergedConfig = { ...defaultConfig, ...rawData };
       const result = configSchema.safeParse(mergedConfig);
       if (!result.success) {
-        logger.error({ errors: result.error.issues }, '配置验证失败');
+        logger.error('配置验证失败', { errors: result.error.issues });
         throw result.error;
       }
 
@@ -66,7 +68,7 @@ export class ConfigService {
     } catch (error: any) {
       // 处理文件不存在错误
       if (error.code === 'ENOENT') {
-        logger.warn({ path: this.configPath }, '配置文件不存在，使用默认配置');
+        logger.warn('配置文件不存在，使用默认配置', { path: this.configPath });
         return defaultConfig;
       }
 
@@ -84,27 +86,37 @@ export class ConfigService {
     // 1. 验证数据
     const result = configSchema.safeParse(newConfig);
     if (!result.success) {
-      logger.error({ errors: result.error.issues }, '更新配置验证失败');
+      logger.error('更新配置验证失败', { errors: result.error.issues });
       throw result.error;
     }
 
     const validatedConfig = result.data;
+    const tempPath = this.configPath + '.tmp';
 
     try {
       // 2. 检查是否存在并备份
       await this.ensureBackup();
 
       // 3. 原子写入 (Write Temp -> Rename)
-      const tempPath = this.configPath + '.tmp';
       const content = JSON.stringify(validatedConfig, null, 2);
 
-      logger.info({ path: this.configPath }, '开始写入新配置');
+      logger.info('开始写入新配置', { path: this.configPath });
       await writeFile(tempPath, content, 'utf-8');
       await rename(tempPath, this.configPath);
       logger.info('配置更新成功');
     } catch (error: any) {
-      logger.error({ error: error.message }, '配置更新失败');
+      logger.error('配置更新失败', { error: error.message });
       throw new Error(`配置更新失败: ${error.message}`);
+    } finally {
+      // 清理临时文件 (如果存在)
+      try {
+        await unlink(tempPath);
+      } catch (error: any) {
+        // 忽略文件不存在错误 (ENOENT)，说明 rename 成功或从未写入
+        if (error.code !== 'ENOENT') {
+          logger.warn('清理临时文件失败', { error: error.message, path: tempPath });
+        }
+      }
     }
   }
 
@@ -118,7 +130,7 @@ export class ConfigService {
 
       // 创建备份
       const backupPath = this.configPath.replace('.json', '.backup.json');
-      logger.info({ from: this.configPath, to: backupPath }, '创建配置备份');
+      logger.info('创建配置备份', { from: this.configPath, to: backupPath });
       await copyFile(this.configPath, backupPath);
     } catch (error: any) {
       // 如果文件不存在 (ENOENT)，则不需要备份，直接返回

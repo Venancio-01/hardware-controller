@@ -10,6 +10,10 @@ describe('Auth Middleware', () => {
   beforeEach(() => {
     // Reset auth config before each test
     vi.resetModules();
+    // Ensure auth is enabled by default for tests unless disabled explicitly
+    // Note: Since we are importing directly, we might need to mock the module or property if it's read-only.
+    // However, the existing tests seem to modify it.
+    (authConfig as any).enabled = true;
   });
 
   afterEach(() => {
@@ -40,7 +44,7 @@ describe('Auth Middleware', () => {
   });
 
   it('should allow access to public routes without authorization', () => {
-    const publicPaths = ['/api/auth/login', '/api/status', '/health'];
+    const publicPaths = ['/api/auth/login', '/health'];
 
     publicPaths.forEach(path => {
       const req = {
@@ -48,7 +52,10 @@ describe('Auth Middleware', () => {
         path
       } as unknown as Request;
 
-      const res = {} as unknown as Response;
+      const res = {
+        status: vi.fn().mockReturnThis(),
+        json: vi.fn()
+      } as unknown as Response;
       const next = vi.fn();
 
       authMiddleware(req, res, next);
@@ -56,6 +63,29 @@ describe('Auth Middleware', () => {
       expect(next).toHaveBeenCalled();
       expect(res.status).not.toHaveBeenCalled();
     });
+  });
+
+  it('should return 401 for /api/status without authorization', () => {
+    const req = {
+      headers: {},
+      path: '/api/status'
+    } as unknown as Request;
+
+    const res = {
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn()
+    } as unknown as Response;
+
+    const next = vi.fn();
+
+    authMiddleware(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      error: '未授权访问'
+    });
+    expect(next).not.toHaveBeenCalled();
   });
 
   it('should call next if authentication is disabled', () => {
@@ -68,7 +98,10 @@ describe('Auth Middleware', () => {
       path: '/api/config'
     } as unknown as Request;
 
-    const res = {} as unknown as Response;
+    const res = {
+        status: vi.fn(),
+        json: vi.fn()
+    } as unknown as Response;
     const next = vi.fn();
 
     authMiddleware(req, res, next);
@@ -85,7 +118,10 @@ describe('Auth Middleware', () => {
       headers: { authorization: 'Basic YWRtaW46YWRtaW4xMjM=' }, // admin:admin123
       path: '/api/config'
     } as unknown as Request;
-    const res = {} as unknown as Response;
+    const res = {
+        status: vi.fn().mockReturnThis(), // Fix: mockReturnThis for chaining
+        json: vi.fn()
+    } as unknown as Response;
     const next = vi.fn();
 
     authMiddleware(req, res, next);
@@ -123,7 +159,10 @@ describe('Auth Middleware', () => {
       headers: { authorization: `Bearer ${token}` },
       path: '/api/config'
     } as unknown as Request;
-    const res = {} as unknown as Response;
+    const res = {
+        status: vi.fn().mockReturnThis(),
+        json: vi.fn()
+    } as unknown as Response;
     const next = vi.fn();
 
     authMiddleware(req, res, next);
