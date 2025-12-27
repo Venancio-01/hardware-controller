@@ -1,7 +1,7 @@
 /**
  * 网络配置验证 Schema
  *
- * 定义网络配置的 Zod 验证模式,包括 IP 地址、子网掩码、网关和 DNS
+ * 定义网络配置的 Zod 验证模式,包括 IP 地址、子网掩码、网关和端口
  */
 
 import { z } from 'zod';
@@ -149,7 +149,7 @@ const validateGatewayInSubnet = (ip: string, mask: string, gateway: string): boo
 /**
  * 网络配置 Schema
  *
- * 包含 IP 地址、子网掩码、网关、端口和 DNS 服务器列表
+ * 包含 IP 地址、子网掩码、网关和端口
  */
 export const networkConfigSchema = z
   .object({
@@ -174,13 +174,7 @@ export const networkConfigSchema = z
      */
     port: portSchema.optional().default(80),
 
-    /**
-     * DNS 服务器列表(可选)
-     */
-    dns: z.array(ipv4Schema)
-      .max(4, { message: '最多只能配置4个DNS服务器' })
-      .optional()
-      .default([]),
+
   })
   .superRefine((data, ctx) => {
     // 如果已有格式错误，先跳过逻辑验证

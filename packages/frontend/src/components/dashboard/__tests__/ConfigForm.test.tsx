@@ -10,6 +10,16 @@ import { ApiError } from '@/lib/errors';
 // Mock mocks
 vi.mock('@/lib/api', () => ({
   apiFetch: vi.fn(),
+  restartCore: vi.fn(),
+}));
+
+// Mock RestartCoreButton component
+vi.mock('@/components/system/RestartCoreButton', () => ({
+  RestartCoreButton: ({ disabled, size }: { disabled?: boolean; size?: string }) => (
+    <button type="button" disabled={disabled}>
+      重启程序
+    </button>
+  ),
 }));
 
 vi.mock('sonner', () => ({
@@ -17,15 +27,6 @@ vi.mock('sonner', () => ({
     success: vi.fn(),
     error: vi.fn(),
   },
-}));
-
-// Mock RestartButton component
-vi.mock('@/components/system/RestartButton', () => ({
-  RestartButton: ({ disabled }: { disabled?: boolean }) => (
-    <button type="button" disabled={disabled}>
-      立即重启
-    </button>
-  ),
 }));
 
 // Mock useImportExportConfig hook
@@ -152,7 +153,6 @@ describe('ConfigForm Component', () => {
     timeout: 5000,
     retryCount: 3,
     pollingInterval: 5000,
-    dns: [],
     // Add dummy values for all other fields to be safe against Zod defaults/unregistered stripping
     NODE_ENV: 'test',
     PORT: 3000,
@@ -236,21 +236,15 @@ describe('ConfigForm Component', () => {
   });
 
   it('should render restart alert when needsRestart is true', async () => {
-    vi.mocked(apiFetch).mockResolvedValue(mockConfig);
-    render(<ConfigForm />, { wrapper });
-    await waitFor(() => {
-      expect(screen.getByTestId('app-config-card')).toBeInTheDocument();
-    });
-
-    // Cleanup previous render to ensure clean state
-    cleanup();
-
+    // Set localStorage before rendering
     localStorage.setItem(RESTART_ALERT_KEY, 'true');
+    vi.mocked(apiFetch).mockResolvedValue(mockConfig);
+
     render(<ConfigForm />, { wrapper });
 
     await waitFor(() => {
       expect(screen.getByText(/需要重启系统才能生效/)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /立即重启/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /重启程序/ })).toBeInTheDocument();
     });
   });
 

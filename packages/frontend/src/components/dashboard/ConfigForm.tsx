@@ -5,7 +5,8 @@ import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { AppConfigCard } from "./AppConfigCard";
 import { NetworkConfigForm } from "@/components/config/NetworkConfigForm";
-import { RestartButton } from "@/components/system/RestartButton";
+import { HardwareConfigForm } from "@/components/config/HardwareConfigForm";
+import { RestartCoreButton } from "@/components/system/RestartCoreButton";
 import { Save, Loader2, Circle, AlertCircle, Download, Upload, AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQuery } from '@tanstack/react-query'
@@ -47,28 +48,36 @@ export function ConfigForm() {
   const [showNetworkWarning, setShowNetworkWarning] = useState(false);
   const [pendingValues, setPendingValues] = useState<Config | null>(null);
 
+  // Track if form has been initialized with server config
+  const [initialized, setInitialized] = useState(false);
+
   const form = useForm<Config>({
     resolver: zodResolver(configSchema),
+    // 默认值用于表单初始化，确保通过 Zod 验证
+    // 实际配置将从服务器加载后覆盖这些值
+    // TODO: deviceId 应该使用唯一 ID 生成或让用户提供，当前使用占位符
     defaultValues: {
-      deviceId: '',
+      deviceId: 'device-001', // 占位符，生产环境应使用唯一 ID 或由用户提供
       timeout: 3000,
       retryCount: 3,
       pollingInterval: 5000,
-      ipAddress: '',
-      subnetMask: '',
-      gateway: '',
+      // 网络配置默认值与 schema.default 保持一致
+      // 注意：这些值仅用于初始验证，实际使用时应配置正确的网络参数
+      ipAddress: '127.0.0.1',
+      subnetMask: '255.255.255.0',
+      gateway: '127.0.0.1',
       port: 80,
-      dns: [],
     },
     mode: "onChange",
   });
 
-  // Update form values when config is loaded
+  // Update form values when config is loaded (only once to prevent race conditions)
   useEffect(() => {
-    if (config) {
+    if (config && !initialized) {
       form.reset(config);
+      setInitialized(true);
     }
-  }, [config, form]);
+  }, [config, form, initialized]);
 
   const { isDirty, isValid } = form.formState;
 
@@ -101,8 +110,7 @@ export function ConfigForm() {
       config?.ipAddress !== mergedValues.ipAddress ||
       config?.subnetMask !== mergedValues.subnetMask ||
       config?.gateway !== mergedValues.gateway ||
-      config?.port !== mergedValues.port ||
-      JSON.stringify(config?.dns ?? []) !== JSON.stringify(mergedValues.dns ?? [])
+      config?.port !== mergedValues.port
     );
 
     // 如果网络配置更改，显示警告对话框
@@ -190,7 +198,7 @@ export function ConfigForm() {
               需要重启系统才能生效。
             </AlertDescription>
           </div>
-          <RestartButton />
+          <RestartCoreButton />
         </Alert>
       )}
 
@@ -201,6 +209,9 @@ export function ConfigForm() {
 
           {/* 网络配置卡片 */}
           <NetworkConfigForm form={form} />
+
+          {/* 硬件配置卡片 */}
+          <HardwareConfigForm form={form} />
 
           {/* 操作按钮区域 */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4">
@@ -254,7 +265,7 @@ export function ConfigForm() {
                 )}
               </Button>
 
-              <RestartButton disabled={isPending} />
+              <RestartCoreButton size="lg" disabled={isPending} />
               <Button
                 type="submit"
                 disabled={isPending || !isValid || !isDirty}

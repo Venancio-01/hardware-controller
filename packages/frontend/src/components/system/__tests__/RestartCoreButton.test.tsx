@@ -34,15 +34,15 @@ describe('RestartCoreButton', () => {
 
   it('should render the restart button', () => {
     render(<RestartCoreButton />, { wrapper });
-    expect(screen.getByText('重启 Core')).toBeInTheDocument();
+    expect(screen.getByText('重启程序')).toBeInTheDocument();
   });
 
   it('should open alert dialog when clicked', async () => {
     render(<RestartCoreButton />, { wrapper });
 
-    fireEvent.click(screen.getByText('重启 Core'));
+    fireEvent.click(screen.getByText('重启程序'));
 
-    expect(screen.getByText('确定要重启硬件控制服务吗？')).toBeInTheDocument();
+    expect(screen.getByText('确定要重启程序吗？')).toBeInTheDocument();
     expect(screen.getByText('正在执行的任务可能会中断，重启过程需要几秒钟。')).toBeInTheDocument();
   });
 
@@ -52,7 +52,7 @@ describe('RestartCoreButton', () => {
     render(<RestartCoreButton />, { wrapper });
 
     // Open dialog
-    fireEvent.click(screen.getByText('重启 Core'));
+    fireEvent.click(screen.getByText('重启程序'));
 
     // Click confirm
     const confirmBtn = screen.getByRole('button', { name: '确认重启' });
@@ -68,7 +68,7 @@ describe('RestartCoreButton', () => {
 
     render(<RestartCoreButton />, { wrapper });
 
-    fireEvent.click(screen.getByText('重启 Core'));
+    fireEvent.click(screen.getByText('重启程序'));
     fireEvent.click(screen.getByRole('button', { name: '确认重启' }));
 
     await waitFor(() => {

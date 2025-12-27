@@ -8,9 +8,8 @@ describe('networkConfigSchema', () => {
       subnetMask: '255.255.255.0',
       gateway: '192.168.1.1',
       port: 8080,
-      dns: ['8.8.8.8', '1.1.1.1'],
     };
-    
+
     const result = networkConfigSchema.safeParse(validConfig);
     expect(result.success).toBe(true);
   });
@@ -83,34 +82,5 @@ describe('networkConfigSchema', () => {
     }
   });
 
-  it('should validate optional DNS', () => {
-     const noDns = {
-      ipAddress: '192.168.1.100',
-      subnetMask: '255.255.255.0',
-      gateway: '192.168.1.1',
-      port: 8080,
-    };
-    expect(networkConfigSchema.safeParse(noDns).success).toBe(true);
 
-     const invalidDns = {
-      ...noDns,
-      dns: ['invalid-ip'],
-    };
-    expect(networkConfigSchema.safeParse(invalidDns).success).toBe(false);
-  });
-
-  it('should fail if more than 4 DNS servers are provided', () => {
-    const tooManyDns = {
-      ipAddress: '192.168.1.100',
-      subnetMask: '255.255.255.0',
-      gateway: '192.168.1.1',
-      port: 8080,
-      dns: ['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1', '208.67.222.222'], // 5 DNS servers
-    };
-    const result = networkConfigSchema.safeParse(tooManyDns);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues.some(issue => issue.message.includes('最多只能配置4个DNS服务器'))).toBe(true);
-    }
-  });
 });

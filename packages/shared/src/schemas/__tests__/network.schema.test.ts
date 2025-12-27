@@ -14,38 +14,14 @@ describe('networkConfigSchema 验证测试', () => {
         ipAddress: '192.168.1.100',
         subnetMask: '255.255.255.0',
         gateway: '192.168.1.1',
-        port: 8080,
-        dns: ['8.8.8.8', '8.8.4.4'],
+
       };
 
       const result = networkConfigSchema.safeParse(validNetwork);
       expect(result.success).toBe(true);
     });
 
-    it('应该接受不包含 DNS 的网络配置', () => {
-      const network = {
-        ipAddress: '10.0.0.50',
-        subnetMask: '255.255.255.0',
-        gateway: '10.0.0.1',
-        port: 3000,
-      };
 
-      const result = networkConfigSchema.safeParse(network);
-      expect(result.success).toBe(true);
-    });
-
-    it('应该接受空数组的 DNS', () => {
-      const network = {
-        ipAddress: '172.16.0.10',
-        subnetMask: '255.255.0.0',
-        gateway: '172.16.0.1',
-        port: 5000,
-        dns: [],
-      };
-
-      const result = networkConfigSchema.safeParse(network);
-      expect(result.success).toBe(true);
-    });
   });
 
   describe('无效 IP 地址格式验证', () => {
@@ -182,33 +158,7 @@ describe('networkConfigSchema 验证测试', () => {
     });
   });
 
-  describe('DNS 数组验证', () => {
-    it('应该接受多个有效的 DNS 服务器', () => {
-      const network = {
-        ipAddress: '192.168.1.100',
-        subnetMask: '255.255.255.0',
-        gateway: '192.168.1.1',
-        port: 8080,
-        dns: ['8.8.8.8', '8.8.4.4', '1.1.1.1'],
-      };
 
-      const result = networkConfigSchema.safeParse(network);
-      expect(result.success).toBe(true);
-    });
-
-    it('应该拒绝包含无效 IP 的 DNS 数组', () => {
-      const network = {
-        ipAddress: '192.168.1.100',
-        subnetMask: '255.255.255.0',
-        gateway: '192.168.1.1',
-        port: 8080,
-        dns: ['8.8.8.8', 'invalid-dns'],
-      };
-
-      const result = networkConfigSchema.safeParse(network);
-      expect(result.success).toBe(false);
-    });
-  });
 
   describe('边界情况验证', () => {
     it('应该拒绝 IP 地址为网络地址', () => {

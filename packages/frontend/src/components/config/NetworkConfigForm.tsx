@@ -1,4 +1,4 @@
-import { UseFormReturn, useFieldArray } from 'react-hook-form';
+import { UseFormReturn } from 'react-hook-form';
 import { type Config } from 'shared';
 import {
   FormControl,
@@ -10,8 +10,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Plus, Wifi, Loader2, AlertTriangle, X } from 'lucide-react';
+import { Loader2, AlertTriangle, Wifi } from 'lucide-react';
 import { useTestConnection } from '@/hooks/useTestConnection';
 import { useCheckConflict } from '@/hooks/useCheckConflict';
 import { toast } from 'sonner';
@@ -22,16 +21,13 @@ interface NetworkConfigFormProps {
 }
 
 export function NetworkConfigForm({ form }: NetworkConfigFormProps) {
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: 'dns',
-  });
+  // 验证图标辅助函数
 
   // 验证图标辅助函数
   const renderValidationIcon = (
-    fieldName: keyof Config | `dns.${number}`
+    fieldName: keyof Config
   ) => {
-    return getValidationIcon(form, fieldName as any);
+    return getValidationIcon(form, fieldName);
   };
 
   return (
@@ -119,50 +115,7 @@ export function NetworkConfigForm({ form }: NetworkConfigFormProps) {
             />
           </div>
 
-          {/* DNS Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label>DNS 服务器 (可选)</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => append('8.8.8.8')}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                添加 DNS
-              </Button>
-            </div>
 
-            {fields.map((field, index) => (
-              <FormField
-                key={field.id}
-                control={form.control}
-                name={`dns.${index}`}
-                render={({ field: inputField }) => (
-                  <FormItem>
-                    <div className="flex items-center space-x-2">
-                      <div className="relative flex-1">
-                        <FormControl>
-                          <Input placeholder="8.8.8.8" {...inputField} />
-                        </FormControl>
-                        {renderValidationIcon(`dns.${index}` as keyof Config)}
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => remove(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ))}
-          </div>
 
           {/* 冲突检测和连接测试按钮 */}
           <div className="pt-4 border-t space-y-3">
@@ -187,7 +140,7 @@ function CheckConflictButton({ form }: CheckConflictButtonProps) {
 
     const conflictRequest = {
       config: formData,
-      checkTypes: ['all'] as const,
+      checkTypes: ['all'],
       timeout: 5000,
     };
 

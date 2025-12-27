@@ -32,7 +32,7 @@ const MockNetworkConfigForm = ({ defaultValues }: { defaultValues?: Partial<Netw
       subnetMask: '255.255.255.0',
       gateway: '192.168.1.1',
       port: 8080,
-      dns: ['8.8.8.8'],
+
       ...defaultValues,
     },
   });
@@ -58,7 +58,7 @@ const initialConfig: Partial<NetworkConfig> = {
   subnetMask: '255.255.255.0',
   gateway: '192.168.1.1',
   port: 8080,
-  dns: ['8.8.8.8'],
+
 };
 
 describe('NetworkConfigForm', () => {
@@ -93,38 +93,9 @@ describe('NetworkConfigForm', () => {
     expect(gatewayInput).toHaveValue('10.0.0.1');
   });
 
-  it('allows adding DNS server', async () => {
-    const user = userEvent.setup();
-    render(<MockNetworkConfigForm defaultValues={initialConfig} />);
 
-    // Initially one DNS field should be present
-    expect(screen.getAllByPlaceholderText('8.8.8.8')).toHaveLength(1);
 
-    // Click the "Add DNS" button
-    const addButton = screen.getByText(/添加 DNS/);
-    await user.click(addButton);
 
-    // Now there should be two DNS fields
-    const dnsInputs = screen.getAllByPlaceholderText('8.8.8.8');
-    expect(dnsInputs).toHaveLength(2);
-  });
-
-  it('allows removing DNS server', async () => {
-    const user = userEvent.setup();
-    render(<MockNetworkConfigForm defaultValues={{ ...initialConfig, dns: ['8.8.8.8', '1.1.1.1'] }} />);
-
-    // Initially two DNS fields should be present
-    const dnsInputs = screen.getAllByPlaceholderText(/8\.8\.8\.8|1\.1\.1\.1/);
-    expect(dnsInputs).toHaveLength(2);
-
-    // Click the remove button for the second DNS
-    const removeButtons = screen.getAllByRole('button', { name: '' });
-    await user.click(removeButtons[1]); // Click the second remove button
-
-    // Now there should be only one DNS field
-    const remainingInputs = screen.getAllByPlaceholderText(/8\.8\.8\.8|1\.1\.1\.1/);
-    expect(remainingInputs).toHaveLength(1);
-  });
 
   it('renders test connection button', () => {
     render(<MockNetworkConfigForm defaultValues={initialConfig} />);

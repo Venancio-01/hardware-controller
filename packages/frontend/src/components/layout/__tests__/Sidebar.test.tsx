@@ -92,9 +92,9 @@ describe('Sidebar Component', () => {
 
     render(<Sidebar />, { wrapper });
 
-    // Wait for data to be loaded and check if offline status is displayed
+    // Wait for data to be loaded and check if connection info is displayed
     await waitFor(() => {
-      expect(screen.getByText(/离线/i)).toBeInTheDocument();
+      expect(screen.getByText('192.168.1.100')).toBeInTheDocument();
     }, { timeout: 3000 });
   });
 
@@ -111,7 +111,7 @@ describe('Sidebar Component', () => {
     render(<Sidebar />, { wrapper });
 
     await waitFor(() => {
-      expect(screen.getByText('Core 状态')).toBeInTheDocument();
+      expect(screen.getByText('程序状态')).toBeInTheDocument();
     });
 
     expect(screen.getByText('已连接')).toBeInTheDocument(); // WS badge

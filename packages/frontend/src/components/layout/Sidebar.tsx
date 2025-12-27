@@ -3,7 +3,7 @@ import { apiFetch } from '@/lib/api'
 import type { DeviceStatus } from 'shared'
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Wifi, WifiOff, Clock, Server, Globe, Hash, Loader2, Cpu, Timer, AlertCircle, Link2, Link2Off } from "lucide-react"
+import { Server, Globe, Hash, Loader2, Cpu, Timer, AlertCircle, Link2, Link2Off } from "lucide-react"
 import { useCoreStatus } from '@/hooks/useCoreStatus'
 import { CoreStatusBadge } from '@/components/system/CoreStatusBadge'
 import { formatUptime } from '@/lib/formatters'
@@ -27,13 +27,6 @@ export function Sidebar() {
     connectionError,
   } = useCoreStatus();
 
-  // 格式化时间
-  const formatTime = () => {
-    return new Date().toLocaleTimeString('zh-CN', { hour12: false });
-  };
-
-
-  const isOnline = status?.online ?? false;
   const ipAddress = status?.ipAddress || '--';
   const port = status?.port || 0;
   const protocol = status?.protocol || '--';
@@ -88,7 +81,7 @@ export function Sidebar() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-medium flex items-center gap-2">
             <Cpu className="h-4 w-4" />
-            Core 状态
+            程序状态
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -127,35 +120,6 @@ export function Sidebar() {
           {/* 重启控制 */}
           <div className="pt-2 border-t flex justify-end">
             <RestartCoreButton />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 设备状态卡片 */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-medium flex items-center gap-2">
-            {isOnline ? (
-              <Wifi className="h-4 w-4 text-emerald-500" />
-            ) : (
-              <WifiOff className="h-4 w-4 text-destructive" />
-            )}
-            设备状态
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">连接状态</span>
-            <Badge variant={isOnline ? "default" : "destructive"} className={isOnline ? "bg-emerald-500 hover:bg-emerald-600" : ""}>
-              {isOnline ? "在线" : "离线"}
-            </Badge>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5" />
-              最后更新
-            </span>
-            <span className="text-sm font-medium">{formatTime()}</span>
           </div>
         </CardContent>
       </Card>

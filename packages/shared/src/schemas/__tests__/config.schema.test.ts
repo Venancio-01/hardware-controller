@@ -7,7 +7,6 @@ describe('configSchema 验证测试', () => {
     subnetMask: '255.255.255.0',
     gateway: '192.168.1.1',
     port: 8080,
-    dns: ['8.8.8.8'],
   };
 
   const validAppConfig = {

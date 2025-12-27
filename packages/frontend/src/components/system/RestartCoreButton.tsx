@@ -15,8 +15,13 @@ import { Loader2, RotateCw } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { restartCore } from '@/lib/api';
 import { toast } from 'sonner';
+import { ButtonHTMLAttributes } from 'react';
 
-export function RestartCoreButton() {
+interface RestartCoreButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  size?: 'default' | 'sm' | 'lg' | 'icon';
+}
+
+export function RestartCoreButton({ size = 'sm', ...props }: RestartCoreButtonProps) {
   const [open, setOpen] = useState(false);
 
   const mutation = useMutation({
@@ -39,18 +44,18 @@ export function RestartCoreButton() {
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button variant="destructive" size="sm" disabled={mutation.isPending}>
+        <Button variant="destructive" size={size} disabled={mutation.isPending} {...props}>
           {mutation.isPending ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <RotateCw className="mr-2 h-4 w-4" />
           )}
-          重启 Core
+          重启程序
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>确定要重启硬件控制服务吗？</AlertDialogTitle>
+          <AlertDialogTitle>确定要重启程序吗？</AlertDialogTitle>
           <AlertDialogDescription>
             正在执行的任务可能会中断，重启过程需要几秒钟。
           </AlertDialogDescription>

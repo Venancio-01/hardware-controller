@@ -4,6 +4,13 @@
  * 初始化并启动 Express 服务器和 Core 应用程序，配置优雅关闭处理
  */
 
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
+
+// ES Module __dirname polyfill
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import express from 'express';
 import { createServer } from './server.js';
 import { logger } from 'shared';
@@ -33,8 +40,8 @@ const isDev = process.env.NODE_ENV === 'development';
 
 // 确定 Core 脚本路径
 const scriptPath = isDev
-  ? path.resolve(__dirname, '../../../core/src/app.ts')
-  : path.resolve(__dirname, '../../../core/dist/app.js');
+  ? path.resolve(__dirname, '../../core/src/app.ts')
+  : path.resolve(__dirname, '../../core/dist/app.js');
 
 // 启动选项
 const startOptions = isDev

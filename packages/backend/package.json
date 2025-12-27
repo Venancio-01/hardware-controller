@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "tsup src/index.ts --format esm --clean",
-    "dev": "tsx watch src/index.ts",
+    "dev": "cross-env NODE_ENV=development tsx watch src/index.ts",
     "start": "node -r dotenv/config dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -46,6 +46,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.0.0",
     "@types/supertest": "^6.0.3",
+    "cross-env": "^10.1.0",
     "socket.io-client": "^4.8.3",
     "supertest": "^7.1.4",
     "tsup": "^8.5.1",

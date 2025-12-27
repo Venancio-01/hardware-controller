@@ -26,7 +26,6 @@ export const conflictDetectionRequestSchema = z.object({
       subnetMask: z.string().optional(),
       gateway: z.string().optional(),
       port: z.number().optional(),
-      dns: z.array(z.string()).optional(),
     }).optional(),
   }).optional(),
   checkTypes: z.array(conflictCheckTypeSchema).optional(),
