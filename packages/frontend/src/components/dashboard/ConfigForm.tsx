@@ -5,7 +5,8 @@ import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { AppConfigCard } from "./AppConfigCard";
 import { NetworkConfigForm } from "@/components/config/NetworkConfigForm";
-import { HardwareConfigForm } from "@/components/config/HardwareConfigForm";
+import { ControlCabinetConfigForm } from "@/components/config/ControlCabinetConfigForm";
+import { AmmoCabinetConfigForm } from "@/components/config/AmmoCabinetConfigForm";
 import { RestartCoreButton } from "@/components/system/RestartCoreButton";
 import { Save, Loader2, Circle, AlertCircle, Download, Upload, AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -23,6 +24,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { HeaderActionsPortal } from "@/components/layout/HeaderActions";
 import { useUpdateConfig } from "@/hooks/useUpdateConfig";
 import { useImportExportConfig } from "@/hooks/useImportExportConfig";
 import { ApiError } from "@/lib/errors";
@@ -67,6 +74,20 @@ export function ConfigForm() {
       subnetMask: '255.255.255.0',
       gateway: '127.0.0.1',
       port: 80,
+      // 柜体继电器板配置
+      CABINET_HOST: '192.168.0.18',
+      CABINET_PORT: 50000,
+      // 控制端串口配置
+      CONTROL_SERIAL_PATH: '/dev/ttyUSB0',
+      CONTROL_SERIAL_BAUDRATE: 9600,
+      CONTROL_SERIAL_DATABITS: 8,
+      CONTROL_SERIAL_STOPBITS: 1,
+      CONTROL_SERIAL_PARITY: 'none' as const,
+      // 语音播报配置
+      VOICE_CABINET_VOLUME: 1,
+      VOICE_CABINET_SPEED: 5,
+      VOICE_CONTROL_VOLUME: 1,
+      VOICE_CONTROL_SPEED: 5,
     },
     mode: "onChange",
   });
@@ -147,7 +168,7 @@ export function ConfigForm() {
             });
           }
         }
-      // 其他错误由 useUpdateConfig 的 onError 处理（Toast 提示）
+        // 其他错误由 useUpdateConfig 的 onError 处理（Toast 提示）
       }
     });
   };
@@ -205,86 +226,18 @@ export function ConfigForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
           {/* 应用程序配置卡片 */}
-          <AppConfigCard form={form} />
+          {/* <AppConfigCard form={form} /> */}
+
+
+
+          {/* 控制柜配置卡片 */}
+          <ControlCabinetConfigForm form={form} />
+
+          {/* 供弹柜配置卡片 */}
+          <AmmoCabinetConfigForm form={form} />
 
           {/* 网络配置卡片 */}
           <NetworkConfigForm form={form} />
-
-          {/* 硬件配置卡片 */}
-          <HardwareConfigForm form={form} />
-
-          {/* 操作按钮区域 */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              {isDirty && (
-                <>
-                  <Circle className="h-2 w-2 fill-amber-500 text-amber-500" />
-                  <span>配置已修改，尚未保存</span>
-                </>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                onClick={handleExport}
-                disabled={isExporting}
-              >
-                {isExporting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    导出中...
-                  </>
-                ) : (
-                  <>
-                      <Download className="h-4 w-4 mr-2" />
-                      导出配置
-                  </>
-                )}
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                onClick={handleImport}
-                disabled={isImporting}
-              >
-                {isImporting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    导入中...
-                  </>
-                ) : (
-                  <>
-                      <Upload className="h-4 w-4 mr-2" />
-                      导入配置
-                  </>
-                )}
-              </Button>
-
-              <RestartCoreButton size="lg" disabled={isPending} />
-              <Button
-                type="submit"
-                disabled={isPending || !isValid || !isDirty}
-                size="lg"
-              >
-                {isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    保存中...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    保存配置
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
         </form>
       </Form>
 
@@ -358,6 +311,99 @@ export function ConfigForm() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Header 操作按钮 - 通过 Portal 渲染到页面 header 中 */}
+      <HeaderActionsPortal>
+        {/* 配置修改状态提示 */}
+        {isDirty && (
+          <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 font-medium mr-2 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 rounded-md">
+            <Circle className="h-2 w-2 fill-current" />
+            <span>配置已修改，尚未保存</span>
+          </div>
+        )}
+
+        {/* 导出配置 */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={handleExport}
+              disabled={isExporting}
+              aria-label="导出配置"
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>导出配置</p>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* 导入配置 */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={handleImport}
+              disabled={isImporting}
+              aria-label="导入配置"
+            >
+              {isImporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>导入配置</p>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* 重启程序 */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span>
+              <RestartCoreButton iconOnly disabled={isPending} />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>重启程序</p>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* 保存配置 */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant={isDirty && isValid ? "default" : "ghost"}
+              size="icon"
+              onClick={() => form.handleSubmit(handleSubmit)()}
+              disabled={isPending || !isValid || !isDirty}
+              aria-label="保存配置"
+            >
+              {isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{isDirty ? "保存配置" : "无需保存"}</p>
+          </TooltipContent>
+        </Tooltip>
+      </HeaderActionsPortal>
     </div>
   );
 }
+

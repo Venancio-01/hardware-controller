@@ -19,9 +19,11 @@ import { ButtonHTMLAttributes } from 'react';
 
 interface RestartCoreButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'default' | 'sm' | 'lg' | 'icon';
+  /** 当为 true 时只显示图标，不显示文字 */
+  iconOnly?: boolean;
 }
 
-export function RestartCoreButton({ size = 'sm', ...props }: RestartCoreButtonProps) {
+export function RestartCoreButton({ size = 'sm', iconOnly = false, ...props }: RestartCoreButtonProps) {
   const [open, setOpen] = useState(false);
 
   const mutation = useMutation({
@@ -41,16 +43,19 @@ export function RestartCoreButton({ size = 'sm', ...props }: RestartCoreButtonPr
     mutation.mutate();
   };
 
+  // 当 iconOnly 为 true 时，使用 icon size
+  const buttonSize = iconOnly ? 'icon' : size;
+
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button variant="destructive" size={size} disabled={mutation.isPending} {...props}>
+        <Button variant="destructive" size={buttonSize} disabled={mutation.isPending} {...props}>
           {mutation.isPending ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <Loader2 className={iconOnly ? "h-4 w-4 animate-spin" : "mr-2 h-4 w-4 animate-spin"} />
           ) : (
-            <RotateCw className="mr-2 h-4 w-4" />
+              <RotateCw className={iconOnly ? "h-4 w-4" : "mr-2 h-4 w-4"} />
           )}
-          重启程序
+          {!iconOnly && (mutation.isPending ? '重启中...' : '重启程序')}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
@@ -70,3 +75,4 @@ export function RestartCoreButton({ size = 'sm', ...props }: RestartCoreButtonPr
     </AlertDialog>
   );
 }
+

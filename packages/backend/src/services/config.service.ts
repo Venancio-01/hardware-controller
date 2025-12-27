@@ -6,6 +6,7 @@
 
 import { readFile, writeFile, copyFile, rename, unlink } from 'fs/promises';
 import { join, resolve } from 'path';
+import JSON5 from 'json5';
 import { configSchema, type Config, createModuleLogger } from 'shared';
 
 const logger = createModuleLogger('ConfigService');
@@ -35,7 +36,7 @@ export class ConfigService {
     } else {
       // 默认假设运行在 packages/backend 或类似深度，尝试向上查找
       // 生产环境通常会设置 CONFIG_PATH 环境变量
-      this.configPath = resolve(process.cwd(), '..', '..', 'config.json');
+      this.configPath = resolve(process.cwd(), '..', '..', 'config.json5');
     }
   }
 
@@ -53,7 +54,7 @@ export class ConfigService {
       logger.info('读取配置文件', { path: this.configPath });
 
       // 2. 解析 JSON
-      const rawData = JSON.parse(fileContent);
+      const rawData = JSON5.parse(fileContent);
 
       // 3. 合并默认配置后使用 Zod schema 验证
       const mergedConfig = { ...defaultConfig, ...rawData };

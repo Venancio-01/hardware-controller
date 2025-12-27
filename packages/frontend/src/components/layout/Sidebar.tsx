@@ -3,7 +3,7 @@ import { apiFetch } from '@/lib/api'
 import type { DeviceStatus } from 'shared'
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Server, Globe, Hash, Loader2, Cpu, Timer, AlertCircle, Link2, Link2Off } from "lucide-react"
+import { Loader2, Cpu, Timer, AlertCircle, Link2, Link2Off } from "lucide-react"
 import { useCoreStatus } from '@/hooks/useCoreStatus'
 import { CoreStatusBadge } from '@/components/system/CoreStatusBadge'
 import { formatUptime } from '@/lib/formatters'
@@ -27,9 +27,6 @@ export function Sidebar() {
     connectionError,
   } = useCoreStatus();
 
-  const ipAddress = status?.ipAddress || '--';
-  const port = status?.port || 0;
-  const protocol = status?.protocol || '--';
 
   // WebSocket 连接状态徽章
   const getConnectionBadge = () => {
@@ -123,37 +120,6 @@ export function Sidebar() {
           </div>
         </CardContent>
       </Card>
-
-      {/* 连接信息卡片 */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-medium flex items-center gap-2">
-            <Server className="h-4 w-4" />
-            连接信息
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground flex items-center gap-1.5">
-              <Globe className="h-3.5 w-3.5" />
-              IP 地址
-            </span>
-            <span className="text-sm font-mono font-medium">{ipAddress}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground flex items-center gap-1.5">
-              <Hash className="h-3.5 w-3.5" />
-              端口号
-            </span>
-            <span className="text-sm font-mono font-medium">{port}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">协议类型</span>
-            <Badge variant="secondary">{protocol}</Badge>
-          </div>
-        </CardContent>
-      </Card>
-
     </aside>
   )
 }

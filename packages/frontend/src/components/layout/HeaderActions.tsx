@@ -1,0 +1,44 @@
+/**
+ * HeaderActions 组件
+ *
+ * 将配置操作按钮（导出、导入、保存、重启）渲染到页面 header 区域
+ * 使用 React Portal 将按钮从 ConfigForm 渲染到 header 容器中
+ */
+
+import { createPortal } from 'react-dom';
+import { ReactNode, useEffect, useState } from 'react';
+
+export const HEADER_ACTIONS_CONTAINER_ID = 'header-actions-container';
+
+interface HeaderActionsPortalProps {
+  children: ReactNode;
+}
+
+/**
+ * HeaderActionsPortal - 将子元素通过 Portal 渲染到 header 的 actions 容器中
+ */
+export function HeaderActionsPortal({ children }: HeaderActionsPortalProps) {
+  const [container, setContainer] = useState<Element | null>(null);
+
+  useEffect(() => {
+    // 在客户端渲染时获取容器
+    const el = document.getElementById(HEADER_ACTIONS_CONTAINER_ID);
+    setContainer(el);
+  }, []);
+
+  // 如果容器不存在，不渲染任何内容
+  if (!container) {
+    return null;
+  }
+
+  return createPortal(children, container);
+}
+
+/**
+ * HeaderActionsContainer - Header 中的操作按钮容器
+ *
+ * 在 __root.tsx 的 header 中使用此组件创建 Portal 目标容器
+ */
+export function HeaderActionsContainer() {
+  return <div id={HEADER_ACTIONS_CONTAINER_ID} className="flex items-center gap-1" />;
+}
