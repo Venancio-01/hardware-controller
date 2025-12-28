@@ -42,10 +42,10 @@ export class ConfigImportExportService {
     } catch (error: any) {
       // 如果是ZodError，直接抛出，不要包装
       if (error.constructor.name === 'ZodError' || error.name === 'ZodError') {
-        logger.error({ errors: error.issues }, '配置导出失败');
+        logger.error('配置导出失败', { errors: error.issues });
         throw error;
       }
-      logger.error({ error: error.message }, '配置导出失败');
+      logger.error('配置导出失败', { error: error.message });
       throw new Error(`配置导出失败: ${error.message}`);
     }
   }
@@ -70,7 +70,7 @@ export class ConfigImportExportService {
       // 使用 Zod schema 验证配置
       const result = configSchema.safeParse(configObject);
       if (!result.success) {
-        logger.error({ errors: result.error.issues }, '导入配置验证失败');
+        logger.error('导入配置验证失败', { errors: result.error.issues });
         throw result.error;
       }
 
@@ -80,7 +80,7 @@ export class ConfigImportExportService {
       logger.info('配置导入成功');
       return result.data;
     } catch (error: any) {
-      logger.error({ error: error.message }, '配置导入失败');
+      logger.error('配置导入失败', { error: error.message });
       if (error instanceof SyntaxError) {
         throw new Error('配置文件格式无效，无法解析 JSON');
       }
@@ -100,14 +100,14 @@ export class ConfigImportExportService {
       const result = configSchema.safeParse(rawData);
 
       if (!result.success) {
-        logger.error({ errors: result.error.issues }, '配置验证失败');
+        logger.error('配置验证失败', { errors: result.error.issues });
         throw result.error;
       }
 
       return result.data;
     } catch (error: any) {
       if (error.code === 'ENOENT') {
-        logger.error({ path: this.configPath }, '配置文件不存在');
+        logger.error('配置文件不存在', { path: this.configPath });
         throw new Error('配置文件不存在');
       }
       throw error;
@@ -125,7 +125,7 @@ export class ConfigImportExportService {
       // 首先验证数据
       const result = configSchema.safeParse(config);
       if (!result.success) {
-        logger.error({ errors: result.error.issues }, '保存配置验证失败');
+        logger.error('保存配置验证失败', { errors: result.error.issues });
         const errorMessages = result.error.issues.map(issue => issue.message).join(', ');
         throw new Error(`配置验证失败: ${errorMessages}`);
       }
@@ -139,12 +139,12 @@ export class ConfigImportExportService {
       const tempPath = this.configPath + '.tmp';
       const content = JSON.stringify(config, null, 2);
 
-      logger.info({ path: this.configPath }, '开始写入新配置');
+      logger.info('开始写入新配置', { path: this.configPath });
       await writeFile(tempPath, content, 'utf-8');
       await this.atomicRename(tempPath, this.configPath);
       logger.info('配置保存成功');
     } catch (error: any) {
-      logger.error({ error: error.message }, '配置保存失败');
+      logger.error('配置保存失败', { error: error.message });
       throw new Error(`配置保存失败: ${error.message}`);
     }
   }
@@ -158,14 +158,14 @@ export class ConfigImportExportService {
     try {
       const backupPath = this.configPath + '.backup';
       await copyFile(this.configPath, backupPath);
-      logger.info({ backupPath }, '配置备份创建成功');
+      logger.info('配置备份创建成功', { backupPath });
     } catch (error: any) {
       // 如果原文件不存在(ENOENT),不视为错误
       if (error.code === 'ENOENT') {
         logger.info('配置文件不存在,跳过备份');
         return;
       }
-      logger.error({ error: error.message }, '配置备份创建失败');
+      logger.error('配置备份创建失败', { error: error.message });
       throw new Error(`配置备份创建失败: ${error.message}`);
     }
   }
@@ -180,9 +180,9 @@ export class ConfigImportExportService {
   private async atomicRename(oldPath: string, newPath: string): Promise<void> {
     try {
       await rename(oldPath, newPath);
-      logger.debug({ from: oldPath, to: newPath }, '原子重命名成功');
+      logger.debug('原子重命名成功', { from: oldPath, to: newPath });
     } catch (error: any) {
-      logger.error({ error: error.message, oldPath, newPath }, '原子重命名失败');
+      logger.error('原子重命名失败', { error: error.message, oldPath, newPath });
       throw new Error(`原子重命名失败: ${error.message}`);
     }
   }

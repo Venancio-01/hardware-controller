@@ -2,12 +2,12 @@ import { render, screen, waitFor, cleanup, fireEvent } from '@testing-library/re
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-import { NetworkConfigForm } from '../../src/components/config/NetworkConfigForm';
+import { NetworkConfigForm } from '../NetworkConfigForm';
 import { NetworkConfig, TestConnectionResult } from 'shared';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { configSchema } from 'shared';
-import { Form } from '@/components/ui/form';
+import { Form } from '../../../components/ui/form';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Create a query client for testing

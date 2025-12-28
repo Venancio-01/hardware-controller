@@ -31,11 +31,12 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     });
   } catch (error: any) {
     if (error instanceof ZodError) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: '请求数据验证失败',
         validationErrors: error.flatten().fieldErrors,
       });
+      return;
     }
 
     // 将其他错误传递给错误处理中间件

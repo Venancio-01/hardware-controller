@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
       data: status,
     });
   } catch (error) {
-    logger.error({ err: error }, '获取状态失败');
+    logger.error('获取状态失败', error as Error);
     res.status(500).json({
       success: false,
       error: '获取状态失败',

@@ -4,17 +4,28 @@
  * 定义与网络配置冲突检测相关的类型
  */
 
-import type { Config } from './config.types.js';
 
 /**
  * 冲突检测请求参数
+ * config 是可选的，因为冲突检测可能只需要检查特定字段（如 network）
  */
 export interface ConflictDetectionRequest {
-  /** 要检测的配置对象 */
-  config: Config;
+  /** 要检测的配置对象（部分配置） */
+  config?: {
+    deviceId?: string;
+    timeout?: number;
+    retryCount?: number;
+    pollingInterval?: number;
+    network?: {
+      ipAddress?: string;
+      subnetMask?: string;
+      gateway?: string;
+      port?: number;
+    };
+  };
   /** 可选：指定要检测的配置部分，默认检测所有配置 */
   checkTypes?: ConflictCheckType[];
-  /** 可选：自定义超时时间（毫秒） */
+  /** 超时时间（毫秒），默认 5000ms */
   timeout?: number;
 }
 

@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const authConfigSchema = z.object({
-  AUTH_ENABLED: z.string().transform(v => v === 'true').optional().default('false'),
+  AUTH_ENABLED: z.string().transform(v => v === 'true').optional().default(false),
   AUTH_USERNAME: z.string().default('admin'),
   AUTH_PASSWORD: z.string().default('admin123'), // 生产环境应覆盖此默认值
   AUTH_SECRET: z.string().default('default-dev-secret-key'),

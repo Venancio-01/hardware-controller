@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { TanStackRouterVite } from '@tanstack/router-vite-plugin';
+import tailwindcss from '@tailwindcss/vite';
 
 import path from 'path';
 
@@ -14,6 +15,7 @@ export default defineConfig(({ mode }) => {
         routeFileIgnorePattern: '(__tests__|.*\\.test\\.tsx?)$',
       }),
       react(),
+      tailwindcss(),
     ],
     build: {
       outDir: 'dist',

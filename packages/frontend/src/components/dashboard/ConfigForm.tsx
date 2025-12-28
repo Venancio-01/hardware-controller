@@ -278,7 +278,7 @@ export function ConfigForm() {
       </AlertDialog>
 
       {/* 导入确认对话框 */}
-      <AlertDialog open={!!pendingConfig} onOpenChange={(open) => !open && cancelImport()}>
+      <AlertDialog open={!!pendingConfig} onOpenChange={(open: boolean) => !open && cancelImport()}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">

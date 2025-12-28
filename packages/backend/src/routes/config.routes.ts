@@ -26,17 +26,19 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     });
   } catch (error: any) {
     if (error.message === '配置文件不存在') {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         error: '配置文件不存在',
       });
+      return;
     }
     if (error instanceof ZodError) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: '配置文件格式无效',
         validationErrors: error.flatten().fieldErrors,
       });
+      return;
     }
     // 将其他错误传递给错误处理中间件
     next(error);
@@ -60,11 +62,12 @@ router.put('/', async (req: Request, res: Response, next: NextFunction) => {
   } catch (error: any) {
     // 处理验证错误
     if (error instanceof ZodError) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: '配置验证失败',
         validationErrors: error.flatten().fieldErrors,
       });
+      return;
     }
 
     // 其他错误 (如文件系统错误) 传递给错误处理中间件
@@ -88,17 +91,19 @@ router.get('/export', async (req: Request, res: Response, next: NextFunction) =>
     res.send(configJson);
   } catch (error: any) {
     if (error.message === '配置文件不存在') {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         error: '配置文件不存在，无法导出',
       });
+      return;
     }
     if (error instanceof ZodError) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: '配置文件格式无效',
         validationErrors: error.flatten().fieldErrors,
       });
+      return;
     }
     // 将其他错误传递给错误处理中间件
     next(error);
@@ -115,10 +120,11 @@ router.post('/import', async (req: Request, res: Response, next: NextFunction) =
     const { config } = req.body;
 
     if (!config) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: '缺少配置数据',
       });
+      return;
     }
 
     const validatedConfig = await exportService.importConfig(config);
@@ -132,18 +138,20 @@ router.post('/import', async (req: Request, res: Response, next: NextFunction) =
   } catch (error: any) {
     // 处理验证错误
     if (error instanceof ZodError) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: '配置验证失败',
         validationErrors: error.flatten().fieldErrors,
       });
+      return;
     }
 
     if (error.message.includes('配置文件格式无效')) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: error.message,
       });
+      return;
     }
 
     // 其他错误 (如文件系统错误) 传递给错误处理中间件

@@ -71,7 +71,7 @@ export class RestartService {
 
       return true;
     } catch (error) {
-      logger.error({ error }, 'Failed to initiate restart sequence');
+      logger.error('Failed to initiate restart sequence', error as Error);
       this.isRestarting = false;
       throw error;
     }
@@ -111,11 +111,11 @@ export class RestartService {
     const currentProcess = process;
 
     // 记录重启信息
-    logger.info({
+    logger.info('Restarting process', {
       pid: currentProcess.pid,
       platform: currentProcess.platform,
       argv: currentProcess.argv
-    }, 'Restarting process');
+    });
 
     // 设置重启标志
     process.env.NODE_SWITCH_RESTARTING = 'true';
@@ -129,7 +129,7 @@ export class RestartService {
 
     // 监听子进程错误
     child.on('error', (err) => {
-      logger.error({ err }, 'Failed to spawn child process');
+      logger.error('Failed to spawn child process', err);
       process.exit(1);
     });
 

@@ -156,7 +156,7 @@ export function HardwareConfigForm({ form }: HardwareConfigFormProps) {
                     <FormLabel>波特率</FormLabel>
                     <Select
                       value={field.value?.toString()}
-                      onValueChange={(value) => field.onChange(parseInt(value, 10))}
+                      onValueChange={(value: string) => field.onChange(parseInt(value, 10))}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -184,7 +184,7 @@ export function HardwareConfigForm({ form }: HardwareConfigFormProps) {
                     <FormLabel>数据位</FormLabel>
                     <Select
                       value={field.value?.toString()}
-                      onValueChange={(value) => field.onChange(parseInt(value, 10))}
+                      onValueChange={(value: string) => field.onChange(parseInt(value, 10))}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -212,7 +212,7 @@ export function HardwareConfigForm({ form }: HardwareConfigFormProps) {
                     <FormLabel>停止位</FormLabel>
                     <Select
                       value={field.value?.toString()}
-                      onValueChange={(value) => field.onChange(parseInt(value, 10))}
+                      onValueChange={(value: string) => field.onChange(parseInt(value, 10))}
                     >
                       <FormControl>
                         <SelectTrigger>

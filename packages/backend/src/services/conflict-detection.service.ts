@@ -80,12 +80,12 @@ export class ConflictDetectionService {
 
     results.totalLatency = Date.now() - startTime;
 
-    logger.info({
+    logger.info('冲突检测完成', {
       success: results.success,
       passed: results.passedChecks,
       failed: results.failedChecks,
       totalLatency: results.totalLatency
-    }, '冲突检测完成');
+    });
 
     return results;
   }
@@ -259,7 +259,7 @@ export class ConflictDetectionService {
 
       return true;
     } catch (error) {
-      logger.error({ error }, '检查网络段时出错');
+      logger.error('检查网络段时出错', error as Error);
       return false;
     }
   }

@@ -28,11 +28,12 @@ router.post('/test-connection', connectionTestLimiter, async (req, res) => {
     const validationResult = testConnectionRequestSchema.safeParse(req.body);
 
     if (!validationResult.success) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Invalid request body',
         details: validationResult.error.issues,
       });
+      return;
     }
 
     const testRequest = validationResult.data;
@@ -48,7 +49,7 @@ router.post('/test-connection', connectionTestLimiter, async (req, res) => {
       data: result,
     });
   } catch (error) {
-    logger.error({ err: error }, '连接测试失败');
+    logger.error('连接测试失败', error as Error);
     res.status(500).json({
       success: false,
       error: '连接测试失败',
@@ -81,7 +82,7 @@ router.post('/restart', async (req, res) => {
       });
     }
   } catch (error) {
-    logger.error({ error }, 'Failed to process restart request');
+    logger.error('Failed to process restart request', error as Error);
     res.status(500).json({
       success: false,
       message: '启动系统重启失败'

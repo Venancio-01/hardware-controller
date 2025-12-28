@@ -7,10 +7,10 @@
     "baseUrl": ".",
     "paths": {
       "shared": [
-        "../shared/src/index.ts"
+        "../shared/dist/index.d.ts"
       ],
       "shared/*": [
-        "../shared/src/*"
+        "../shared/dist/*"
       ]
     }
   },

@@ -169,7 +169,7 @@ export class ConnectionTestService {
 
       return result;
     } catch (error) {
-      logger.error(`Unexpected error during connection test to ${ipAddress}:${port}`, error);
+      logger.error(`Unexpected error during connection test to ${ipAddress}:${port}`, error as Error);
       return {
         success: false,
         error: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`,

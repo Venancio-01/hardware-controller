@@ -6,6 +6,9 @@
 
 import express from 'express';
 import pinoHttp from 'pino-http';
+import * as path from 'path';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 import { logger } from 'shared';
 import configRoutes from './routes/config.routes.js';
 import statusRoutes from './routes/status.routes.js';
@@ -14,6 +17,11 @@ import systemRoutes from './routes/system.routes.js';
 import coreStatusRoutes from './routes/core-status.routes.js';
 import conflictDetectionRoutes from './routes/conflict-detection.routes.js';
 import { authMiddleware } from './middleware/auth.middleware.js';
+
+// ES Module __dirname polyfill
+const _dirname = typeof __dirname !== 'undefined'
+  ? __dirname
+  : dirname(fileURLToPath(import.meta.url));
 
 /**
  * 创建并配置 Express 应用实例
@@ -58,6 +66,25 @@ export function createServer(): express.Application {
   app.use('/api/status', statusRoutes);
   app.use('/api/system', systemRoutes);
   app.use('/api/system/core', coreStatusRoutes);
+
+  // 生产环境静态文件服务
+  if (process.env.NODE_ENV === 'production') {
+    // 静态文件目录：生产环境中 public 目录位于 app 目录外层
+    const publicPath = process.env.PUBLIC_PATH || path.resolve(_dirname, '../../public');
+    app.use(express.static(publicPath));
+
+    // SPA 回退路由：所有非 API 路由都返回 index.html
+    app.get('*', (req, res) => {
+      // 跳过 API 和健康检查路由
+      if (req.path.startsWith('/api') || req.path === '/health') {
+        res.status(404).json({ error: 'Not found' });
+        return;
+      }
+      res.sendFile(path.join(publicPath, 'index.html'));
+    });
+
+    logger.info(`📂 静态文件服务: ${publicPath}`);
+  }
 
   // 错误处理中间件
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

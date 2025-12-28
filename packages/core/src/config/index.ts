@@ -7,7 +7,7 @@
  * - production: config.production.json
  */
 
-import { createConfigReader } from 'shared/src/config/reader.js';
+import { createConfigReader } from 'shared/node';
 import type { Config } from 'shared';
 
 /**

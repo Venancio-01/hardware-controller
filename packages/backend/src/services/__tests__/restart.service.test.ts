@@ -2,13 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { RestartService } from '../restart.service';
 import { spawn } from 'child_process';
 
+// Create stable mock logger instance
+const mockLoggerInstance = {
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn()
+};
+
 // Mock dependencies
-vi.mock('../../utils/logger.js', () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn()
-  }
+vi.mock('shared', () => ({
+  createModuleLogger: vi.fn(() => mockLoggerInstance)
 }));
 
 vi.mock('../../utils/shutdown-manager.js', () => ({
@@ -31,9 +34,8 @@ describe('RestartService', () => {
     // Reset mocks
     vi.clearAllMocks();
 
-    // Get mock logger
-    const { logger } = await import('../../utils/logger.js');
-    mockLogger = logger;
+    // Use the stable mock logger instance
+    mockLogger = mockLoggerInstance;
 
     // Get mock shutdown manager
     const { shutdownManager } = await import('../../utils/shutdown-manager.js');

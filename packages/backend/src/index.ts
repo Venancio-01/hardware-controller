@@ -40,9 +40,12 @@ const coreProcessManager = CoreProcessManager.getInstance();
 const isDev = process.env.NODE_ENV === 'development';
 
 // 确定 Core 脚本路径
-const scriptPath = isDev
-  ? path.resolve(_dirname, '../../core/src/app.ts')
-  : path.resolve(_dirname, '../../core/dist/app.cjs');
+// 优先使用环境变量 CORE_SCRIPT_PATH，支持自定义部署场景
+// 如果未设置，则根据 NODE_ENV 使用默认路径
+const scriptPath = process.env.CORE_SCRIPT_PATH
+  || (isDev
+    ? path.resolve(_dirname, '../../core/src/app.ts')
+    : path.resolve(_dirname, '../core/app.cjs'));
 
 // 启动选项
 const startOptions = isDev
