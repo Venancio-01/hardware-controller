@@ -7,14 +7,14 @@
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 
-// ES Module __dirname polyfill compatible with CJS
 const _dirname = typeof __dirname !== 'undefined'
   ? __dirname
   : dirname(fileURLToPath(import.meta.url));
 
 import express from 'express';
 import { createServer } from './server.js';
-import { logger } from 'shared';
+import { logger, LogLevel } from 'shared';
+import { createConfigReader } from 'shared/node';
 import * as path from 'path';
 import { CoreProcessManager } from './services/core-process-manager.js';
 import { WebSocketService } from './services/websocket.service.js';
@@ -22,13 +22,46 @@ import { shutdownManager } from './utils/shutdown-manager.js';
 
 const PORT = parseInt(process.env.PORT || '3000');
 
+/**
+ * 字符串日志级别到 LogLevel 枚举的映射
+ */
+const LOG_LEVEL_MAP: Record<string, LogLevel> = {
+  debug: LogLevel.DEBUG,
+  trace: LogLevel.DEBUG,
+  info: LogLevel.INFO,
+  warn: LogLevel.WARN,
+  error: LogLevel.ERROR,
+  fatal: LogLevel.ERROR,
+};
+
+/**
+ * 初始化日志级别
+ */
+function initializeLogLevel() {
+  try {
+    const configReader = createConfigReader();
+    const config = configReader.getAll();
+    const configLevel = config.LOG_LEVEL?.toLowerCase() ?? 'info';
+    const logLevel = LOG_LEVEL_MAP[configLevel] ?? LogLevel.INFO;
+
+    logger.setLevel(logLevel);
+    return configLevel;
+  } catch (error) {
+    logger.warn('初始化日志级别失败，使用默认级别 INFO', { error });
+    return 'info';
+  }
+}
+
+// 初始化日志级别
+const currentLogLevel = initializeLogLevel();
+
 // 创建并启动服务器
 const app: express.Application = createServer();
 
 const server = app.listen(PORT, () => {
   logger.info(`🚀 服务器运行在端口 ${PORT}`);
   logger.info(`📦 环境: ${process.env.NODE_ENV || 'development'}`);
-  logger.info(`📝 日志级别: ${process.env.LOG_LEVEL || 'info'}`);
+  logger.info(`📝 日志级别: ${currentLogLevel}`);
 
   // 初始化 WebSocket 服务
   WebSocketService.initialize(server);

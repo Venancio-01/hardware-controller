@@ -5,6 +5,13 @@ import { Protocol } from '../types/index.js';
  */
 
 /**
+ * 语音播报目标类型
+ * - `cabinet`: 柜子端（机柜内部语音模块）
+ * - `control`: 控制端（控制台语音模块）
+ */
+export type VoiceTarget = 'cabinet' | 'control';
+
+/**
  * 语音播报客户端配置
  */
 export interface VoiceClientConfig {

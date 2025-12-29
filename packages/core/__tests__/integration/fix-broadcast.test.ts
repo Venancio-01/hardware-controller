@@ -10,11 +10,27 @@ import { config } from '../../src/config/index.js';
 
 // Mock VoiceBroadcastController
 const broadcastMock = vi.fn();
+const mockCabinetClient = { broadcast: broadcastMock };
+const mockControlClient = { broadcast: broadcastMock };
 
 vi.mock('../../src/voice-broadcast/index.js', () => ({
   VoiceBroadcastController: {
     initialize: vi.fn(),
-    getInstance: () => ({ broadcast: broadcastMock }),
+    getInstance: () => ({
+      broadcast: broadcastMock,
+      cabinet: mockCabinetClient,
+      control: mockControlClient
+    }),
+    isInitialized: () => true,
+    destroy: vi.fn()
+  },
+  VoiceBroadcast: {
+    initialize: vi.fn(),
+    getInstance: () => ({
+      broadcast: broadcastMock,
+      cabinet: mockCabinetClient,
+      control: mockControlClient
+    }),
     isInitialized: () => true,
     destroy: vi.fn()
   }
@@ -25,16 +41,16 @@ describe('Bug Reproduction: Missing apply_request Broadcast', () => {
   let relayAggregator: RelayStatusAggregator;
   let mainActor: any;
   const logger = createModuleLogger('Test');
-  
+
   beforeEach(async () => {
     manager = new HardwareCommunicationManager();
     relayAggregator = new RelayStatusAggregator();
     mainActor = createMainActor(manager, logger);
-    
+
     // Mock hardware setup
     vi.spyOn(manager, 'initialize').mockResolvedValue(undefined);
     vi.spyOn(manager, 'getAllConnectionStatus').mockReturnValue({ udp: {}, tcp: {} });
-    vi.spyOn(manager, 'sendCommand').mockResolvedValue({}); 
+    vi.spyOn(manager, 'sendCommand').mockResolvedValue({});
 
     // Setup routing logic (same as in index.ts)
     manager.onIncomingData = async (protocol, clientId, data, remote, parsedResponse) => {
@@ -94,14 +110,14 @@ describe('Bug Reproduction: Missing apply_request Broadcast', () => {
         {}
       );
     }
-    
+
     // Wait for event loop and state machine
     await new Promise(resolve => setTimeout(resolve, 200));
 
     // EXPECTATION: Broadcast should have been called
     // REality (Bug): It is not called.
     expect(broadcastMock).toHaveBeenCalledWith('已申请，请等待授权');
-    
+
     const snapshot = mainActor.getSnapshot();
     expect(snapshot.value).toBe('normal');
     expect(snapshot.children.applyAmmo.getSnapshot().value).toBe('applying');

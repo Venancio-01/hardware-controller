@@ -1,7 +1,7 @@
 import { config } from '../config/index.js';
 import { type HardwareCommunicationManager } from '../hardware/manager.js';
 import { type StructuredLogger } from 'shared';
-import { VoiceBroadcastController } from './index.js';
+import { VoiceBroadcast } from './index.js';
 import { type VoiceClientConfig } from './types.js';
 
 export async function initializeVoiceBroadcast(manager: HardwareCommunicationManager, logger: StructuredLogger) {
@@ -18,8 +18,6 @@ export async function initializeVoiceBroadcast(manager: HardwareCommunicationMan
       speed: config.VOICE_CABINET_SPEED
     });
   } else {
-    // Should verify if CABINET_HOST is actually optional? Schema says default exists.
-    // Keeping check for safety.
     logger.warn('柜体端通信配置缺失，语音模块无法初始化');
   }
 
@@ -39,7 +37,7 @@ export async function initializeVoiceBroadcast(manager: HardwareCommunicationMan
 
   if (voiceClients.length > 0) {
     try {
-      VoiceBroadcastController.initialize(manager, {
+      VoiceBroadcast.initialize(manager, {
         clients: voiceClients,
         defaultClientId: voiceClients[0]?.id
       });

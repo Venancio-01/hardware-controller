@@ -49,7 +49,7 @@ export const monitorMachine = setup({
 
         try {
           if (!isActiveReportFrame(data)) {
-            log.debug(`跳过非主动上报帧: ${data.toString('hex')} (可能是控制响应帧或查询响应帧)`);
+            log.debug(`跳过非主动上报帧: ${data.toString('hex')}`);
             return;
           }
 
@@ -66,43 +66,65 @@ export const monitorMachine = setup({
             log.info(`检测到 ${clientId} 的状态变化, 总变化计数: ${combinedUpdate.changeDescriptions.length}`);
           }
 
-          // 1. 处理申请逻辑 (CH1)
+          // 处理申请逻辑
           if (hasEdgeChanged(report, clientId, config.APPLY_INDEX)) {
             const isClosed = combinedUpdate.combinedState[config.APPLY_INDEX];
-            log.info(`[逻辑] CH1 (申请) 已变化. 闭合: ${isClosed}`);
+            log.info(`APPLY_INDEX (申请) 已变化. 闭合: ${isClosed}`);
             enqueue.sendParent({
               type: isClosed ? 'apply_request' : 'finish_request',
               priority: EventPriority.P2
             });
           }
 
-          // 2. 处理授权逻辑 (CH12 - 授权通过)
+          // 处理授权逻辑
           if (hasEdgeChanged(report, clientId, config.AUTH_PASS_INDEX)) {
             const isClosed = combinedUpdate.combinedState[config.AUTH_PASS_INDEX];
-            log.info(`[逻辑] AUTH_PASS_INDEX (CH13) 已变化. 闭合: ${isClosed}`);
+            log.info(`AUTH_PASS_INDEX (授权) 已变化. 闭合: ${isClosed}`);
             enqueue.sendParent({
               type: isClosed ? 'authorize_request' : 'refuse_request',
               priority: EventPriority.P2
             });
           }
 
-          // 3. 处理柜门状态逻辑 (CH2 - CABINET_DOOR_INDEX)
+          // 处理柜门状态逻辑
+          // 默认为 open 状态（true = 断开），触发时为 close 状态（false = 闭合）
           if (hasEdgeChanged(report, clientId, config.CABINET_DOOR_INDEX)) {
-            const isDoorOpen = combinedUpdate.combinedState[config.CABINET_DOOR_INDEX]; // true = high = 开门
-            log.info(`[逻辑] CH2 (柜门) 已变化. 开门: ${isDoorOpen}`);
+            const isOpen = combinedUpdate.combinedState[config.CABINET_DOOR_INDEX]; // true = open（断开，默认），false = close（闭合，触发）
+            log.info(`CABINET_DOOR_INDEX (柜门) 已变化. 开门: ${isOpen}`);
             enqueue.sendParent({
               type: 'cabinet_lock_changed',
               priority: EventPriority.P2,
-              isClosed: !isDoorOpen  // 反转：true = 关门, false = 开门
+              isClosed: !isOpen  // true = 关门（触发状态），false = 开门（默认状态）
             });
           }
 
-          // 4. 处理报警取消按钮逻辑 (ALARM_CANCEL_INDEX)
-          // 硬件假设：ALARM_CANCEL_INDEX 是一个 toggle 按钮，硬件层已提供防抖
-          // 如果硬件没有防抖，机械开关抖动会产生多次边沿变化（0→1→0→1）
-          // 软件层会检测到每次变化并触发事件，这是符合预期的
+          // 处理门跳开关逻辑
+          // 默认为 open 状态（true = 断开），触发时为 close 状态（false = 闭合）
+          if (hasEdgeChanged(report, clientId, config.DOOR_JUMP_SWITCH_INDEX)) {
+            const isOpen = combinedUpdate.combinedState[config.DOOR_JUMP_SWITCH_INDEX]; // true = open（断开，默认），false = close（闭合，触发）
+            log.info(`DOOR_JUMP_SWITCH_INDEX (门跳开关) 已变化. 断开: ${isOpen}`);
+            enqueue.sendParent({
+              type: 'door_jump_switch_changed',
+              priority: EventPriority.P2,
+              isTriggered: !isOpen  // true = 触发（闭合），false = 未触发（断开，默认）
+            });
+          }
+
+          // 处理钥匙开关逻辑
+          // 默认为 open 状态（true = 断开），触发时为 close 状态（false = 闭合）
+          if (hasEdgeChanged(report, clientId, config.KEY_SWITCH_INDEX)) {
+            const isOpen = combinedUpdate.combinedState[config.KEY_SWITCH_INDEX]; // true = open（断开，默认），false = close（闭合，触发）
+            log.info(`KEY_SWITCH_INDEX (钥匙开关) 已变化. 断开: ${isOpen}`);
+            enqueue.sendParent({
+              type: 'key_switch_changed',
+              priority: EventPriority.P2,
+              isTriggered: !isOpen  // true = 触发（闭合），false = 未触发（断开，默认）
+            });
+          }
+
+          // 处理报警取消按钮逻辑
           if (hasEdgeChanged(report, clientId, config.ALARM_CANCEL_INDEX)) {
-            log.info(`[逻辑] ALARM_CANCEL_INDEX (CH${config.ALARM_CANCEL_INDEX + 1}) 已变化`);
+            log.info(`ALARM_CANCEL_INDEX (报警取消) 已变化`);
             enqueue.sendParent({
               type: 'alarm_cancel_toggled',
               priority: EventPriority.P2

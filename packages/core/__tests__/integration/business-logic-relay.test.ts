@@ -10,11 +10,27 @@ import { config } from '../../src/config/index.js';
 
 // Mock VoiceBroadcastController
 const broadcastMock = vi.fn();
+const mockCabinetClient = { broadcast: broadcastMock };
+const mockControlClient = { broadcast: broadcastMock };
 
 vi.mock('../../src/voice-broadcast/index.js', () => ({
   VoiceBroadcastController: {
     initialize: vi.fn(),
-    getInstance: () => ({ broadcast: broadcastMock }),
+    getInstance: () => ({
+      broadcast: broadcastMock,
+      cabinet: mockCabinetClient,
+      control: mockControlClient
+    }),
+    isInitialized: () => true,
+    destroy: vi.fn()
+  },
+  VoiceBroadcast: {
+    initialize: vi.fn(),
+    getInstance: () => ({
+      broadcast: broadcastMock,
+      cabinet: mockCabinetClient,
+      control: mockControlClient
+    }),
     isInitialized: () => true,
     destroy: vi.fn()
   }
@@ -25,12 +41,12 @@ describe('BusinessLogic & StateMachine Integration', () => {
   let relayAggregator: RelayStatusAggregator;
   let mainActor: any;
   const logger = createModuleLogger('Test');
-  
+
   beforeEach(async () => {
     manager = new HardwareCommunicationManager();
     relayAggregator = new RelayStatusAggregator();
     mainActor = createMainActor(manager, logger);
-    
+
     // Mock hardware setup
     vi.spyOn(manager, 'initialize').mockResolvedValue(undefined);
     vi.spyOn(manager, 'getAllConnectionStatus').mockReturnValue({ udp: {}, tcp: {} });
@@ -105,7 +121,7 @@ describe('BusinessLogic & StateMachine Integration', () => {
         {}
       );
     }
-    
+
     // Wait for event loop
     await new Promise(resolve => setTimeout(resolve, 100));
 

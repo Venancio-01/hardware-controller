@@ -220,8 +220,3 @@ export const networkConfigSchema = z
       }
     }
   });
-
-/**
- * 网络配置类型定义
- */
-export type NetworkConfig = z.infer<typeof networkConfigSchema>;

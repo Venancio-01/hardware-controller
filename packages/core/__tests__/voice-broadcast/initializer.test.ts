@@ -1,5 +1,5 @@
 import { initializeVoiceBroadcast } from '../../src/voice-broadcast/initializer.js';
-import { VoiceBroadcastController } from '../../src/voice-broadcast/index.js';
+import { VoiceBroadcastController, VoiceBroadcast } from '../../src/voice-broadcast/index.js';
 
 describe('Voice Broadcast Initializer', () => {
   let mockManager: any;
@@ -14,7 +14,7 @@ describe('Voice Broadcast Initializer', () => {
       warn: vi.fn(() => {}),
       error: vi.fn(() => {})
     };
-    
+
     // Ensure clean state
     if (VoiceBroadcastController.isInitialized()) {
       VoiceBroadcastController.destroy();

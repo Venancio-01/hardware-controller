@@ -2,19 +2,33 @@ import iconv from 'iconv-lite';
 import { createModuleLogger } from 'shared';
 import { HardwareCommunicationManager } from '../hardware/manager.js';
 import { VoiceSchemas } from './validation.js';
-import type { VoiceClientConfig } from './types.js';
+import { VoiceClient } from './client.js';
+import type { VoiceClientConfig, VoiceTarget } from './types.js';
 
 /**
  * 语音播报模块控制器
- * 基于 HardwareCommunicationManager 统一通信
+ *
+ * 使用分离式访问器模式，通过 `cabinet` / `control` 属性访问不同端的语音客户端
+ *
+ * @example
+ * ```typescript
+ * const voiceBroadcast = VoiceBroadcast.getInstance();
+ *
+ * // 柜子端播报
+ * voiceBroadcast.cabinet.broadcast('已申请，请等待授权');
+ *
+ * // 控制端播报
+ * voiceBroadcast.control.broadcast('授权通过');
+ * ```
  */
-export class VoiceBroadcastController {
-  private static instance: VoiceBroadcastController | null = null;
+export class VoiceBroadcast {
+  private static instance: VoiceBroadcast | null = null;
   private static initialized = false;
 
-  private log = createModuleLogger('VoiceBroadcastController');
+  private log = createModuleLogger('VoiceBroadcast');
   private hardwareManager: HardwareCommunicationManager;
   private clientConfigs: Map<string, VoiceClientConfig>;
+  private clients: Map<VoiceTarget, VoiceClient>;
   private defaultClientId?: string;
 
   private constructor(
@@ -23,7 +37,16 @@ export class VoiceBroadcastController {
   ) {
     this.hardwareManager = hardwareManager;
     this.clientConfigs = new Map(config.clients.map((c) => [c.id, c]));
+    this.clients = new Map();
     this.defaultClientId = config.defaultClientId;
+
+    // 初始化预置的语音客户端
+    for (const clientConfig of config.clients) {
+      const target = this.getTargetFromClientId(clientConfig.id);
+      if (target) {
+        this.clients.set(target, new VoiceClient(hardwareManager, clientConfig));
+      }
+    }
 
     this.log.debug('语音播报控制器已初始化', {
       clients: config.clients.map((client) => ({
@@ -39,9 +62,69 @@ export class VoiceBroadcastController {
   }
 
   /**
-   * 播报文本
+   * 根据客户端 ID 获取目标类型
+   */
+  private getTargetFromClientId(clientId: string): VoiceTarget | null {
+    if (clientId.includes('cabinet')) return 'cabinet';
+    if (clientId.includes('control')) return 'control';
+    return null;
+  }
+
+  /**
+   * 柜子端语音客户端
+   *
+   * @example
+   * ```typescript
+   * VoiceBroadcast.getInstance().cabinet.broadcast('请取出弹药');
+   * ```
+   */
+  get cabinet(): VoiceClient {
+    const client = this.clients.get('cabinet');
+    if (!client) {
+      throw new Error('柜子端语音客户端未配置');
+    }
+    return client;
+  }
+
+  /**
+   * 控制端语音客户端
+   *
+   * @example
+   * ```typescript
+   * VoiceBroadcast.getInstance().control.broadcast('授权已批准');
+   * ```
+   */
+  get control(): VoiceClient {
+    const client = this.clients.get('control');
+    if (!client) {
+      throw new Error('控制端语音客户端未配置');
+    }
+    return client;
+  }
+
+  /**
+   * 检查是否存在指定目标的客户端
+   * @param target 目标类型 ('cabinet' | 'control')
+   */
+  hasClient(target: VoiceTarget): boolean {
+    return this.clients.has(target);
+  }
+
+  /**
+   * 获取指定目标的客户端（可选，不存在时返回 undefined）
+   * @param target 目标类型 ('cabinet' | 'control')
+   */
+  getClient(target: VoiceTarget): VoiceClient | undefined {
+    return this.clients.get(target);
+  }
+
+  /**
+   * 播报文本（保留用于高级场景，如动态选择目标）
    * @param text 要播报的文本
    * @param options 播报选项
+   * @param targetClientId 目标客户端 ID（可选）
+   *
+   * @deprecated 建议使用 `cabinet.broadcast()` 或 `control.broadcast()` 来明确指定目标
    */
   async broadcast(
     text: string,
@@ -152,6 +235,8 @@ export class VoiceBroadcastController {
   /**
    * 播放内置提示音
    * @param soundId 提示音 ID，例如 'sound108'
+   *
+   * @deprecated 建议使用 `cabinet.playSound()` 或 `control.playSound()` 来明确指定目标
    */
   async playSound(soundId: string): Promise<boolean> {
     return this.broadcast(soundId);
@@ -159,6 +244,8 @@ export class VoiceBroadcastController {
 
   /**
    * 设置打断模式 (新指令会立即中断当前播报)
+   *
+   * @deprecated 建议使用 `cabinet.setInterruptMode()` 或 `control.setInterruptMode()` 来明确指定目标
    */
   async setInterruptMode(): Promise<boolean> {
     const cmd = Buffer.from([0xCC, 0xDD, 0xF3, 0x00]);
@@ -179,6 +266,8 @@ export class VoiceBroadcastController {
 
   /**
    * 设置缓存模式 (最多缓存 20 条指令)
+   *
+   * @deprecated 建议使用 `cabinet.setCacheMode()` 或 `control.setCacheMode()` 来明确指定目标
    */
   async setCacheMode(): Promise<boolean> {
     const cmd = Buffer.from([0xCC, 0xDD, 0xF3, 0x01]);
@@ -206,26 +295,26 @@ export class VoiceBroadcastController {
     hardwareManager: HardwareCommunicationManager,
     config: { clients: VoiceClientConfig[]; defaultClientId?: string }
   ): void {
-    if (VoiceBroadcastController.instance) {
-      const log = createModuleLogger('VoiceBroadcastController');
+    if (VoiceBroadcast.instance) {
+      const log = createModuleLogger('VoiceBroadcast');
       log.warn('语音播报控制器已经初始化，跳过重复初始化');
       return;
     }
 
-    VoiceBroadcastController.instance = new VoiceBroadcastController(hardwareManager, config);
-    VoiceBroadcastController.initialized = true;
+    VoiceBroadcast.instance = new VoiceBroadcast(hardwareManager, config);
+    VoiceBroadcast.initialized = true;
   }
 
   /**
    * 获取单例实例
-   * @returns VoiceBroadcastController 实例
+   * @returns VoiceBroadcast 实例
    * @throws 如果未初始化则抛出错误
    */
-  static getInstance(): VoiceBroadcastController {
-    if (!VoiceBroadcastController.instance) {
-      throw new Error('语音播报控制器未初始化，请先调用 VoiceBroadcastController.initialize()');
+  static getInstance(): VoiceBroadcast {
+    if (!VoiceBroadcast.instance) {
+      throw new Error('语音播报控制器未初始化，请先调用 VoiceBroadcast.initialize()');
     }
-    return VoiceBroadcastController.instance;
+    return VoiceBroadcast.instance;
   }
 
   /**
@@ -233,14 +322,17 @@ export class VoiceBroadcastController {
    * @returns 是否已初始化
    */
   static isInitialized(): boolean {
-    return VoiceBroadcastController.initialized && VoiceBroadcastController.instance !== null;
+    return VoiceBroadcast.initialized && VoiceBroadcast.instance !== null;
   }
 
   /**
    * 销毁单例实例
    */
   static destroy(): void {
-    VoiceBroadcastController.instance = null;
-    VoiceBroadcastController.initialized = false;
+    VoiceBroadcast.instance = null;
+    VoiceBroadcast.initialized = false;
   }
 }
+
+// 向后兼容别名
+export { VoiceBroadcast as VoiceBroadcastController };

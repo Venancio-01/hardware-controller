@@ -5,13 +5,21 @@ import { type StructuredLogger } from 'shared';
 
 // Mock VoiceBroadcastController
 const mockBroadcast = vi.fn(() => Promise.resolve());
+const mockCabinetClient = { broadcast: mockBroadcast };
+const mockControlClient = { broadcast: mockBroadcast };
 const mockVoiceInstance = {
-  broadcast: mockBroadcast
+  broadcast: mockBroadcast,
+  cabinet: mockCabinetClient,
+  control: mockControlClient
 };
 
 vi.mock('../../src/voice-broadcast/index.js', () => {
   return {
     VoiceBroadcastController: {
+      isInitialized: vi.fn(() => true),
+      getInstance: vi.fn(() => mockVoiceInstance)
+    },
+    VoiceBroadcast: {
       isInitialized: vi.fn(() => true),
       getInstance: vi.fn(() => mockVoiceInstance)
     }
@@ -55,58 +63,58 @@ describe('ApplyAmmoMachine Enhanced', () => {
 
   it('应该在 applying 状态下支持用户取消 (CABINET1 变低)', () => {
     const actor = createWrappedActor();
-    
+
     // 进入 applying 状态
     actor.send({ type: 'APPLY' });
     expect(actor.getSnapshot().value).toBe('applying');
-    
+
     // 用户取消 (发送 FINISHED 事件)
     actor.send({ type: 'FINISHED' });
-    
+
     // 验证状态回到 idle
     expect(actor.getSnapshot().value).toBe('idle');
-    
+
     // 验证播报了“供弹结束”
     expect(mockBroadcast).toHaveBeenCalledWith('供弹[=dan4]结束');
   });
 
   it('应该在 applying 状态下支持控制端拒绝 (CONTROL5 变化)', () => {
     const actor = createWrappedActor();
-    
+
     // 进入 applying 状态
     actor.send({ type: 'APPLY' });
-    
+
     // 控制端拒绝 (发送 REFUSE 事件)
     actor.send({ type: 'REFUSE' });
-    
+
     // 验证状态进入 refused
     expect(actor.getSnapshot().value).toBe('refused');
-    
+
     // 验证播报了“授权未通过，请取消供弹”
     expect(mockBroadcast).toHaveBeenCalledWith('授权未通过，请取消供弹[=dan4]');
   });
 
   it('应该在 refused 状态下支持用户复位 (CABINET1 变低)', () => {
     const actor = createWrappedActor();
-    
+
     // 进入 applying -> refused
     actor.send({ type: 'APPLY' });
     actor.send({ type: 'REFUSE' });
     expect(actor.getSnapshot().value).toBe('refused');
-    
+
     mockBroadcast.mockClear();
 
     // 用户复位
     actor.send({ type: 'FINISHED' });
-    
+
     // 验证状态回到 idle
     expect(actor.getSnapshot().value).toBe('idle');
-    
+
     // 验证播报了“供弹结束”
     expect(mockBroadcast).toHaveBeenCalledWith('供弹[=dan4]结束');
   });
 
-  it('应该支持完整的开门取弹流程 (AUTHORIZED -> DOOR_OPEN -> DOOR_CLOSE)', () => {
+  it('应该支持完整的开门取弹流程 (AUTHORIZED -> DOOR_OPEN -> DOOR_CLOSE -> 自动结束)', () => {
     const actor = createWrappedActor();
 
     // 1. 申请供弹
@@ -127,15 +135,12 @@ describe('ApplyAmmoMachine Enhanced', () => {
     expect(mockBroadcast).toHaveBeenCalledWith('已开门，请取弹[=dan4]，取弹[=dan4]后请关闭柜门，并复位按键');
     mockBroadcast.mockClear();
 
-    // 4. 关闭柜门
+    // 4. 关闭柜门 - 自复位按钮适配：自动进入 idle 状态
     actor.send({ type: 'DOOR_CLOSE' });
-    expect(actor.getSnapshot().value).toBe('door_closed');
-    expect(mockBroadcast).toHaveBeenCalledWith('柜门已关闭');
-    mockBroadcast.mockClear();
-
-    // 5. 复位按键 (结束)
-    actor.send({ type: 'FINISHED' });
+    // 由于 always transition，door_closed 会立即转换到 idle
     expect(actor.getSnapshot().value).toBe('idle');
+    // 验证播报了"供弹完毕"（broadcastDoorClosed）和"供弹结束"（broadcastCancelled）
+    expect(mockBroadcast).toHaveBeenCalledWith('供弹[=dan4]完毕');
     expect(mockBroadcast).toHaveBeenCalledWith('供弹[=dan4]结束');
   });
 
@@ -160,7 +165,7 @@ describe('ApplyAmmoMachine Enhanced', () => {
 
     // 检查状态是否变为 door_open_timeout
     expect(actor.getSnapshot().value).toBe('door_open_timeout');
-    
+
     // 检查是否触发了语音播报
     expect(mockBroadcast).toHaveBeenCalledWith('柜门超时未关');
 
@@ -246,7 +251,7 @@ describe('ApplyAmmoMachine Enhanced', () => {
     expect(mockBroadcast).not.toHaveBeenCalled();
   });
 
-  it('应该在 door_open_alarm_cancelled 状态下支持 DOOR_CLOSE 转换到 door_closed', () => {
+  it('应该在 door_open_alarm_cancelled 状态下支持 DOOR_CLOSE 自动结束流程', () => {
     vi.useFakeTimers();
 
     const actor = createWrappedActor();
@@ -266,14 +271,15 @@ describe('ApplyAmmoMachine Enhanced', () => {
 
     mockBroadcast.mockClear();
 
-    // 关闭柜门
+    // 关闭柜门 - 自复位按钮适配：自动结束流程
     actor.send({ type: 'DOOR_CLOSE' });
 
-    // 验证状态转换到 door_closed
-    expect(actor.getSnapshot().value).toBe('door_closed');
+    // 由于 always transition，door_closed 会立即转换到 idle
+    expect(actor.getSnapshot().value).toBe('idle');
 
-    // 验证播报了"柜门已关闭"
-    expect(mockBroadcast).toHaveBeenCalledWith('柜门已关闭');
+    // 验证播报了"供弹完毕"和"供弹结束"
+    expect(mockBroadcast).toHaveBeenCalledWith('供弹[=dan4]完毕');
+    expect(mockBroadcast).toHaveBeenCalledWith('供弹[=dan4]结束');
 
     vi.useRealTimers();
   });
@@ -315,7 +321,7 @@ describe('ApplyAmmoMachine Enhanced', () => {
     vi.useRealTimers();
   });
 
-  it('应该在 door_open_timeout 且柜门已关闭后，通过 DOOR_CLOSE 事件正确同步状态', () => {
+  it('应该在 door_open_timeout 且柜门关闭后自动结束流程', () => {
     vi.useFakeTimers();
 
     const actor = createWrappedActor();
@@ -332,15 +338,10 @@ describe('ApplyAmmoMachine Enhanced', () => {
     vi.advanceTimersByTime(31000);
     expect(actor.getSnapshot().value).toBe('door_open_timeout');
 
-    // 关闭柜门（硬件事件可能延迟）
+    // 关闭柜门 - 自复位按钮适配：自动结束流程
     actor.send({ type: 'DOOR_CLOSE' });
-    expect(actor.getSnapshot().value).toBe('door_closed');
-
-    // 如果用户此时按取消按钮，状态保持 door_closed（事件被忽略）
-    mockBroadcast.mockClear();
-    actor.send({ type: 'ALARM_CANCEL' });
-    expect(actor.getSnapshot().value).toBe('door_closed');
-    expect(mockBroadcast).not.toHaveBeenCalled();
+    // 由于 always transition，door_closed 会立即转换到 idle
+    expect(actor.getSnapshot().value).toBe('idle');
 
     vi.useRealTimers();
   });

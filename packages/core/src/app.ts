@@ -1,6 +1,27 @@
-import { getConfigSummary } from './config/index.js';
-import { createModuleLogger } from 'shared';
+import { getConfigSummary, config } from './config/index.js';
+import { createModuleLogger, logger, LogLevel } from 'shared';
 import { HardwareCommunicationManager } from './hardware/manager.js';
+
+/**
+ * 字符串日志级别到 LogLevel 枚举的映射
+ */
+const LOG_LEVEL_MAP: Record<string, LogLevel> = {
+  debug: LogLevel.DEBUG,
+  trace: LogLevel.DEBUG, // trace 映射到 debug
+  info: LogLevel.INFO,
+  warn: LogLevel.WARN,
+  error: LogLevel.ERROR,
+  fatal: LogLevel.ERROR, // fatal 映射到 error
+};
+
+/**
+ * 根据配置文件初始化日志级别
+ */
+function initializeLogLevel(): void {
+  const configLevel = config.LOG_LEVEL?.toLowerCase() ?? 'info';
+  const logLevel = LOG_LEVEL_MAP[configLevel] ?? LogLevel.INFO;
+  logger.setLevel(logLevel);
+}
 import { initializeHardware } from './hardware/initializer.js';
 import { initializeVoiceBroadcast } from './voice-broadcast/initializer.js';
 import { resetAllRelays } from './relay/index.js';
@@ -12,6 +33,9 @@ import { forwardLog } from './ipc/log-forwarder.js';
  * 启动应用程序
  */
 export async function startApp() {
+  // 首先初始化日志级别，确保所有后续日志使用正确的级别
+  initializeLogLevel();
+
   // 使用标准 logger，关键日志通过 forwardLog 手动转发到 Backend
   const appLogger = createModuleLogger('App');
   const manager = new HardwareCommunicationManager();

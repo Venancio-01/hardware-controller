@@ -16,7 +16,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
-    "rootDir": "./src",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -39,12 +38,6 @@
     "paths": {
       "@/*": [
         "src/*"
-      ],
-      "shared": [
-        "../shared/dist/index.d.ts"
-      ],
-      "shared/*": [
-        "../shared/dist/*"
       ]
     }
   },

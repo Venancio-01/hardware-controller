@@ -78,10 +78,11 @@ export const envConfigSchema = z.object({
   AUTH_CANCEL_INDEX: z.number().int().min(0).max(15).optional().default(11),
   AUTH_PASS_INDEX: z.number().int().min(0).max(15).optional().default(12),
 
-  // 硬件继电器索引配置 (1-32)
-  RELAY_LOCK_INDEX: z.number().int().min(1).max(32).optional().default(2),
-  RELAY_CABINET_ALARM_INDEX: z.number().int().min(1).max(32).optional().default(8),
-  RELAY_CONTROL_ALARM_INDEX: z.number().int().min(1).max(32).optional().default(1),
+  // 硬件继电器索引配置 (0-31 for relay channel)
+  APPLY_LIGHT_INDEX: z.number().int().min(0).max(31).optional().default(0),
+  RELAY_LOCK_INDEX: z.number().int().min(0).max(31).optional().default(2),
+  RELAY_CABINET_ALARM_INDEX: z.number().int().min(0).max(31).optional().default(8),
+  RELAY_CONTROL_ALARM_INDEX: z.number().int().min(0).max(31).optional().default(1),
 });
 
 /**

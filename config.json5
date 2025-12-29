@@ -51,7 +51,7 @@
   CABINET_INPUT_07_INDEX: 6,   // 预留输入07
   CABINET_INPUT_08_INDEX: 7,   // 预留输入08
 
-  // ==================== 操作台输入索引 ====================
+  // ==================== 控制端输入索引 ====================
   // 操作台继电器板的输入端口索引配置
   STORE_RETURN_INDEX: 8,       // 存/取按钮
   CONTROL_INPUT_INDEX: 9,      // 操作台输入
@@ -59,8 +59,11 @@
   AUTH_CANCEL_INDEX: 11,       // 授权取消
   AUTH_PASS_INDEX: 12,         // 授权通过
 
-  // ==================== 继电器输出索引 ====================
+  // ==================== 柜体输出索引 ====================
+  APPLY_LIGHT_INDEX: 0,            // 申请灯
   RELAY_LOCK_INDEX: 2,             // 电磁锁
-  RELAY_CABINET_ALARM_INDEX: 8,    // 柜体报警器
+  RELAY_CABINET_ALARM_INDEX: 4,    // 柜体报警器
+
+  // ==================== 控制端输出索引 ====================
   RELAY_CONTROL_ALARM_INDEX: 1,    // 操作台报警器
 }
