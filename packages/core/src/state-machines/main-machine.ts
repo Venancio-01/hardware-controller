@@ -29,18 +29,19 @@ export const mainMachine = setup({
     id: 'monitor',
     input: ({ context }) => ({ hardware: context.hardware })
   },
-  on: {
-    key_detected: '.alarm',
-    vibration_detected: '.alarm',
-    monitor_anomaly: '.alarm',
-  },
+  // 注意：报警事件在各个状态中分别处理
+  // idle 和 normal 状态会切换到 alarm 状态
+  // alarm 状态会转发给已有的 alarm actor
   states: {
     idle: {
       on: {
         apply_request: {
           target: 'normal',
           actions: ({ context }) => context.logger.info('[MainMachine] 在空闲状态收到 apply_request，正在切换到 normal 状态')
-        }
+        },
+        key_detected: 'alarm',
+        vibration_detected: 'alarm',
+        monitor_anomaly: 'alarm'
       }
     },
     normal: {
@@ -83,16 +84,49 @@ export const mainMachine = setup({
         },
         alarm_cancel_toggled: {
           actions: sendTo('applyAmmo', { type: 'ALARM_CANCEL' })
-        }
+        },
+        key_detected: 'alarm',
+        vibration_detected: 'alarm',
+        monitor_anomaly: 'alarm'
       }
     },
     alarm: {
       invoke: {
         src: 'alarm',
-        id: 'alarm'
+        id: 'alarm',
+        input: ({ context, event }) => ({
+          hardware: context.hardware,
+          logger: context.logger,
+          trigger: event.type === 'monitor_anomaly' ? 'MONITOR_DETECTED'
+            : event.type === 'vibration_detected' ? 'VIBRATION_DETECTED'
+              : event.type === 'key_detected' ? 'KEY_DETECTED'
+                : undefined,
+          monitorReason: event.type === 'monitor_anomaly' ? (event as any).reason : undefined
+        })
       },
       on: {
-        alarm_cancelled: 'idle'
+        alarm_cancelled: 'idle',
+        alarm_cancel_toggled: {
+          actions: sendTo('alarm', { type: 'ALARM_CANCEL' })
+        },
+        key_reset: {
+          actions: sendTo('alarm', { type: 'KEY_RESET' })
+        },
+        key_detected: {
+          actions: sendTo('alarm', { type: 'KEY_DETECTED' })
+        },
+        vibration_detected: {
+          actions: sendTo('alarm', { type: 'VIBRATION_DETECTED' })
+        },
+        monitor_anomaly: {
+          actions: sendTo('alarm', ({ event }) => ({
+            type: 'MONITOR_DETECTED',
+            reason: (event as any).reason
+          }))
+        },
+        monitor_recover: {
+          actions: sendTo('alarm', { type: 'RECOVER' })
+        }
       }
     },
     error: {}

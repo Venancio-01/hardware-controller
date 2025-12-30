@@ -38,30 +38,31 @@
   ENABLE_METRICS: true,
   UDP_LOCAL_PORT: 8000,
   QUERY_INTERVAL: 1000,
-  DOOR_OPEN_TIMEOUT_S: 30,
+  DOOR_OPEN_TIMEOUT_S: 10,
+  VIBRATION_THROTTLE_INTERVAL_MS: 5000,
 
   // ==================== 柜体输入索引 ====================
   // 柜体继电器板的输入端口索引配置
   APPLY_INDEX: 0,              // 申请按钮
   CABINET_DOOR_INDEX: 1,       // 柜门状态
-  DOOR_JUMP_SWITCH_INDEX: 2,   // 门跳开关
+  DOOR_LOCK_SWITCH_INDEX: 2,   // 门锁开关
   KEY_SWITCH_INDEX: 3,         // 钥匙开关
   VIBRATION_SWITCH_INDEX: 4,   // 振动开关
-  CABINET_INPUT_06_INDEX: 5,   // 预留输入06
-  CABINET_INPUT_07_INDEX: 6,   // 预留输入07
-  CABINET_INPUT_08_INDEX: 7,   // 预留输入08
 
   // ==================== 控制端输入索引 ====================
   // 操作台继电器板的输入端口索引配置
-  STORE_RETURN_INDEX: 8,       // 存/取按钮
-  CONTROL_INPUT_INDEX: 9,      // 操作台输入
-  ALARM_CANCEL_INDEX: 10,      // 报警取消
-  AUTH_CANCEL_INDEX: 11,       // 授权取消
-  AUTH_PASS_INDEX: 12,         // 授权通过
+  ALARM_CANCEL_INDEX: 8,      // 报警取消
+  AUTH_CANCEL_INDEX: 9,       // 授权取消
+  AUTH_PASS_INDEX: 10,         // 授权通过
+
+  // ==================== 传感器状态反转 ====================
+  // true: 闭合状态为报警状态，断开状态为正常状态
+  // false: 断开状态为报警状态，闭合状态为正常状态
+  INVERT_SENSOR_STATE: false,  // 柜门、钥匙、门锁传感器状态反转
 
   // ==================== 柜体输出索引 ====================
   APPLY_LIGHT_INDEX: 0,            // 申请灯
-  RELAY_LOCK_INDEX: 2,             // 电磁锁
+  RELAY_LOCK_INDEX: 1,             // 电磁锁
   RELAY_CABINET_ALARM_INDEX: 4,    // 柜体报警器
 
   // ==================== 控制端输出索引 ====================

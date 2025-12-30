@@ -3,14 +3,14 @@ import { RelaySchemas } from "../../src/relay/validation";
 describe("Relay Protocol Validation", () => {
   describe("Channel Validation", () => {
     it("should accept valid channels", () => {
-      expect(RelaySchemas.Channel.parse(1)).toBe(1);
-      expect(RelaySchemas.Channel.parse(8)).toBe(8);
+      expect(RelaySchemas.Channel.parse(0)).toBe(0);
+      expect(RelaySchemas.Channel.parse(7)).toBe(7);
       expect(RelaySchemas.Channel.parse('all')).toBe('all');
     });
 
     it("should reject invalid channels", () => {
-      expect(() => RelaySchemas.Channel.parse(0)).toThrow();
-      expect(() => RelaySchemas.Channel.parse(9)).toThrow();
+      expect(() => RelaySchemas.Channel.parse(-1)).toThrow();
+      expect(() => RelaySchemas.Channel.parse(8)).toThrow();
       expect(() => RelaySchemas.Channel.parse('invalid')).toThrow();
     });
   });

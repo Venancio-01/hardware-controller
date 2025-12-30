@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const ChannelSchema = z.union([
-  z.number().int().min(1).max(8),
+  z.number().int().min(0).max(7),
   z.literal('all')
 ]);
 

@@ -48,24 +48,10 @@ async function main() {
 
     // Test 1: Close Channel 1
     log.info('Sending: Close Channel 1');
-    const closeCmd = RelayCommandBuilder.close(1);
+    const closeCmd = RelayCommandBuilder.open(0);;
     await client.sendNoWait(closeCmd);
     log.info(`Sent: ${closeCmd.toString('hex').toUpperCase()}`);
-
     await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Test 2: Open Channel 1
-    log.info('Sending: Open Channel 1');
-    const openCmd = RelayCommandBuilder.open(1);
-    await client.sendNoWait(openCmd);
-    log.info(`Sent: ${openCmd.toString('hex').toUpperCase()}`);
-
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    log.info('Test completed. Disconnecting...');
-    await client.disconnect();
-    log.info('Disconnected.');
-
   } catch (error) {
     log.error('Test failed:', error);
     try {

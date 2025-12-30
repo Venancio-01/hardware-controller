@@ -2,9 +2,9 @@ import { RelaySchemas } from './validation.js';
 
 /**
  * 继电器通道类型定义
- * 支持1-8路独立通道或'all'全通道控制
+ * 支持0-7路独立通道或'all'全通道控制
  */
-export type RelayChannel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 'all';
+export type RelayChannel = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 'all';
 
 /**
  * 继电器输入状态接口（来自主动上报 KL 位图）
@@ -141,10 +141,10 @@ function buildRelayCommand(action: 'on' | 'off', channel: RelayChannel, delaySec
  * 格式化继电器通道为掩码位
  *
  * 根据主动上报协议控制指令：
- * - 1-8路通道：bit0 -> 路1
+ * - 0-7路通道：bit0 -> 路0
  * - 全通道：0xFF
  *
- * @param channel - 通道号或'all'
+ * @param channel - 通道号(0-7)或'all'
  * @returns 通道掩码
  */
 function formatRelayChannel(channel: RelayChannel): number {
@@ -154,7 +154,7 @@ function formatRelayChannel(channel: RelayChannel): number {
     return 0xFF;
   }
 
-  return 1 << (channel - 1);
+  return 1 << channel;
 }
 
 /**

@@ -60,23 +60,24 @@ export const envConfigSchema = z.object({
   UDP_LOCAL_PORT: z.number().int().min(1000).max(65535).optional().default(8000),
   QUERY_INTERVAL: z.number().int().min(100).max(60000).optional().default(1000),
   DOOR_OPEN_TIMEOUT_S: z.number().int().positive().min(1).optional().default(30),
+  VIBRATION_THROTTLE_INTERVAL_MS: z.number().int().positive().min(100).max(60000).optional().default(5000),
 
   // 硬件输入索引配置 (0-15)
   // 存放柜输入 (0-7)
   APPLY_INDEX: z.number().int().min(0).max(15).optional().default(0),
   CABINET_DOOR_INDEX: z.number().int().min(0).max(15).optional().default(1),
-  DOOR_JUMP_SWITCH_INDEX: z.number().int().min(0).max(15).optional().default(2),
+  DOOR_LOCK_SWITCH_INDEX: z.number().int().min(0).max(15).optional().default(2),
   KEY_SWITCH_INDEX: z.number().int().min(0).max(15).optional().default(3),
   VIBRATION_SWITCH_INDEX: z.number().int().min(0).max(15).optional().default(4),
-  CABINET_INPUT_06_INDEX: z.number().int().min(0).max(15).optional().default(5),
-  CABINET_INPUT_07_INDEX: z.number().int().min(0).max(15).optional().default(6),
-  CABINET_INPUT_08_INDEX: z.number().int().min(0).max(15).optional().default(7),
   // 控制柜输入 (8-15)
-  STORE_RETURN_INDEX: z.number().int().min(0).max(15).optional().default(8),
-  CONTROL_INPUT_INDEX: z.number().int().min(0).max(15).optional().default(9),
   ALARM_CANCEL_INDEX: z.number().int().min(0).max(15).optional().default(10),
   AUTH_CANCEL_INDEX: z.number().int().min(0).max(15).optional().default(11),
   AUTH_PASS_INDEX: z.number().int().min(0).max(15).optional().default(12),
+
+  // 传感器状态反转配置
+  // true: 闭合状态为报警状态，断开状态为正常状态
+  // false: 断开状态为报警状态，闭合状态为正常状态
+  INVERT_SENSOR_STATE: z.boolean().optional().default(false),
 
   // 硬件继电器索引配置 (0-31 for relay channel)
   APPLY_LIGHT_INDEX: z.number().int().min(0).max(31).optional().default(0),

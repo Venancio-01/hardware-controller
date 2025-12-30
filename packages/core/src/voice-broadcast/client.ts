@@ -80,6 +80,7 @@ export class VoiceClient {
 
       cmdBody += text;
 
+      // 协议不需要 CRLF 结尾，否则会导致设备无响应
       const fullCommandStr = `${cmdPrefix}${cmdBody}`;
 
       // 编码为 GB2312
@@ -92,7 +93,7 @@ export class VoiceClient {
         target: this.clientConfig.targetClientId
       });
 
-      const result = await this.hardwareManager.sendCommand(
+      const result = await this.hardwareManager.queueCommand(
         this.clientConfig.protocol,
         encodedCommand,
         this.clientConfig.targetClientId,

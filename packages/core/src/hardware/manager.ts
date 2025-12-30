@@ -14,6 +14,18 @@ interface ClientRegistry {
 }
 
 /**
+ * 命令队列项
+ */
+interface QueuedCommand {
+  protocol: Protocol;
+  command: Buffer;
+  clientId?: string;
+  expectResponse: boolean;
+  resolve: (result: Record<string, HardwareResponse | undefined>) => void;
+  reject: (error: Error) => void;
+}
+
+/**
  * 硬件通信管理器 - 统一的硬件通信接口
  */
 export class HardwareCommunicationManager {
@@ -22,6 +34,10 @@ export class HardwareCommunicationManager {
     serial: new Map(),
   };
 
+  // 命令队列相关属性
+  private commandQueue: QueuedCommand[] = [];
+  private isProcessingQueue = false;
+  private queueInterval = 50; // 默认 50ms 间隔
 
   private isInitialized = false;
   private log = createModuleLogger('HardwareCommunicationManager');
@@ -69,6 +85,7 @@ export class HardwareCommunicationManager {
           heartbeatStrict: clientConfig.heartbeatStrict,
         };
         const tcpClient = new TCPClient(netConfig);
+        this.log.info(`DEBUG: Adding TCP client ${clientConfig.id} to map`, { clientId: clientConfig.id });
         this.clients.tcp.set(clientConfig.id, tcpClient);
 
         tcpClient.addMessageListener((data) => {
@@ -176,6 +193,7 @@ export class HardwareCommunicationManager {
       if (clientId) {
         const client = this.clients.tcp.get(clientId);
         if (!client) {
+          this.log.error(`DEBUG: TCP client '${clientId}' not found. Available clients: ${Array.from(this.clients.tcp.keys()).join(', ')}`);
           throw new Error(`TCP client '${clientId}' not initialized`);
         }
         clientsToSend.set(clientId, client);
@@ -220,6 +238,100 @@ export class HardwareCommunicationManager {
     }
 
     return results;
+  }
+
+  /**
+   * 将命令加入队列，按间隔依次发送
+   * @param protocol 协议类型
+   * @param command 命令字符串
+   * @param clientId 可选，指定客户端ID
+   * @param expectResponse 是否等待响应
+   * @returns 命令执行结果的 Promise
+   */
+  queueCommand(
+    protocol: Protocol,
+    command: Buffer,
+    clientId?: string,
+    expectResponse = false
+  ): Promise<Record<string, HardwareResponse | undefined>> {
+    return new Promise((resolve, reject) => {
+      this.commandQueue.push({
+        protocol,
+        command,
+        clientId,
+        expectResponse,
+        resolve,
+        reject,
+      });
+
+      // 如果队列没有在处理中，启动处理
+      if (!this.isProcessingQueue) {
+        this.processQueue();
+      }
+    });
+  }
+
+  /**
+   * 设置队列命令发送间隔
+   * @param interval 间隔时间（毫秒）
+   */
+  setQueueInterval(interval: number): void {
+    this.queueInterval = interval;
+  }
+
+  /**
+   * 获取当前队列长度
+   */
+  getQueueLength(): number {
+    return this.commandQueue.length;
+  }
+
+  /**
+   * 处理命令队列
+   */
+  private async processQueue(): Promise<void> {
+    if (this.isProcessingQueue) {
+      this.log.debug('DEBUG: processQueue called but already processing');
+      return;
+    }
+    this.isProcessingQueue = true;
+    this.log.debug(`DEBUG: processQueue started. Queue length: ${this.commandQueue.length}`);
+
+    while (this.commandQueue.length > 0) {
+      const item = this.commandQueue.shift();
+      if (!item) break;
+
+      this.log.debug(`DEBUG: Processing item for ${item.clientId}, protocol ${item.protocol}`);
+
+      try {
+        const result = await this.sendCommand(
+          item.protocol,
+          item.command,
+          item.clientId,
+          item.expectResponse
+        );
+        item.resolve(result);
+      } catch (error) {
+        this.log.error('DEBUG: Error processing queue item', error as Error);
+        item.reject(error as Error);
+      }
+
+      // 如果队列还有命令，等待间隔后继续
+      if (this.commandQueue.length > 0) {
+        this.log.debug(`DEBUG: Waiting ${this.queueInterval}ms before next item`);
+        await this.delay(this.queueInterval);
+      }
+    }
+
+    this.isProcessingQueue = false;
+    this.log.debug('DEBUG: processQueue finished');
+  }
+
+  /**
+   * 延迟辅助函数
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**
