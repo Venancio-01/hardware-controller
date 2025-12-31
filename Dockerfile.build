@@ -110,6 +110,9 @@ RUN mv packages/backend/dist backend \
 # 清理 devDependencies，仅保留生产依赖
 RUN CI=true pnpm prune --prod
 
+# 重新安装生产依赖以确保符号链接正确
+RUN pnpm install --prod --frozen-lockfile
+
 # 清理不需要的文件
 RUN rm -rf packages tsconfig.json
 

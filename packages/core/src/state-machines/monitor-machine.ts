@@ -7,11 +7,8 @@ import { config } from '../config/index.js';
 import { createModuleLogger } from 'shared';
 
 const log = createModuleLogger('MonitorMachine');
-
 // 心跳配置参数
 const HEARTBEAT_INTERVAL_MS = 30000; // 30秒
-const HEARTBEAT_FAILURE_THRESHOLD = 3; // 连续3次失败
-
 type MonitorContext = {
   hardware: HardwareCommunicationManager;
   aggregator: RelayStatusAggregator;
@@ -22,14 +19,12 @@ type MonitorContext = {
   controlConnected: boolean;        // 控制台连接状态
   isMonitorAlarming: boolean;       // 是否正在监控报警中 (legacy, might be specific to anomaly)
 };
-
 type MonitorEvent =
   | { type: 'START' }
   | { type: 'STOP' }
   | { type: 'RELAY_DATA_RECEIVED'; clientId: string; data: Buffer }
   | { type: 'HEARTBEAT_CHECK' }
   | { type: 'HEARTBEAT_TIMEOUT' };
-
 export const monitorMachine = setup({
   types: {
     context: {} as MonitorContext,
@@ -41,7 +36,6 @@ export const monitorMachine = setup({
       const intervalId = setInterval(() => {
         sendBack({ type: 'HEARTBEAT_CHECK' });
       }, HEARTBEAT_INTERVAL_MS);
-
       return () => {
         clearInterval(intervalId);
       };
@@ -56,7 +50,6 @@ export const monitorMachine = setup({
     const cabinetConnected = allStatus.tcp?.['cabinet'] === 'connected';
     const controlConnected = allStatus.serial?.['control'] === 'connected';
     const now = Date.now();
-
     return {
       hardware: input.hardware,
       aggregator: new RelayStatusAggregator(),
@@ -82,72 +75,65 @@ export const monitorMachine = setup({
       actions: enqueueActions(({ context, event, enqueue }) => {
         const { clientId, data } = event;
         log.debug(`正在处理来自 ${clientId} 的继电器数据: ${data.toString('hex')}`);
-
         try {
           if (!isActiveReportFrame(data)) {
             log.debug(`跳过非主动上报帧: ${data.toString('hex')}`);
             return;
           }
-
           const report = parseActiveReportFrame(data);
           const status: RelayStatus = {
             rawHex: report.rawHex,
             channels: report.inputState
           };
           const combinedUpdate = context.aggregator.update(clientId as RelayClientId, status);
-
           if (!combinedUpdate) return;
-
-          if (!combinedUpdate) return;
-
+          // TRACE DEBUG: 追踪取消按钮状态 (Index 8)
+          if (clientId === 'control') {
+            const idx = config.ALARM_CANCEL_SWITCH_INDEX;
+            const p = combinedUpdate.previousCombined ? combinedUpdate.previousCombined[idx] : 'N/A';
+            const c = combinedUpdate.combinedState[idx];
+            const hasChanged = context.aggregator.hasIndexChanged(idx, combinedUpdate);
+            log.info(`[TRACE] Control Data. Cancel(${idx}): ${p} -> ${c}. Changed: ${hasChanged}. Raw: ${status.rawHex}`);
+          }
           // 更新心跳时间
-          const now = Date.now();
-          if (clientId === 'cabinet') {
-            context.lastCabinetHeartbeat = now;
-            if (!context.cabinetConnected) {
-              context.cabinetConnected = true;
-              log.info('柜体连接已恢复');
-              enqueue.sendParent({
-                type: 'monitor_connection_update',
-                priority: EventPriority.P2,
-                connections: { cabinet: true, control: context.controlConnected }
-              });
-            }
-          } else if (clientId === 'control') {
-            context.lastControlHeartbeat = now;
-            if (!context.controlConnected) {
-              context.controlConnected = true;
-              log.info('控制台连接已恢复');
-              enqueue.sendParent({
-                type: 'monitor_connection_update',
-                priority: EventPriority.P2,
-                connections: { cabinet: context.cabinetConnected, control: true }
-              });
-            }
-          }
-
-          // 如果因为心跳导致的报警正在进行，且两个设备都已连接（或者只配置了一个设备），则恢复
-          // 目前简化处理：只要有数据上来，就恢复 alarmMachine 的 alarm 状态?
-          // 不，之前的逻辑是只要收到有效帧就重置 failure count 并发送 recover
-          // 这里我们保持 connection update 单独发送，原来的 monitor_anomaly 保留用于 heartbeat timeout (如果需要报警)
-          // 但现在 heartbeat 是分开的。
-          if (context.isMonitorAlarming) {
-            // 只有当两个都连接时才完全恢复？或者任何一个连接上？
-            // 假设我们需要两个都正常才算正常。
-            if (context.cabinetConnected && context.controlConnected) {
-              log.info('监控完全恢复，发送 monitor_recover 事件');
-              context.isMonitorAlarming = false;
-              enqueue.sendParent({
-                type: 'monitor_recover',
-                priority: EventPriority.P2
-              });
-            }
-          }
-
+          // const now = Date.now();
+          // if (clientId === 'cabinet') {
+          //   context.lastCabinetHeartbeat = now;
+          //   if (!context.cabinetConnected) {
+          //     context.cabinetConnected = true;
+          //     log.info('柜体连接已恢复');
+          //     enqueue.sendParent({
+          //       type: 'monitor_connection_update',
+          //       priority: EventPriority.P2,
+          //       connections: { cabinet: true, control: context.controlConnected }
+          //     });
+          //   }
+          // } else if (clientId === 'control') {
+          //   context.lastControlHeartbeat = now;
+          //   if (!context.controlConnected) {
+          //     context.controlConnected = true;
+          //     log.info('控制台连接已恢复');
+          //     enqueue.sendParent({
+          //       type: 'monitor_connection_update',
+          //       priority: EventPriority.P2,
+          //       connections: { cabinet: context.cabinetConnected, control: true }
+          //     });
+          //   }
+          // }
+          // if (context.isMonitorAlarming) {
+          //   if (context.cabinetConnected && context.controlConnected) {
+          //     log.info('监控完全恢复，发送 monitor_recover 事件');
+          //     context.isMonitorAlarming = false;
+          //     enqueue.sendParent({
+          //       type: 'monitor_recover',
+          //       priority: EventPriority.P2
+          //     });
+          //   }
+          // }
           // 处理申请逻辑
-          if (hasEdgeChanged(report, clientId, config.APPLY_INDEX)) {
-            const isClosed = combinedUpdate.combinedState[config.APPLY_INDEX];
-            log.info(`APPLY_INDEX (申请) 已变化. 闭合: ${isClosed}`);
+          if (context.aggregator.hasIndexChanged(config.APPLY_SWITCH_INDEX, combinedUpdate)) {
+            const isClosed = combinedUpdate.combinedState[config.APPLY_SWITCH_INDEX];
+            log.info(`APPLY_SWITCH_INDEX (申请) 已变化. 闭合: ${isClosed}`);
             if (isClosed) {
               enqueue.sendParent({
                 type: 'apply_request',
@@ -155,11 +141,10 @@ export const monitorMachine = setup({
               });
             }
           }
-
           // 处理授权通过逻辑
-          if (hasEdgeChanged(report, clientId, config.AUTH_PASS_INDEX)) {
-            const isClosed = combinedUpdate.combinedState[config.AUTH_PASS_INDEX];
-            log.info(`AUTH_PASS_INDEX (授权) 已变化. 闭合: ${isClosed}`);
+          if (context.aggregator.hasIndexChanged(config.AUTH_PASS_SWITCH_INDEX, combinedUpdate)) {
+            const isClosed = combinedUpdate.combinedState[config.AUTH_PASS_SWITCH_INDEX];
+            log.info(`AUTH_PASS_SWITCH_INDEX (授权) 已变化. 闭合: ${isClosed}`);
             if (isClosed) {
               enqueue.sendParent({
                 type: 'authorize_request',
@@ -167,11 +152,10 @@ export const monitorMachine = setup({
               });
             }
           }
-
           // 处理授权拒绝逻辑
-          if (hasEdgeChanged(report, clientId, config.AUTH_CANCEL_INDEX)) {
-            const isClosed = combinedUpdate.combinedState[config.AUTH_CANCEL_INDEX];
-            log.info(`AUTH_CANCEL_INDEX (授权拒绝) 已变化. 闭合: ${isClosed}`);
+          if (context.aggregator.hasIndexChanged(config.AUTH_CANCEL_SWITCH_INDEX, combinedUpdate)) {
+            const isClosed = combinedUpdate.combinedState[config.AUTH_CANCEL_SWITCH_INDEX];
+            log.info(`AUTH_CANCEL_SWITCH_INDEX (授权拒绝) 已变化. 闭合: ${isClosed}`);
             if (isClosed) {
               enqueue.sendParent({
                 type: 'refuse_request',
@@ -179,32 +163,20 @@ export const monitorMachine = setup({
               });
             }
           }
-
-
           // 处理柜门状态逻辑
-          // INVERT_SENSOR_STATE 为 true 时: 闭合状态为报警状态，断开状态为正常状态
-          // INVERT_SENSOR_STATE 为 false 时: 断开状态为报警状态，闭合状态为正常状态
-          if (hasEdgeChanged(report, clientId, config.CABINET_DOOR_INDEX)) {
-            const rawState = combinedUpdate.combinedState[config.CABINET_DOOR_INDEX]; // true = 闭合，false = 断开
-            // true: 闭合(报警) -> 开门, 断开(正常) -> 关门
-            // false: 断开(报警) -> 开门, 闭合(正常) -> 关门
+          if (context.aggregator.hasIndexChanged(config.CABINET_DOOR_SWITCH_INDEX, combinedUpdate)) {
+            const rawState = combinedUpdate.combinedState[config.CABINET_DOOR_SWITCH_INDEX];
             const isOpen = config.INVERT_SENSOR_STATE ? rawState : !rawState;
-            log.info(`CABINET_DOOR_INDEX (柜门) 已变化. 原始状态: ${rawState}, 反转: ${config.INVERT_SENSOR_STATE}, 开门: ${isOpen}`);
+            log.info(`CABINET_DOOR_SWITCH_INDEX (柜门) 已变化. 原始状态: ${rawState}, 反转: ${config.INVERT_SENSOR_STATE}, 开门: ${isOpen}`);
             enqueue.sendParent({
               type: 'cabinet_lock_changed',
               priority: EventPriority.P2,
               isClosed: !isOpen  // true = 关门，false = 开门
             });
           }
-
           // 处理门锁开关逻辑
-          // INVERT_SENSOR_STATE 为 true 时: 闭合状态为触发状态（拧开），断开状态为正常状态（拧回）
-          // INVERT_SENSOR_STATE 为 false 时: 断开状态为触发状态（拧开），闭合状态为正常状态（拧回）
-          if (hasEdgeChanged(report, clientId, config.DOOR_LOCK_SWITCH_INDEX)) {
-            const rawState = combinedUpdate.combinedState[config.DOOR_LOCK_SWITCH_INDEX]; // true = 闭合，false = 断开
-            // isOpen = true 表示门锁已拧开，isOpen = false 表示门锁已拧回
-            // true: 闭合 -> 触发(拧开), 断开 -> 未触发(拧回)
-            // false: 断开 -> 触发(拧开), 闭合 -> 未触发(拧回)
+          if (context.aggregator.hasIndexChanged(config.DOOR_LOCK_SWITCH_INDEX, combinedUpdate)) {
+            const rawState = combinedUpdate.combinedState[config.DOOR_LOCK_SWITCH_INDEX];
             const isOpen = config.INVERT_SENSOR_STATE ? rawState : !rawState;
             log.info(`DOOR_LOCK_SWITCH_INDEX (门锁开关) 已变化. 原始状态: ${rawState}, 反转: ${config.INVERT_SENSOR_STATE}, 拧开: ${isOpen}`);
             enqueue.sendParent({
@@ -213,14 +185,9 @@ export const monitorMachine = setup({
               isOpen  // true = 拧开，false = 拧回
             });
           }
-
           // 处理钥匙开关逻辑
-          // INVERT_SENSOR_STATE 为 true 时: 闭合状态为触发状态，断开状态为正常状态
-          // INVERT_SENSOR_STATE 为 false 时: 断开状态为触发状态，闭合状态为正常状态
-          if (hasEdgeChanged(report, clientId, config.KEY_SWITCH_INDEX)) {
-            const rawState = combinedUpdate.combinedState[config.KEY_SWITCH_INDEX]; // true = 闭合，false = 断开
-            // true: 闭合 -> 触发, 断开 -> 未触发
-            // false: 断开 -> 触发, 闭合 -> 未触发
+          if (context.aggregator.hasIndexChanged(config.KEY_SWITCH_INDEX, combinedUpdate)) {
+            const rawState = combinedUpdate.combinedState[config.KEY_SWITCH_INDEX];
             const isTriggered = config.INVERT_SENSOR_STATE ? rawState : !rawState;
             log.info(`KEY_SWITCH_INDEX (钥匙开关) 已变化. 原始状态: ${rawState}, 反转: ${config.INVERT_SENSOR_STATE}, 触发: ${isTriggered}`);
             if (isTriggered) {
@@ -237,19 +204,16 @@ export const monitorMachine = setup({
               });
             }
           }
-
           // 处理震动开关逻辑
           // 默认为 close 状态（false = 闭合），触发时为 open 状态（true = 断开）
-          if (hasEdgeChanged(report, clientId, config.VIBRATION_SWITCH_INDEX)) {
+          if (context.aggregator.hasIndexChanged(config.VIBRATION_SWITCH_INDEX, combinedUpdate)) {
             const isOpen = combinedUpdate.combinedState[config.VIBRATION_SWITCH_INDEX]; // false = close（默认），true = open（触发）
             log.info(`VIBRATION_SWITCH_INDEX (震动开关) 已变化. 触发: ${isOpen}`);
-
             if (isOpen) {
               const now = Date.now();
               // 节流：配置的时间间隔
               if (now - context.lastVibrationTime > config.VIBRATION_THROTTLE_INTERVAL_MS) {
                 context.lastVibrationTime = now;
-
                 enqueue.sendParent({
                   type: 'vibration_detected',
                   priority: EventPriority.P1
@@ -259,16 +223,17 @@ export const monitorMachine = setup({
               }
             }
           }
-
-          // 处理报警取消按钮逻辑
-          if (hasEdgeChanged(report, clientId, config.ALARM_CANCEL_INDEX)) {
-            log.info(`ALARM_CANCEL_INDEX (报警取消) 已变化`);
+          // 处理报警取消按钮逻辑 - 主动上报模式（硬件每次按下只上报一次 low->high）
+          // 使用 hasActiveReportTrigger 检测触发，然后重置状态以便下次能再次检测
+          if (context.aggregator.hasActiveReportTrigger(config.ALARM_CANCEL_SWITCH_INDEX, clientId as 'cabinet' | 'control', combinedUpdate)) {
+            log.info(`ALARM_CANCEL_SWITCH_INDEX (报警取消) 主动上报触发`);
+            // 重置状态，以便下次按下能再次触发
+            context.aggregator.resetChannelState(clientId as 'cabinet' | 'control', config.ALARM_CANCEL_SWITCH_INDEX);
             enqueue.sendParent({
               type: 'alarm_cancel_toggled',
               priority: EventPriority.P2
             });
           }
-
           if (combinedUpdate.changed && combinedUpdate.changeDescriptions.length > 0) {
             log.info(`[combined] 继电器状态变化: ${combinedUpdate.changeDescriptions.join(', ')}`);
           }
@@ -295,7 +260,6 @@ export const monitorMachine = setup({
           actions: enqueueActions(({ context, enqueue }) => {
             const now = Date.now();
             let connectionChanged = false;
-
             // 检查柜体心跳
             // 如果 lastCabinetHeartbeat 为 0，说明还没连上过，或者初始化状态。
             // 简单起见，如果超过间隔没收到数据，就认为断开
@@ -306,7 +270,6 @@ export const monitorMachine = setup({
                 log.warn(`柜体心跳超时，距离上次心跳: ${now - context.lastCabinetHeartbeat}ms`);
               }
             }
-
             // 检查控制台心跳
             if (now - context.lastControlHeartbeat > HEARTBEAT_INTERVAL_MS) {
               if (context.controlConnected) {
@@ -315,14 +278,12 @@ export const monitorMachine = setup({
                 log.warn(`控制台心跳超时，距离上次心跳: ${now - context.lastControlHeartbeat}ms`);
               }
             }
-
             if (connectionChanged) {
               enqueue.sendParent({
                 type: 'monitor_connection_update',
                 priority: EventPriority.P2,
                 connections: { cabinet: context.cabinetConnected, control: context.controlConnected }
               });
-
               // 如果断开，触发报警
               if (!context.isMonitorAlarming && (!context.cabinetConnected || !context.controlConnected)) {
                 log.error('心跳检测失败，触发监控报警');
@@ -348,22 +309,6 @@ export const monitorMachine = setup({
     }
   }
 });
-
 export function createMonitorActor(hardware: HardwareCommunicationManager) {
   return createActor(monitorMachine, { input: { hardware } });
-}
-
-function hasEdgeChanged(
-  report: { risingEdge: number[]; fallingEdge: number[] },
-  clientId: string,
-  index: number
-): boolean {
-  const offset = clientId === 'control' ? 8 : 0;
-  const localIndex = index - offset;
-
-  if (localIndex < 0 || localIndex > 7) {
-    return false;
-  }
-
-  return report.risingEdge.includes(localIndex) || report.fallingEdge.includes(localIndex);
 }

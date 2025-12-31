@@ -35,8 +35,4 @@ export async function initializeHardware(manager: HardwareCommunicationManager, 
     globalTimeout: config.HARDWARE_TIMEOUT,
     globalRetries: config.HARDWARE_RETRY_ATTEMPTS,
   });
-
-  logger.info('硬件通信已初始化');
-  logger.info('TCP 客户端状态:', manager.getAllConnectionStatus().tcp);
-  logger.info('Serial 客户端状态:', manager.getAllConnectionStatus().serial);
 }

@@ -60,8 +60,8 @@ describe('BusinessLogic & StateMachine Integration', () => {
       const combinedUpdate = relayAggregator.update(clientId as RelayClientId, status);
       if (!combinedUpdate) return;
 
-      if (hasEdgeChanged(report, clientId, config.APPLY_INDEX)) {
-        const isCabinetRelay1Closed = combinedUpdate.combinedState[config.APPLY_INDEX];
+      if (hasEdgeChanged(report, clientId, config.APPLY_SWITCH_INDEX)) {
+        const isCabinetRelay1Closed = combinedUpdate.combinedState[config.APPLY_SWITCH_INDEX];
         if (isCabinetRelay1Closed) {
           mainActor.send({ type: 'apply_request', priority: EventPriority.P2 });
 
@@ -107,18 +107,18 @@ describe('BusinessLogic & StateMachine Integration', () => {
 
     // 1. Initialize states (all open)
     if (manager.onIncomingData) {
-      await manager.onIncomingData('udp', 'control', buildActiveReport(0x00, 0x00, 0x00), { address: '127.0.0.1', port: 1235 }, {});
-      await manager.onIncomingData('udp', 'cabinet', buildActiveReport(0x00, 0x00, 0x00), { address: '127.0.0.1', port: 1234 }, {});
+      await manager.onIncomingData('udp' as any, 'control', buildActiveReport(0x00, 0x00, 0x00), { address: '127.0.0.1', port: 1235 }, { success: true, timestamp: Date.now() });
+      await manager.onIncomingData('udp' as any, 'cabinet', buildActiveReport(0x00, 0x00, 0x00), { address: '127.0.0.1', port: 1234 }, { success: true, timestamp: Date.now() });
     }
 
     // 2. Trigger change (Cabinet Index 0 closed)
     if (manager.onIncomingData) {
       await manager.onIncomingData(
-        'udp',
+        'udp' as any,
         'cabinet',
         buildActiveReport(0x01, 0x01, 0x00),
         { address: '127.0.0.1', port: 1234 },
-        {}
+        { success: true, timestamp: Date.now() }
       );
     }
 

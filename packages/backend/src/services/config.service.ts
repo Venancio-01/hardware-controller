@@ -53,27 +53,26 @@ const createDefaultConfig = (): Config => configSchema.parse({
   VIBRATION_THROTTLE_INTERVAL_MS: 5000,
 
   // ==================== 柜体输入索引 ====================
-  APPLY_INDEX: 0,
-  CABINET_DOOR_INDEX: 1,
+  APPLY_SWITCH_INDEX: 0,
+  CABINET_DOOR_SWITCH_INDEX: 1,
   DOOR_LOCK_SWITCH_INDEX: 2,
   KEY_SWITCH_INDEX: 3,
   VIBRATION_SWITCH_INDEX: 4,
 
   // ==================== 控制端输入索引 ====================
-  ALARM_CANCEL_INDEX: 8,
-  AUTH_CANCEL_INDEX: 9,
-  AUTH_PASS_INDEX: 10,
+  ALARM_CANCEL_SWITCH_INDEX: 8,
+  AUTH_CANCEL_SWITCH_INDEX: 9,
+  AUTH_PASS_SWITCH_INDEX: 10,
 
   // ==================== 传感器状态反转 ====================
   INVERT_SENSOR_STATE: false,
 
   // ==================== 柜体输出索引 ====================
-  APPLY_LIGHT_INDEX: 0,
-  DOOR_LOCK_SWITCH_LIGHT_INDEX: 1,
-  ALARM_LIGHT_INDEX: 4,
-
-  // ==================== 控制端输出索引 ====================
-  RELAY_CONTROL_ALARM_INDEX: 1,
+  APPLY_LIGHT_RELAY_INDEX: 0,
+  DOOR_LOCK_SWITCH_LIGHT_RELAY_INDEX: 1,
+  ALARM_LIGHT_RELAY_INDEX: 4,
+  DOOR_LOCK_RELAY_INDEX: 1,
+  CONTROL_ALARM_RELAY_INDEX: 1,
 });
 
 /**

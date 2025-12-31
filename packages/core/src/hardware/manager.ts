@@ -123,7 +123,7 @@ export class HardwareCommunicationManager {
 
     await Promise.all(initPromises);
     this.isInitialized = true;
-    this.log.info('硬件通信管理器初始化成功', {
+    this.log.debug('硬件通信管理器初始化成功', {
       tcpClients: this.clients.tcp.size,
       serialClients: this.clients.serial.size
     });

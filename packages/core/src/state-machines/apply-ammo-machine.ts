@@ -26,7 +26,7 @@ export const applyAmmoMachine = setup({
   },
   actions: {
     broadcastApply: ({ context }) => {
-      const command = RelayCommandBuilder.close(config.APPLY_LIGHT_INDEX as RelayChannel);
+      const command = RelayCommandBuilder.close(config.APPLY_LIGHT_RELAY_INDEX as RelayChannel);
       context.manager?.queueCommand('serial', command, 'control', false)
 
       void VoiceBroadcast.getInstance().cabinet.broadcast('已申请，请等待授权');
@@ -38,55 +38,60 @@ export const applyAmmoMachine = setup({
       void VoiceBroadcast.getInstance().control.broadcast('申请供弹[=dan4]请授权');
     },
     broadcastAuthorized: ({ context }) => {
-      const unlockCommand = RelayCommandBuilder.close(config.DOOR_LOCK_SWITCH_INDEX as RelayChannel);
+      const unlockCommand = RelayCommandBuilder.close(config.DOOR_LOCK_RELAY_INDEX as RelayChannel);
       context.manager?.queueCommand('tcp', unlockCommand, 'cabinet', false);
 
       VoiceBroadcast.getInstance().control.broadcast('授权通过，已开锁');
       VoiceBroadcast.getInstance().cabinet.broadcast('授权通过，已开锁请打开柜门');
     },
     broadcastLockOpen: ({ context }) => {
-      const command = RelayCommandBuilder.close(config.DOOR_LOCK_SWITCH_LIGHT_INDEX as RelayChannel);
+      const command = RelayCommandBuilder.close(config.DOOR_LOCK_SWITCH_LIGHT_RELAY_INDEX as RelayChannel);
       context.manager?.queueCommand('serial', command, 'control', false);
-
-      VoiceBroadcast.getInstance().cabinet.broadcast('门锁已拧开，请打开柜门');
-      VoiceBroadcast.getInstance().control.broadcast('门锁已拧开');
     },
     broadcastLockClose: ({ context }) => {
-      const command = RelayCommandBuilder.open(config.DOOR_LOCK_SWITCH_LIGHT_INDEX as RelayChannel);
+      const command = RelayCommandBuilder.open(config.DOOR_LOCK_SWITCH_LIGHT_RELAY_INDEX as RelayChannel);
       context.manager?.queueCommand('serial', command, 'control', false);
     },
     broadcastFinished: ({ context }) => {
       // 停止报警
-      const cabinetCommand8 = RelayCommandBuilder.open(config.ALARM_LIGHT_INDEX as RelayChannel);
-      const controlCommand1 = RelayCommandBuilder.open(config.RELAY_CONTROL_ALARM_INDEX as RelayChannel);
+      const cabinetCommand8 = RelayCommandBuilder.open(config.ALARM_LIGHT_RELAY_INDEX as RelayChannel);
+      const controlCommand1 = RelayCommandBuilder.open(config.CONTROL_ALARM_RELAY_INDEX as RelayChannel);
       context.manager?.queueCommand('tcp', cabinetCommand8, 'cabinet', false);
       context.manager?.queueCommand('serial', controlCommand1, 'control', false);
 
       // 熄灯
-      const command1 = RelayCommandBuilder.open(config.APPLY_LIGHT_INDEX as RelayChannel);
+      const command1 = RelayCommandBuilder.open(config.APPLY_LIGHT_RELAY_INDEX as RelayChannel);
       context.manager?.queueCommand('serial', command1, 'control', false);
 
       // 落锁
-      const command2 = RelayCommandBuilder.open(config.DOOR_LOCK_SWITCH_LIGHT_INDEX as RelayChannel);
+      const command2 = RelayCommandBuilder.open(config.DOOR_LOCK_SWITCH_LIGHT_RELAY_INDEX as RelayChannel);
       context.manager?.queueCommand('tcp', command2, 'cabinet', false);
 
       VoiceBroadcast.getInstance().cabinet.broadcast('供弹[=dan4]完毕');
       VoiceBroadcast.getInstance().control.broadcast('供弹[=dan4]完毕');
     },
     broadcastDoorClosed: ({ context }) => {
-      VoiceBroadcast.getInstance().cabinet.broadcast('柜门已关闭，请拧回门锁开关');
+      // 关闭柜门灯
+      const lightCommand = RelayCommandBuilder.open(config.CABINET_DOOR_RELAY_INDEX as RelayChannel);
+      context.manager?.queueCommand('serial', lightCommand, 'control', false);
+
+      VoiceBroadcast.getInstance().cabinet.broadcast('柜门已关闭，请关闭门锁开关');
       VoiceBroadcast.getInstance().control.broadcast('柜门已关闭');
     },
 
     broadcastRefused: ({ context }) => {
       // 熄灯
-      const command1 = RelayCommandBuilder.open(config.APPLY_LIGHT_INDEX as RelayChannel);
+      const command1 = RelayCommandBuilder.open(config.APPLY_LIGHT_RELAY_INDEX as RelayChannel);
       context.manager?.queueCommand('tcp', command1, 'cabinet', false);
 
       VoiceBroadcast.getInstance().cabinet.broadcast('授权未通过，供弹[=dan4]结束');
       VoiceBroadcast.getInstance().control.broadcast('授权未通过，供弹[=dan4]结束');
     },
     broadcastDoorOpen: ({ context }) => {
+      // 开启柜门灯
+      const lightCommand = RelayCommandBuilder.close(config.CABINET_DOOR_RELAY_INDEX as RelayChannel);
+      context.manager?.queueCommand('serial', lightCommand, 'control', false);
+
       VoiceBroadcast.getInstance().cabinet.broadcast('已开门，请取弹[=dan4]，取弹[=dan4]后请关闭柜门');
       VoiceBroadcast.getInstance().control.broadcast('柜门已打开');
     },
@@ -95,8 +100,8 @@ export const applyAmmoMachine = setup({
       context.logger.info('柜门超时未关');
 
       // 开启报警
-      const cabinetCommand8 = RelayCommandBuilder.close(config.ALARM_LIGHT_INDEX as RelayChannel);
-      const controlCommand1 = RelayCommandBuilder.close(config.RELAY_CONTROL_ALARM_INDEX as RelayChannel);
+      const cabinetCommand8 = RelayCommandBuilder.close(config.ALARM_LIGHT_RELAY_INDEX as RelayChannel);
+      const controlCommand1 = RelayCommandBuilder.close(config.CONTROL_ALARM_RELAY_INDEX as RelayChannel);
       context.manager?.queueCommand('tcp', cabinetCommand8, 'cabinet', false);
       context.manager?.queueCommand('serial', controlCommand1, 'control', false);
 
@@ -105,8 +110,8 @@ export const applyAmmoMachine = setup({
     },
     broadcastAlarmCancelled: ({ context }) => {
       // 停止报警
-      const cabinetCommand8 = RelayCommandBuilder.open(config.ALARM_LIGHT_INDEX as RelayChannel);
-      const controlCommand1 = RelayCommandBuilder.open(config.RELAY_CONTROL_ALARM_INDEX as RelayChannel);
+      const cabinetCommand8 = RelayCommandBuilder.open(config.ALARM_LIGHT_RELAY_INDEX as RelayChannel);
+      const controlCommand1 = RelayCommandBuilder.open(config.CONTROL_ALARM_RELAY_INDEX as RelayChannel);
       context.manager?.queueCommand('tcp', cabinetCommand8, 'cabinet', false);
       context.manager?.queueCommand('serial', controlCommand1, 'control', false);
 
@@ -120,7 +125,7 @@ export const applyAmmoMachine = setup({
       }
 
       // 配置索引和继电器通道都是 0-based (0-7)
-      const command = RelayCommandBuilder.open(config.DOOR_LOCK_SWITCH_LIGHT_INDEX as RelayChannel);
+      const command = RelayCommandBuilder.open(config.DOOR_LOCK_SWITCH_LIGHT_RELAY_INDEX as RelayChannel);
 
       context.manager.sendCommand('serial', command, 'control', false)
     },

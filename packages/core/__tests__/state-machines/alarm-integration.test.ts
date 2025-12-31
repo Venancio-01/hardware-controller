@@ -11,6 +11,7 @@ vi.mock('../../src/hardware/manager.js', () => {
     HardwareCommunicationManager: class {
       sendCommand = vi.fn(() => Promise.resolve({}));
       queueCommand = vi.fn();
+      getAllConnectionStatus = vi.fn(() => ({ udp: {}, tcp: {} }));
       onIncomingData?: Function;
     }
   };
@@ -54,6 +55,16 @@ describe('Alarm Integration Test', () => {
       }
     });
     actor.start();
+
+    // 初始化状态 (所有开关断开/闭合为默认状态)
+    // 必须发送初始包以建立 baseline，这样后续变化才能被检测为 change
+    // 初始化状态
+    // Key Switch active low (false = trigger), so initialize to true (safe)
+    const initialInputs = new Set<number>();
+    initialInputs.add(config.KEY_SWITCH_INDEX);
+
+    sendReport('cabinet', new Set(), new Set(), initialInputs);
+    sendReport('control', new Set(), new Set(), new Set());
   });
 
   afterEach(() => {
@@ -98,8 +109,10 @@ describe('Alarm Integration Test', () => {
     // Initial state setup (call listener once to attach)
     await vi.advanceTimersByTimeAsync(10);
 
+    // 触发震动传感器，但保持钥匙开关闭合（避免触发钥匙报警）
     const cabinetIndexes = new Set<number>();
     cabinetIndexes.add(config.VIBRATION_SWITCH_INDEX);
+    cabinetIndexes.add(config.KEY_SWITCH_INDEX);  // 保持钥匙开关闭合状态
 
     sendReport('cabinet', new Set([config.VIBRATION_SWITCH_INDEX]), new Set(), cabinetIndexes);
 
@@ -131,8 +144,8 @@ describe('Alarm Integration Test', () => {
     // 2. Trigger Alarm Cancel (Index 8 - Control Side)
     // Monitor detects change -> emits 'alarm_cancel_toggled'
     const controlIndexes = new Set<number>();
-    controlIndexes.add(config.ALARM_CANCEL_INDEX);
-    sendReport('control', new Set([config.ALARM_CANCEL_INDEX]), new Set(), controlIndexes);
+    controlIndexes.add(config.ALARM_CANCEL_SWITCH_INDEX);
+    sendReport('control', new Set([config.ALARM_CANCEL_SWITCH_INDEX]), new Set(), controlIndexes);
 
     await vi.advanceTimersByTimeAsync(100);
 
@@ -145,7 +158,7 @@ describe('Alarm Integration Test', () => {
     // The previous calls (ON) are still in the mock history, so we expect ANY call with open command
     // But since we use queueCommand, we can check for specific logic.
     // Reset Alarm logic:
-    // const cabinetCommand = RelayCommandBuilder.open(config.ALARM_LIGHT_INDEX as RelayChannel);
+    // const cabinetCommand = RelayCommandBuilder.open(config.ALARM_LIGHT_RELAY_INDEX as RelayChannel);
     // context.hardware.queueCommand('tcp', cabinetCommand, 'cabinet', false);
 
     // We can just verify it was called.
@@ -185,7 +198,7 @@ describe('Alarm Integration Test', () => {
     expect(mockControlBroadcast).toHaveBeenCalledWith('钥匙已复位，请取消报警');
 
     // 3. 按下取消报警
-    sendReport('control', new Set([config.ALARM_CANCEL_INDEX]), new Set(), new Set([config.ALARM_CANCEL_INDEX]));
+    sendReport('control', new Set([config.ALARM_CANCEL_SWITCH_INDEX]), new Set(), new Set([config.ALARM_CANCEL_SWITCH_INDEX]));
     await vi.advanceTimersByTimeAsync(100);
 
     expect(actor.getSnapshot().value).toEqual('idle');

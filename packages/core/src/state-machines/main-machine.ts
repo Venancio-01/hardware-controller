@@ -126,9 +126,15 @@ export const mainMachine = setup({
         })
       },
       on: {
-        alarm_cancelled: 'idle',
+        alarm_cancelled: {
+          target: 'idle',
+          actions: ({ context }) => context.logger.info('[MainMachine] 收到 alarm_cancelled，返回 idle 状态')
+        },
         alarm_cancel_toggled: {
-          actions: sendTo('alarm', { type: 'ALARM_CANCEL' })
+          actions: [
+            ({ context }) => context.logger.info('[MainMachine] 收到 alarm_cancel_toggled，转发 ALARM_CANCEL 给 alarm actor'),
+            sendTo('alarm', { type: 'ALARM_CANCEL' })
+          ]
         },
         key_reset: {
           actions: sendTo('alarm', { type: 'KEY_RESET' })

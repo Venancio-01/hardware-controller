@@ -28,9 +28,7 @@
     "tsup": "^8.5.1",
     "tsx": "^4.21.0"
   },
-  "pnpm": {
-    "workspaces": [
-      "packages/*"
-    ]
-  }
+  "pnpm-workspace": [
+    "packages/*"
+  ]
 }

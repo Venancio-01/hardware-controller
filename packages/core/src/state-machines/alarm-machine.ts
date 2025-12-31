@@ -23,9 +23,35 @@ const MONITOR_ALARM_MESSAGES: Record<string, string> = {
   network: '网络连接异常'
 };
 
+
+// 开启报警灯
+function openAlarmLight(context: { hardware: HardwareCommunicationManager }) {
+  const controlCommand = RelayCommandBuilder.close(config.ALARM_LIGHT_RELAY_INDEX as RelayChannel);
+  const cabinetCommand = RelayCommandBuilder.close(config.CONTROL_ALARM_RELAY_INDEX as RelayChannel);
+
+  context.hardware.queueCommand('serial', controlCommand, 'control', false);
+  context.hardware.queueCommand('tcp', cabinetCommand, 'cabinet', false);
+}
+
+
+// 关闭报警灯
+function closeAlarmLight(context: { hardware: HardwareCommunicationManager }) {
+  const controlCommand = RelayCommandBuilder.open(config.ALARM_LIGHT_RELAY_INDEX as RelayChannel);
+  const cabinetCommand = RelayCommandBuilder.open(config.CONTROL_ALARM_RELAY_INDEX as RelayChannel);
+
+  context.hardware.queueCommand('serial', controlCommand, 'control', false);
+  context.hardware.queueCommand('tcp', cabinetCommand, 'cabinet', false);
+}
+
 export const alarmMachine = setup({
   types: {
-    context: {} as { hardware: HardwareCommunicationManager; logger: StructuredLogger; trigger?: string; monitorReason?: 'connection' | 'heartbeat' | 'network' },
+    context: {} as {
+      hardware: HardwareCommunicationManager;
+      logger: StructuredLogger;
+      trigger?: string;
+      monitorReason?: 'connection' | 'heartbeat' | 'network';
+      keyReset: boolean;  // 钥匙是否已复位
+    },
     events: {} as AlarmEvent,
     input: {} as { hardware: HardwareCommunicationManager; logger: StructuredLogger; trigger?: string; monitorReason?: 'connection' | 'heartbeat' | 'network' }
   },
@@ -36,11 +62,7 @@ export const alarmMachine = setup({
       VoiceBroadcast.getInstance().cabinet.broadcast('柜体震动报警');
       VoiceBroadcast.getInstance().control.broadcast('柜体震动报警');
 
-      const cabinetCommand = RelayCommandBuilder.close(config.ALARM_LIGHT_INDEX as RelayChannel);
-      context.hardware.queueCommand('tcp', cabinetCommand, 'cabinet', false);
-
-      const controlCommand = RelayCommandBuilder.close(config.RELAY_CONTROL_ALARM_INDEX as RelayChannel);
-      context.hardware.queueCommand('serial', controlCommand, 'control', false);
+      openAlarmLight(context);
     },
     resetAlarm: ({ context }) => {
       context.logger.info('[AlarmMachine] 解除报警');
@@ -48,11 +70,7 @@ export const alarmMachine = setup({
       VoiceBroadcast.getInstance().cabinet.broadcast('取消报警');
       VoiceBroadcast.getInstance().control.broadcast('取消报警');
 
-      const cabinetCommand = RelayCommandBuilder.open(config.ALARM_LIGHT_INDEX as RelayChannel);
-      context.hardware.queueCommand('tcp', cabinetCommand, 'cabinet', false);
-
-      const controlCommand = RelayCommandBuilder.open(config.RELAY_CONTROL_ALARM_INDEX as RelayChannel);
-      context.hardware.queueCommand('serial', controlCommand, 'control', false);
+      closeAlarmLight(context);
     },
     broadcastKeyAlarm: ({ context }) => {
       context.logger.info('[AlarmMachine] 触发钥匙报警');
@@ -60,11 +78,7 @@ export const alarmMachine = setup({
       VoiceBroadcast.getInstance().cabinet.broadcast('钥匙开门请核实');
       VoiceBroadcast.getInstance().control.broadcast('钥匙开门请核实');
 
-      const cabinetCommand = RelayCommandBuilder.close(config.ALARM_LIGHT_INDEX as RelayChannel);
-      context.hardware.queueCommand('tcp', cabinetCommand, 'cabinet', false);
-
-      const controlCommand = RelayCommandBuilder.close(config.RELAY_CONTROL_ALARM_INDEX as RelayChannel);
-      context.hardware.queueCommand('serial', controlCommand, 'control', false);
+      openAlarmLight(context);
     },
     broadcastKeyReset: ({ context }) => {
       context.logger.info('[AlarmMachine] 钥匙已复位');
@@ -80,24 +94,19 @@ export const alarmMachine = setup({
       // 仅控制端语音播报和报警器
       VoiceBroadcast.getInstance().control.broadcast(message);
 
-      const controlCommand = RelayCommandBuilder.close(config.RELAY_CONTROL_ALARM_INDEX as RelayChannel);
-      context.hardware.queueCommand('serial', controlCommand, 'control', false);
+      openAlarmLight(context);
     },
     resetMonitorAlarm: ({ context }) => {
       context.logger.info('[AlarmMachine] 解除监控报警');
 
-      // 仅控制端
       VoiceBroadcast.getInstance().control.broadcast('取消报警');
 
-      const controlCommand = RelayCommandBuilder.open(config.RELAY_CONTROL_ALARM_INDEX as RelayChannel);
-      context.hardware.queueCommand('serial', controlCommand, 'control', false);
+      closeAlarmLight(context);
     },
     silentResetMonitorAlarm: ({ context }) => {
       context.logger.info('[AlarmMachine] 静默解除监控报警');
 
-      // 仅关闭控制端报警器，无语音
-      const controlCommand = RelayCommandBuilder.open(config.RELAY_CONTROL_ALARM_INDEX as RelayChannel);
-      context.hardware.queueCommand('serial', controlCommand, 'control', false);
+      closeAlarmLight(context);
     }
   }
 }).createMachine({
@@ -106,7 +115,8 @@ export const alarmMachine = setup({
     hardware: input.hardware,
     logger: input.logger,
     trigger: input.trigger,
-    monitorReason: input.monitorReason
+    monitorReason: input.monitorReason,
+    keyReset: false  // 初始状态：钥匙未复位
   }),
   initial: 'determining',
   states: {
@@ -126,10 +136,19 @@ export const alarmMachine = setup({
       }
     },
     key_alarm: {
-      entry: 'broadcastKeyAlarm',
+      entry: [
+        'broadcastKeyAlarm',
+        ({ context }) => context.logger.info('[AlarmMachine] 进入 key_alarm 状态')
+      ],
       on: {
         KEY_RESET: {
-          actions: 'broadcastKeyReset'
+          actions: [
+            ({ context }) => {
+              context.logger.info('[AlarmMachine] 在 key_alarm 状态收到 KEY_RESET，标记钥匙已复位');
+              context.keyReset = true;  // 标记钥匙已复位
+            },
+            'broadcastKeyReset'
+          ]
         },
         VIBRATION_DETECTED: {
           actions: 'broadcastVibrationAlarm'
@@ -137,10 +156,26 @@ export const alarmMachine = setup({
         MONITOR_DETECTED: {
           actions: 'broadcastMonitorAlarm'
         },
-        ALARM_CANCEL: {
-          actions: ['resetAlarm', sendParent({ type: 'alarm_cancelled' })],
-          target: 'idle'
-        }
+        ALARM_CANCEL: [
+          {
+            // 只有钥匙复位后才能取消报警
+            guard: ({ context }) => context.keyReset,
+            actions: [
+              ({ context }) => {
+                context.logger.info('[AlarmMachine] 在 key_alarm 状态收到 ALARM_CANCEL，钥匙已复位，正在重置报警并返回 idle');
+                context.keyReset = false;  // 重置状态
+              },
+              'resetAlarm',
+              sendParent({ type: 'alarm_cancelled' })
+            ],
+            target: 'idle'
+          },
+          {
+            // 钥匙未复位时，忽略取消请求
+            guard: ({ context }) => !context.keyReset,
+            actions: ({ context }) => context.logger.warn('[AlarmMachine] 在 key_alarm 状态收到 ALARM_CANCEL，但钥匙尚未复位，忽略取消请求')
+          }
+        ]
       }
     },
     vibration_alarm: {
@@ -152,11 +187,9 @@ export const alarmMachine = setup({
         KEY_DETECTED: {
           actions: 'broadcastKeyAlarm',
           target: 'key_alarm'
-          // 钥匙报警优先级更高，切换到钥匙报警状态
         },
         KEY_RESET: {
           actions: 'broadcastKeyReset'
-          // 即使在震动报警状态也播放钥匙复位，以防遗漏
         },
         MONITOR_DETECTED: {
           actions: 'broadcastMonitorAlarm'

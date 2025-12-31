@@ -65,15 +65,15 @@ export const envConfigSchema = z.object({
 
   // 硬件输入索引配置 (0-15)
   // 存放柜输入 (0-7)
-  APPLY_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(15, { message: '索引不能大于 15' }).optional().default(0),
-  CABINET_DOOR_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(15, { message: '索引不能大于 15' }).optional().default(1),
+  APPLY_SWITCH_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(15, { message: '索引不能大于 15' }).optional().default(0),
+  CABINET_DOOR_SWITCH_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(15, { message: '索引不能大于 15' }).optional().default(1),
   DOOR_LOCK_SWITCH_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(15, { message: '索引不能大于 15' }).optional().default(2),
   KEY_SWITCH_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(15, { message: '索引不能大于 15' }).optional().default(3),
   VIBRATION_SWITCH_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(15, { message: '索引不能大于 15' }).optional().default(4),
   // 控制柜输入 (8-15)
-  ALARM_CANCEL_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(15, { message: '索引不能大于 15' }).optional().default(10),
-  AUTH_CANCEL_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(15, { message: '索引不能大于 15' }).optional().default(11),
-  AUTH_PASS_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(15, { message: '索引不能大于 15' }).optional().default(12),
+  ALARM_CANCEL_SWITCH_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(15, { message: '索引不能大于 15' }).optional().default(10),
+  AUTH_CANCEL_SWITCH_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(15, { message: '索引不能大于 15' }).optional().default(11),
+  AUTH_PASS_SWITCH_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(15, { message: '索引不能大于 15' }).optional().default(12),
 
   // 传感器状态反转配置
   // true: 闭合状态为报警状态，断开状态为正常状态
@@ -81,10 +81,12 @@ export const envConfigSchema = z.object({
   INVERT_SENSOR_STATE: z.boolean().optional().default(false),
 
   // 硬件继电器索引配置 (0-31 for relay channel)
-  APPLY_LIGHT_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(31, { message: '索引不能大于 31' }).optional().default(0),
-  DOOR_LOCK_SWITCH_LIGHT_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(31, { message: '索引不能大于 31' }).optional().default(2),
-  ALARM_LIGHT_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(31, { message: '索引不能大于 31' }).optional().default(8),
-  RELAY_CONTROL_ALARM_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(31, { message: '索引不能大于 31' }).optional().default(1),
+  APPLY_LIGHT_RELAY_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(31, { message: '索引不能大于 31' }).optional().default(0),
+  DOOR_LOCK_SWITCH_LIGHT_RELAY_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(31, { message: '索引不能大于 31' }).optional().default(2),
+  ALARM_LIGHT_RELAY_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(31, { message: '索引不能大于 31' }).optional().default(8),
+  CONTROL_ALARM_RELAY_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(31, { message: '索引不能大于 31' }).optional().default(1),
+  DOOR_LOCK_RELAY_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(31, { message: '索引不能大于 31' }).optional().default(1),
+  CABINET_DOOR_RELAY_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(31, { message: '索引不能大于 31' }).optional().default(2),
 });
 
 /**

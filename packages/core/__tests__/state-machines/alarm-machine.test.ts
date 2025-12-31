@@ -124,6 +124,78 @@ describe('AlarmMachine', () => {
       expect(mockCabinetBroadcast).toHaveBeenCalledWith('钥匙开门请核实');
       expect(mockControlBroadcast).toHaveBeenCalledWith('钥匙开门请核实');
     });
+
+    it('钥匙未复位时，ALARM_CANCEL 应该被忽略', async () => {
+      const { parentActor, receivedEvents } = createTestActorWithParent('KEY_DETECTED');
+      parentActor.start();
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      const alarmActor = parentActor.getSnapshot().children['alarm'];
+      expect(alarmActor?.getSnapshot().value).toBe('key_alarm');
+      expect(alarmActor?.getSnapshot().context.keyReset).toBe(false);
+
+      // 发送 ALARM_CANCEL，但钥匙未复位
+      alarmActor?.send({ type: 'ALARM_CANCEL' });
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // 应该仍然在 key_alarm 状态，没有发送 alarm_cancelled 事件
+      expect(alarmActor?.getSnapshot().value).toBe('key_alarm');
+      expect(receivedEvents).not.toContainEqual(expect.objectContaining({ type: 'alarm_cancelled' }));
+      // 应该有警告日志
+      expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('钥匙尚未复位'));
+
+      parentActor.stop();
+    });
+
+    it('钥匙复位后，ALARM_CANCEL 应该能取消报警', async () => {
+      const { parentActor, receivedEvents } = createTestActorWithParent('KEY_DETECTED');
+      parentActor.start();
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+      mockCabinetBroadcast.mockClear();
+      mockControlBroadcast.mockClear();
+
+      const alarmActor = parentActor.getSnapshot().children['alarm'];
+      expect(alarmActor?.getSnapshot().value).toBe('key_alarm');
+
+      // 先发送 KEY_RESET 复位钥匙
+      alarmActor?.send({ type: 'KEY_RESET' });
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      expect(alarmActor?.getSnapshot().context.keyReset).toBe(true);
+      expect(mockCabinetBroadcast).toHaveBeenCalledWith('钥匙已复位，请取消报警');
+      expect(mockControlBroadcast).toHaveBeenCalledWith('钥匙已复位，请取消报警');
+
+      mockCabinetBroadcast.mockClear();
+      mockControlBroadcast.mockClear();
+
+      // 现在发送 ALARM_CANCEL，应该能取消报警
+      alarmActor?.send({ type: 'ALARM_CANCEL' });
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      expect(alarmActor?.getSnapshot().value).toBe('idle');
+      expect(mockCabinetBroadcast).toHaveBeenCalledWith('取消报警');
+      expect(mockControlBroadcast).toHaveBeenCalledWith('取消报警');
+      expect(receivedEvents).toContainEqual(expect.objectContaining({ type: 'alarm_cancelled' }));
+
+      parentActor.stop();
+    });
+
+    it('KEY_RESET 应该标记钥匙已复位并播报', () => {
+      const actor = createTestActor('KEY_DETECTED');
+      actor.start();
+      expect(actor.getSnapshot().value).toBe('key_alarm');
+      expect(actor.getSnapshot().context.keyReset).toBe(false);
+
+      mockCabinetBroadcast.mockClear();
+      mockControlBroadcast.mockClear();
+
+      actor.send({ type: 'KEY_RESET' });
+      expect(actor.getSnapshot().context.keyReset).toBe(true);
+      expect(mockCabinetBroadcast).toHaveBeenCalledWith('钥匙已复位，请取消报警');
+      expect(mockControlBroadcast).toHaveBeenCalledWith('钥匙已复位，请取消报警');
+    });
   });
 
   describe('震动报警', () => {

@@ -15,7 +15,7 @@
   LOG_PRETTY: true,
 
   // ==================== 柜体继电器板配置 ====================
-  CABINET_HOST: "192.168.0.18",
+  CABINET_HOST: "192.168.110.248",
   CABINET_PORT: 50000,
 
   // ==================== 操作台继电器板配置 ====================
@@ -43,25 +43,26 @@
   AUTH_RETRY_INTERVAL_S: 5,  // 授权等待超时重试间隔（秒）
 
   // ==================== 供弹柜输入索引 ====================
-  APPLY_INDEX: 0,              // 申请按钮
-  CABINET_DOOR_INDEX: 1,       // 柜门状态
-  DOOR_LOCK_SWITCH_INDEX: 2,   // 门锁开关
-  KEY_SWITCH_INDEX: 3,         // 钥匙开关
-  VIBRATION_SWITCH_INDEX: 4,   // 振动开关
+  APPLY_SWITCH_INDEX: 0,              // 申请按钮
+  CABINET_DOOR_SWITCH_INDEX: 1,       // 柜门状态
+  DOOR_LOCK_SWITCH_INDEX: 2,          // 门锁开关
+  KEY_SWITCH_INDEX: 3,                // 钥匙开关
+  VIBRATION_SWITCH_INDEX: 4,          // 振动开关
 
   // ==================== 控制柜输入索引 ====================
-  ALARM_CANCEL_INDEX: 8,      // 报警取消
-  AUTH_CANCEL_INDEX: 9,       // 授权取消
-  AUTH_PASS_INDEX: 10,         // 授权通过
+  ALARM_CANCEL_SWITCH_INDEX: 8,      // 报警取消
+  AUTH_CANCEL_SWITCH_INDEX: 9,       // 授权取消
+  AUTH_PASS_SWITCH_INDEX: 10,         // 授权通过
 
   // ==================== 供弹柜输出索引 ====================
-  RELAY_CONTROL_ALARM_INDEX: 1,    // 操作台报警器
-  DOOR_LOCK_SWITCH_INDEX: 1,       // 门锁开关
+  CONTROL_ALARM_RELAY_INDEX: 0,    // 报警指示灯
+  DOOR_LOCK_RELAY_INDEX: 1,       // 门锁开关
 
   // ==================== 控制柜输出索引 ====================
-  APPLY_LIGHT_INDEX: 0,            // 供弹申请灯
-  DOOR_LOCK_SWITCH_LIGHT_INDEX: 1, // 门锁开关灯
-  ALARM_LIGHT_INDEX: 3,            // 报警指示灯
+  APPLY_LIGHT_RELAY_INDEX: 0,            // 供弹申请灯
+  DOOR_LOCK_SWITCH_LIGHT_RELAY_INDEX: 1, // 门锁开关灯
+  ALARM_LIGHT_RELAY_INDEX: 3,            // 报警指示灯
+  CABINET_DOOR_RELAY_INDEX: 2,           // 柜门开关灯
 
   // ==================== 传感器状态反转 ====================
   // true: 闭合状态为报警状态，断开状态为正常状态
