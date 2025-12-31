@@ -24,6 +24,8 @@ set -e
 VERSION="1.0.0"
 OUTPUT_DIR="dist/node-switch-v${VERSION}-arm7"
 export NODE_ENV=production
+# 优化构建配置：跳过类型声明生成
+export NO_DTS=true
 
 # 颜色输出
 RED='\033[0;31m'
@@ -115,6 +117,35 @@ check_environment() {
         log_success "编译工具安装完成"
     else
         log_success "编译工具已就绪"
+    fi
+}
+
+# 配置 Swap
+setup_swap() {
+    log_step "检查 Swap 配置..."
+
+    # 检查是否已有 swap
+    if swapon --show | grep -q "partition\|file"; then
+        log_success "Swap 已启用"
+        return
+    fi
+
+    # 检查是否有足够的空间 (需要 sudo)
+    if [ "$(id -u)" -eq 0 ]; then
+        log_info "正在创建 1GB Swap 文件..."
+
+        # 创建 swap 文件
+        fallocate -l 1G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=1024
+        chmod 600 /swapfile
+        mkswap /swapfile
+        swapon /swapfile
+
+        # 写入 fstab (可选，暂时仅当前会话生效)
+        # echo '/swapfile none swap sw 0 0' >> /etc/fstab
+
+        log_success "Swap 创建并启用成功 (1GB)"
+    else
+        log_warn "非 root 用户，跳过 Swap 创建。如果内存不足可能导致构建失败。"
     fi
 }
 
@@ -414,6 +445,7 @@ main() {
     # 执行流程
     check_current_directory
     check_environment
+    setup_swap
 
     if [ "$DO_CLEAN" = true ]; then
         clean_build

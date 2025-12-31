@@ -5,7 +5,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 export default defineConfig({
   entry: ['src/index.ts'],
   format: ['cjs'],
-  dts: true,
+  dts: !process.env.NO_DTS,
   clean: true,
   outDir: 'dist',
   // 生产构建禁用 sourcemap 以保护源码
