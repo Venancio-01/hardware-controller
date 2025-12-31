@@ -19,7 +19,8 @@
   CABINET_PORT: 50000,
 
   // ==================== 操作台继电器板配置 ====================
-  CONTROL_SERIAL_PATH: "/dev/ttyUSB0",
+  // CONTROL_SERIAL_PATH: "/dev/ttyUSB0",
+  CONTROL_SERIAL_PATH: "/dev/ttyS1",
   CONTROL_SERIAL_BAUDRATE: 9600,
   CONTROL_SERIAL_DATABITS: 8,
   CONTROL_SERIAL_STOPBITS: 1,

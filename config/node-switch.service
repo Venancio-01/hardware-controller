@@ -1,30 +1,33 @@
 [Unit]
-Description=Node Switch - 硬件通信服务 (UDP/TCP)
+Description=Hardware Controller Backend Service
 After=network.target
 
 [Service]
 Type=simple
 User=orangepi
-Group=orangepi
-WorkingDirectory=/opt/node-switch
-ExecStart=/root/.bun/bin/bun run src/index.ts
+WorkingDirectory=/home/orangepi/hardware-controller/packages/backend
+
+# fnm 环境
+Environment="PATH=/home/orangepi/.fnm:/home/orangepi/.fnm/node-versions/v22.11.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="FNM_DIR=/home/orangepi/.fnm"
+Environment="FNM_VERSION_FILE_STRATEGY=local"
+
+# 使用 fnm 的 node（需要先确定 node 版本）
+# 或者直接使用 fnm 安装的 node 的完整路径
+ExecStart=/home/orangepi/.local/share/fnm/node-versions/v22.11.0/installation/bin/node dist/index.cjs
+
+# 如果上面的路径不对，可以用这个替代方案（使用 shell 启动）
+# ExecStart=/bin/bash -lc 'fnm exec --using-file node dist/index.cjs'
+
 Restart=always
-RestartSec=5
-StartLimitIntervalSec=60
-StartLimitBurst=5
-
-# 环境变量
-Environment=NODE_ENV=production
-
-# 日志配置
+RestartSec=10
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=node-switch
+SyslogIdentifier=hardware-controller-backend
 
-# 进程管理
-KillMode=mixed
-KillSignal=SIGTERM
-TimeoutStopSec=30
+# 环境变量（如果需要的话）
+# Environment=NODE_ENV=production
+# Environment=PORT=3000
 
 [Install]
 WantedBy=multi-user.target
