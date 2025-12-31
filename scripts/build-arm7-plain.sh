@@ -21,6 +21,7 @@ set -e
 # 版本配置
 VERSION="1.0.0"
 OUTPUT_DIR="dist/node-switch-v${VERSION}-arm7-plain"
+export NODE_ENV=production
 DOCKER_IMAGE="node-switch:arm7-build-plain"
 
 # 颜色输出

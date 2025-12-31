@@ -23,6 +23,7 @@ set -e
 # 版本配置
 VERSION="1.0.0"
 OUTPUT_DIR="dist/node-switch-v${VERSION}-arm7"
+export NODE_ENV=production
 
 # 颜色输出
 RED='\033[0;31m'
@@ -149,8 +150,9 @@ build_typescript() {
     log_info "编译 backend..."
     pnpm --filter backend build
 
-    log_info "编译 frontend..."
-    pnpm --filter frontend build
+    # frontend 已在 x86 环境下构建，跳过以避免 ARM v7l 环境下的 TailwindCSS Oxide 问题
+    log_info "跳过 frontend 构建（使用已有产物）..."
+    # pnpm --filter frontend build
 
     log_success "TypeScript 编译完成"
 }
