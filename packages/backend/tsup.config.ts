@@ -1,18 +1,17 @@
 import { defineConfig } from 'tsup';
 
-const isProduction = process.env.NODE_ENV === 'production';
 
 export default defineConfig({
   entry: ['src/index.ts'],
   format: ['cjs'],
-  dts: !process.env.NO_DTS,
+  dts: false,
   clean: true,
   outDir: 'dist',
   // 生产构建禁用 sourcemap 以保护源码
-  sourcemap: !isProduction,
+  sourcemap: false,
   splitting: false,
   shims: true,
-  minify: isProduction,
+  minify: false,
   target: 'es2022',
 
   // 依赖打包策略：打包大部分纯 JS 依赖以减少 node_modules 体积
