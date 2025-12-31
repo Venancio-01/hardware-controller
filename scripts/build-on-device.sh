@@ -204,18 +204,40 @@ create_deployment_package() {
     cp -r packages/shared/dist "${OUTPUT_DIR}/app/shared"
     cp -r packages/frontend/dist "${OUTPUT_DIR}/public"
 
-    # 复制生产依赖
+    # 复制生产依赖（优化版：只复制必要的模块）
     log_info "复制生产依赖..."
     mkdir -p "${OUTPUT_DIR}/app/node_modules"
 
-    # 复制 node_modules
-    cp -r node_modules "${OUTPUT_DIR}/app/"
+    # 只复制 external 声明的必要模块
+    # serialport - 原生二进制模块
+    # socket.io - 保持运行时灵活性
+    # shared - workspace 依赖
+    for module in serialport socket.io shared; do
+        if [ -d "node_modules/$module" ]; then
+            log_info "  复制 $module..."
+            cp -r "node_modules/$module" "${OUTPUT_DIR}/app/node_modules/"
+        fi
+    done
 
-    # 清理开发依赖
-    cd "${OUTPUT_DIR}/app"
-    CI=true pnpm prune --prod || true
-    pnpm install --prod --frozen-lockfile
-    cd - > /dev/null
+    # 复制 pnpm store 结构（pnpm 使用符号链接，需要保留 .pnpm 中的实际包）
+    log_info "  复制 pnpm store 结构..."
+    if [ -d "node_modules/.pnpm" ]; then
+        mkdir -p "${OUTPUT_DIR}/app/node_modules/.pnpm"
+
+        # 只复制必要的包从 .pnpm store
+        # serialport 及其依赖
+        find node_modules/.pnpm -maxdepth 1 -name "serialport@*" -exec cp -r {} "${OUTPUT_DIR}/app/node_modules/.pnpm/" \; 2>/dev/null || true
+
+        # socket.io 及其依赖（socket.io 依赖很多包，包括 engine.io, socket.io-parser 等）
+        find node_modules/.pnpm -maxdepth 1 -name "socket.io@*" -exec cp -r {} "${OUTPUT_DIR}/app/node_modules/.pnpm/" \; 2>/dev/null || true
+        find node_modules/.pnpm -maxdepth 1 -name "engine.io@*" -exec cp -r {} "${OUTPUT_DIR}/app/node_modules/.pnpm/" \; 2>/dev/null || true
+        find node_modules/.pnpm -maxdepth 1 -name "socket.io-parser@*" -exec cp -r {} "${OUTPUT_DIR}/app/node_modules/.pnpm/" \; 2>/dev/null || true
+
+        # shared workspace 包
+        find node_modules/.pnpm -maxdepth 1 -name "shared@*" -exec cp -r {} "${OUTPUT_DIR}/app/node_modules/.pnpm/" \; 2>/dev/null || true
+    fi
+
+    log_success "依赖复制完成（已优化，仅包含必要模块）"
 
     # 创建启动脚本
     log_info "创建启动脚本..."
@@ -242,7 +264,7 @@ start() {
 
     echo "启动 Node Switch..."
     cd "$APP_DIR"
-    nohup "$NODE_BIN" loader.js > "$LOG_FILE" 2>&1 &
+    nohup "$NODE_BIN" loader.cjs > "$LOG_FILE" 2>&1 &
     echo $! > "$PID_FILE"
     sleep 2
 
@@ -315,9 +337,9 @@ EOF
 
     chmod +x "${OUTPUT_DIR}/start.sh"
 
-    # 创建 loader.js
-    log_info "创建 loader.js..."
-    cat > "${OUTPUT_DIR}/app/loader.js" << 'EOF'
+    # 创建 loader.cjs
+    log_info "创建 loader.cjs..."
+    cat > "${OUTPUT_DIR}/app/loader.cjs" << 'EOF'
 try {
   require('./backend/index.cjs');
 } catch (error) {
