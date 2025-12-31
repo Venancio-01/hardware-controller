@@ -6,10 +6,9 @@ After=network.target
 Type=simple
 User=orangepi
 WorkingDirectory=/home/orangepi/hardware-controller/packages/backend
-ExecStart=/bin/bash -lc 'eval "$(fnm env --shell bash)" && fnm exec --using-file node dist/index.cjs'
+ExecStart=/run/user/1000/fnm_multishells/1380_1767171809369/bin/node dist/index.cjs
 Restart=always
 RestartSec=5
-StartLimitIntervalSec=60
 StartLimitBurst=5
 
 # 环境变量
