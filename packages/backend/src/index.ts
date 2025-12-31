@@ -78,7 +78,7 @@ const isDev = process.env.NODE_ENV === 'development';
 const scriptPath = process.env.CORE_SCRIPT_PATH
   || (isDev
     ? path.resolve(_dirname, '../../core/src/app.ts')
-    : path.resolve(_dirname, '../core/app.cjs'));
+    : path.resolve(_dirname, '../../core/dist/app.cjs'));
 
 // 启动选项
 const startOptions = isDev

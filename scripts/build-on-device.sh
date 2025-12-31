@@ -208,33 +208,61 @@ create_deployment_package() {
     log_info "复制生产依赖..."
     mkdir -p "${OUTPUT_DIR}/app/node_modules"
 
-    # 只复制 external 声明的必要模块
-    # serialport - 原生二进制模块
-    # socket.io - 保持运行时灵活性
-    # shared - workspace 依赖
-    for module in serialport socket.io shared; do
-        if [ -d "node_modules/$module" ]; then
-            log_info "  复制 $module..."
-            cp -r "node_modules/$module" "${OUTPUT_DIR}/app/node_modules/"
-        fi
-    done
-
-    # 复制 pnpm store 结构（pnpm 使用符号链接，需要保留 .pnpm 中的实际包）
-    log_info "  复制 pnpm store 结构..."
+    # 复制必要的 pnpm store 包
+    log_info "  复制必要的 pnpm store 包..."
     if [ -d "node_modules/.pnpm" ]; then
         mkdir -p "${OUTPUT_DIR}/app/node_modules/.pnpm"
 
-        # 只复制必要的包从 .pnpm store
-        # serialport 及其依赖
-        find node_modules/.pnpm -maxdepth 1 -name "serialport@*" -exec cp -r {} "${OUTPUT_DIR}/app/node_modules/.pnpm/" \; 2>/dev/null || true
+        # 只复制必要的包
+        for pattern in \
+            "shared@*" \
+            "serialport@*" \
+            "socket.io@*" "engine.io@*" "socket.io-parser@*" \
+            "pino@*" "pino-http@*" "pino-pretty@*" "pino-std-serializers@*" \
+            "pino-abstract-transport@*" "@pinojs+*" \
+            "get-caller-file@*" "process-warning@*" \
+            "json5@*" "zod@*" \
+            "accepts@*" "ws@*" \
+            "dotenv@*"; do
+            find node_modules/.pnpm -maxdepth 1 -name "$pattern" -type d \
+                 -exec cp -r {} "${OUTPUT_DIR}/app/node_modules/.pnpm/" \; 2>/dev/null || true
+        done
+    fi
 
-        # socket.io 及其依赖（socket.io 依赖很多包，包括 engine.io, socket.io-parser 等）
-        find node_modules/.pnpm -maxdepth 1 -name "socket.io@*" -exec cp -r {} "${OUTPUT_DIR}/app/node_modules/.pnpm/" \; 2>/dev/null || true
-        find node_modules/.pnpm -maxdepth 1 -name "engine.io@*" -exec cp -r {} "${OUTPUT_DIR}/app/node_modules/.pnpm/" \; 2>/dev/null || true
-        find node_modules/.pnpm -maxdepth 1 -name "socket.io-parser@*" -exec cp -r {} "${OUTPUT_DIR}/app/node_modules/.pnpm/" \; 2>/dev/null || true
+    # 复制所有必要的依赖到顶层 node_modules（直接复制而非符号链接）
+    if [ -d "node_modules/.pnpm" ]; then
+        log_info "  复制依赖到 node_modules..."
 
-        # shared workspace 包
-        find node_modules/.pnpm -maxdepth 1 -name "shared@*" -exec cp -r {} "${OUTPUT_DIR}/app/node_modules/.pnpm/" \; 2>/dev/null || true
+        # 查找并复制所有必要的包（包括子依赖）
+        for pkg_dir in node_modules/.pnpm/*/node_modules/*; do
+            if [ -d "$pkg_dir" ]; then
+                module_name=$(basename "$pkg_dir")
+                target_dir="${OUTPUT_DIR}/app/node_modules/${module_name}"
+                # 如果目标不存在，复制包
+                if [ ! -e "$target_dir" ]; then
+                    cp -rL "$pkg_dir" "$target_dir" 2>/dev/null || true
+                fi
+            fi
+        done
+
+        # 递归查找深层依赖（如 pino/node_modules/quick-format-unescaped）
+        find node_modules/.pnpm -mindepth 3 -type d -name "node_modules" -print0 2>/dev/null | while IFS= read -r -d '' nm_dir; do
+            for pkg_dir in "$nm_dir"/*/; do
+                if [ -d "$pkg_dir" ]; then
+                    module_name=$(basename "$pkg_dir")
+                    target_dir="${OUTPUT_DIR}/app/node_modules/${module_name}"
+                    if [ ! -e "$target_dir" ] && [ "$module_name" != "*" ]; then
+                        cp -rL "$pkg_dir" "$target_dir" 2>/dev/null || true
+                    fi
+                fi
+            done
+        done
+
+        # 复制 shared workspace 包（解析符号链接）
+        if [ -e "packages/backend/node_modules/shared" ]; then
+            log_info "  复制 shared workspace 包..."
+            cp -rL packages/backend/node_modules/shared "${OUTPUT_DIR}/app/node_modules/"
+        fi
     fi
 
     log_success "依赖复制完成（已优化，仅包含必要模块）"
