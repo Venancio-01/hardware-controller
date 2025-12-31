@@ -12,6 +12,7 @@ vi.mock('../../src/hardware/manager.js', () => {
       sendCommand = vi.fn(() => Promise.resolve({}));
       queueCommand = vi.fn();
       onIncomingData?: Function;
+      onConnectionChange?: Function;
       getAllConnectionStatus = vi.fn(() => ({ tcp: {}, serial: {} }));
     }
   };
@@ -113,15 +114,15 @@ describe('MonitorMachine - Enhanced Subscriptions', () => {
     await new Promise(resolve => setTimeout(resolve, 50));
 
     // 2. CH1 (Index 0) Closed -> apply_request
-    cabinetIndexes.add(config.APPLY_INDEX);
-    sendReport('cabinet', new Set([config.APPLY_INDEX]));
+    cabinetIndexes.add(config.APPLY_SWITCH_INDEX);
+    sendReport('cabinet', new Set([config.APPLY_SWITCH_INDEX]));
     await new Promise(resolve => setTimeout(resolve, 50));
 
     expect(receivedEvents).toContainEqual(expect.objectContaining({ type: 'apply_request', priority: EventPriority.P2 }));
 
     receivedEvents = [];
-    controlIndexes.add(config.AUTH_PASS_INDEX);
-    sendReport('control', new Set([config.AUTH_PASS_INDEX]));
+    controlIndexes.add(config.AUTH_PASS_SWITCH_INDEX);
+    sendReport('control', new Set([config.AUTH_PASS_SWITCH_INDEX]));
     await new Promise(resolve => setTimeout(resolve, 50));
     expect(receivedEvents).toContainEqual(expect.objectContaining({ type: 'authorize_request', priority: EventPriority.P2 }));
 
@@ -129,29 +130,29 @@ describe('MonitorMachine - Enhanced Subscriptions', () => {
     // Ensure CH1 logic was NOT triggered again
     expect(receivedEvents.filter(e => e.type === 'apply_request').length).toBe(0);
 
-    // Verify NO refuse_request on AUTH_PASS_INDEX open (falling edge)
+    // Verify NO refuse_request on AUTH_PASS_SWITCH_INDEX open (falling edge)
     receivedEvents = [];
-    controlIndexes.delete(config.AUTH_PASS_INDEX);
-    sendReport('control', new Set(), new Set([config.AUTH_PASS_INDEX])); // Falling edge
+    controlIndexes.delete(config.AUTH_PASS_SWITCH_INDEX);
+    sendReport('control', new Set(), new Set([config.AUTH_PASS_SWITCH_INDEX])); // Falling edge
     await new Promise(resolve => setTimeout(resolve, 50));
     expect(receivedEvents.filter(e => e.type === 'refuse_request').length).toBe(0);
 
-    // Verify refuse_request on AUTH_CANCEL_INDEX close (rising edge)
+    // Verify refuse_request on AUTH_CANCEL_SWITCH_INDEX close (rising edge)
     receivedEvents = [];
-    controlIndexes.add(config.AUTH_CANCEL_INDEX);
-    sendReport('control', new Set([config.AUTH_CANCEL_INDEX])); // Rising edge
+    controlIndexes.add(config.AUTH_CANCEL_SWITCH_INDEX);
+    sendReport('control', new Set([config.AUTH_CANCEL_SWITCH_INDEX])); // Rising edge
     await new Promise(resolve => setTimeout(resolve, 50));
     expect(receivedEvents).toContainEqual(expect.objectContaining({ type: 'refuse_request', priority: EventPriority.P2 }));
 
-    // 4. CABINET_DOOR_INDEX (CH2) changed -> cabinet_lock_changed
+    // 4. CABINET_DOOR_SWITCH_INDEX (CH2) changed -> cabinet_lock_changed
     receivedEvents = [];
-    const doorClientId = config.CABINET_DOOR_INDEX >= 8 ? 'control' : 'cabinet';
+    const doorClientId = config.CABINET_DOOR_SWITCH_INDEX >= 8 ? 'control' : 'cabinet';
     if (doorClientId === 'control') {
-      controlIndexes.add(config.CABINET_DOOR_INDEX);
+      controlIndexes.add(config.CABINET_DOOR_SWITCH_INDEX);
     } else {
-      cabinetIndexes.add(config.CABINET_DOOR_INDEX);
+      cabinetIndexes.add(config.CABINET_DOOR_SWITCH_INDEX);
     }
-    sendReport(doorClientId, new Set([config.CABINET_DOOR_INDEX]));
+    sendReport(doorClientId, new Set([config.CABINET_DOOR_SWITCH_INDEX]));
     await new Promise(resolve => setTimeout(resolve, 50));
     // 柜门状态：high (true) = 开门，所以 isClosed 应该是 false
     expect(receivedEvents).toContainEqual(expect.objectContaining({
@@ -163,11 +164,11 @@ describe('MonitorMachine - Enhanced Subscriptions', () => {
     // 5. 测试柜门从 high 变为 low 的场景（关门）
     receivedEvents = [];
     if (doorClientId === 'control') {
-      controlIndexes.delete(config.CABINET_DOOR_INDEX);
+      controlIndexes.delete(config.CABINET_DOOR_SWITCH_INDEX);
     } else {
-      cabinetIndexes.delete(config.CABINET_DOOR_INDEX);
+      cabinetIndexes.delete(config.CABINET_DOOR_SWITCH_INDEX);
     }
-    sendReport(doorClientId, new Set(), new Set([config.CABINET_DOOR_INDEX]));
+    sendReport(doorClientId, new Set(), new Set([config.CABINET_DOOR_SWITCH_INDEX]));
     await new Promise(resolve => setTimeout(resolve, 50));
 
     expect(receivedEvents).toContainEqual(expect.objectContaining({
@@ -176,15 +177,15 @@ describe('MonitorMachine - Enhanced Subscriptions', () => {
       isClosed: false  // low = 断开 = 开门 = isClosed: false
     }));
 
-    // 6. ALARM_CANCEL_INDEX (CH11) changed -> alarm_cancel_toggled
+    // 6. ALARM_CANCEL_SWITCH_INDEX (CH11) changed -> alarm_cancel_toggled
     receivedEvents = [];
-    const alarmClientId = config.ALARM_CANCEL_INDEX >= 8 ? 'control' : 'cabinet';
+    const alarmClientId = config.ALARM_CANCEL_SWITCH_INDEX >= 8 ? 'control' : 'cabinet';
     if (alarmClientId === 'control') {
-      controlIndexes.add(config.ALARM_CANCEL_INDEX);
+      controlIndexes.add(config.ALARM_CANCEL_SWITCH_INDEX);
     } else {
-      cabinetIndexes.add(config.ALARM_CANCEL_INDEX);
+      cabinetIndexes.add(config.ALARM_CANCEL_SWITCH_INDEX);
     }
-    sendReport(alarmClientId, new Set([config.ALARM_CANCEL_INDEX]));
+    sendReport(alarmClientId, new Set([config.ALARM_CANCEL_SWITCH_INDEX]));
     await new Promise(resolve => setTimeout(resolve, 50));
 
     expect(receivedEvents).toContainEqual(expect.objectContaining({
@@ -192,14 +193,30 @@ describe('MonitorMachine - Enhanced Subscriptions', () => {
       priority: EventPriority.P2
     }));
 
-    // 测试 toggle：再次改变状态
+    // 测试 toggle：再次改变状态 (模拟按键释放后再次按下)
     receivedEvents = [];
+
+    // 1. 释放 (Release, Low)
     if (alarmClientId === 'control') {
-      controlIndexes.delete(config.ALARM_CANCEL_INDEX);
+      controlIndexes.delete(config.ALARM_CANCEL_SWITCH_INDEX);
     } else {
-      cabinetIndexes.delete(config.ALARM_CANCEL_INDEX);
+      cabinetIndexes.delete(config.ALARM_CANCEL_SWITCH_INDEX);
     }
-    sendReport(alarmClientId, new Set(), new Set([config.ALARM_CANCEL_INDEX]));
+    // 发送 Falling Edge
+    sendReport(alarmClientId, new Set(), new Set([config.ALARM_CANCEL_SWITCH_INDEX]));
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    // 释放过程不应该有事件 (如果只是 Rising Edge 触发)
+    expect(receivedEvents.length).toBe(0);
+
+    // 2. 再次按下 (Press, High)
+    if (alarmClientId === 'control') {
+      controlIndexes.add(config.ALARM_CANCEL_SWITCH_INDEX);
+    } else {
+      cabinetIndexes.add(config.ALARM_CANCEL_SWITCH_INDEX);
+    }
+    // 发送 Rising Edge
+    sendReport(alarmClientId, new Set([config.ALARM_CANCEL_SWITCH_INDEX]));
     await new Promise(resolve => setTimeout(resolve, 50));
 
     // Toggle 按钮每次状态变化都应该触发事件
@@ -370,22 +387,8 @@ describe('MonitorMachine - Enhanced Subscriptions', () => {
     parentActor.stop();
   });
 
-  it('should emit monitor_connection_update when connection status changes', async () => {
+  it('should emit monitor_anomaly when cabinet connection is lost', async () => {
     let receivedEvents: any[] = [];
-
-    // Copy helpers
-    const maskFromIndexes = (indexes: Set<number>, offset: number) => 0; // Simplified
-    const buildActiveReport = (inputMask: number, risingMask: number, fallingMask: number) => {
-      return Buffer.from([
-        0xEE, 0xFF, 0xC0, 0x01, 0x00, inputMask & 0xFF, risingMask & 0xFF, fallingMask & 0xFF, 0x00
-      ]);
-    };
-    const sendReport = (clientId: 'cabinet' | 'control') => {
-      // Just valid packet to trigger heartbeat
-      const payload = buildActiveReport(0, 0, 0);
-      mockHardware.onIncomingData?.('tcp', clientId, payload, { address: '127.0.0.1', port: 8000 }, { success: true, timestamp: Date.now() });
-    };
-
     const parentMachine = setup({
       actors: { monitor: monitorMachine }
     }).createMachine({
@@ -397,7 +400,7 @@ describe('MonitorMachine - Enhanced Subscriptions', () => {
       on: {
         '*': {
           actions: ({ event }) => {
-            if (event.type === 'monitor_connection_update') {
+            if (['monitor_anomaly', 'monitor_recover'].includes(event.type)) {
               receivedEvents.push(event);
             }
           }
@@ -409,24 +412,29 @@ describe('MonitorMachine - Enhanced Subscriptions', () => {
     parentActor.start();
     await new Promise(resolve => setTimeout(resolve, 50));
 
-    // 1. Send Cabinet Heartbeat -> Should Connect Cabinet
-    sendReport('cabinet');
+    // Ensure onConnectionChange is available
+    expect(mockHardware.onConnectionChange).toBeDefined();
+
+    // 1. Simulate Connection Restored (Connect)
+    mockHardware.onConnectionChange?.('tcp', 'cabinet', 'connected');
     await new Promise(resolve => setTimeout(resolve, 50));
+    expect(receivedEvents).toContainEqual(expect.objectContaining({ type: 'monitor_recover', priority: EventPriority.P2 }));
 
-    expect(receivedEvents).toContainEqual(expect.objectContaining({
-      type: 'monitor_connection_update',
-      connections: { cabinet: true, control: false }
-    }));
-
-    // 2. Send Control Heartbeat -> Should Connect Control
+    // 2. Simulate Connection Lost
     receivedEvents = [];
-    sendReport('control');
+    mockHardware.onConnectionChange?.('tcp', 'cabinet', 'disconnected');
     await new Promise(resolve => setTimeout(resolve, 50));
-
     expect(receivedEvents).toContainEqual(expect.objectContaining({
-      type: 'monitor_connection_update',
-      connections: { cabinet: true, control: true }
+      type: 'monitor_anomaly',
+      reason: 'connection',
+      priority: EventPriority.P1
     }));
+
+    // 3. Simulate Connection Restored again
+    receivedEvents = [];
+    mockHardware.onConnectionChange?.('tcp', 'cabinet', 'connected');
+    await new Promise(resolve => setTimeout(resolve, 50));
+    expect(receivedEvents).toContainEqual(expect.objectContaining({ type: 'monitor_recover', priority: EventPriority.P2 }));
 
     parentActor.stop();
   });

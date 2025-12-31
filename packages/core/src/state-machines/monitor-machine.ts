@@ -1,4 +1,4 @@
-import { setup, createActor, sendParent, enqueueActions, fromCallback } from 'xstate';
+import { setup, createActor, sendParent, enqueueActions } from 'xstate';
 import { type HardwareCommunicationManager } from '../hardware/manager.js';
 import { parseActiveReportFrame, isActiveReportFrame, type RelayStatus } from '../relay/index.js';
 import { EventPriority } from '../types/state-machine.js';
@@ -7,39 +7,24 @@ import { config } from '../config/index.js';
 import { createModuleLogger } from 'shared';
 
 const log = createModuleLogger('MonitorMachine');
-// 心跳配置参数
-const HEARTBEAT_INTERVAL_MS = 30000; // 30秒
+
 type MonitorContext = {
   hardware: HardwareCommunicationManager;
   aggregator: RelayStatusAggregator;
   lastVibrationTime: number;
-  lastCabinetHeartbeat: number;     // 柜体上次心跳时间
-  lastControlHeartbeat: number;     // 控制台上次心跳时间
   cabinetConnected: boolean;        // 柜体连接状态
-  controlConnected: boolean;        // 控制台连接状态
-  isMonitorAlarming: boolean;       // 是否正在监控报警中 (legacy, might be specific to anomaly)
 };
 type MonitorEvent =
   | { type: 'START' }
   | { type: 'STOP' }
   | { type: 'RELAY_DATA_RECEIVED'; clientId: string; data: Buffer }
-  | { type: 'HEARTBEAT_CHECK' }
-  | { type: 'HEARTBEAT_TIMEOUT' };
+  | { type: 'CONNECTION_LOST'; clientId: string }
+  | { type: 'CONNECTION_RESTORED'; clientId: string };
 export const monitorMachine = setup({
   types: {
     context: {} as MonitorContext,
     events: {} as MonitorEvent,
     input: {} as { hardware: HardwareCommunicationManager }
-  },
-  actors: {
-    heartbeatChecker: fromCallback<MonitorEvent>(({ sendBack }) => {
-      const intervalId = setInterval(() => {
-        sendBack({ type: 'HEARTBEAT_CHECK' });
-      }, HEARTBEAT_INTERVAL_MS);
-      return () => {
-        clearInterval(intervalId);
-      };
-    })
   }
 }).createMachine({
   id: 'monitor',
@@ -48,17 +33,11 @@ export const monitorMachine = setup({
     const allStatus = input.hardware.getAllConnectionStatus();
     // 假设 'cabinet' 是 tcp, 'control' 是 serial。根据 initializeHardware 确认。
     const cabinetConnected = allStatus.tcp?.['cabinet'] === 'connected';
-    const controlConnected = allStatus.serial?.['control'] === 'connected';
-    const now = Date.now();
     return {
       hardware: input.hardware,
       aggregator: new RelayStatusAggregator(),
       lastVibrationTime: 0,
-      lastCabinetHeartbeat: cabinetConnected ? now : 0,
-      lastControlHeartbeat: controlConnected ? now : 0,
-      cabinetConnected,
-      controlConnected,
-      isMonitorAlarming: false
+      cabinetConnected
     };
   },
   entry: [
@@ -67,6 +46,19 @@ export const monitorMachine = setup({
       context.hardware.onIncomingData = (protocol, clientId, data) => {
         log.debug(`收到硬件数据: protocol=${protocol}, clientId=${clientId}, data=${data.toString('hex')}`);
         self.send({ type: 'RELAY_DATA_RECEIVED', clientId, data });
+      };
+
+      // 监听连接状态变化
+      context.hardware.onConnectionChange = (protocol, clientId, status) => {
+        if (protocol === 'tcp' && clientId === 'cabinet') {
+          if (status === 'disconnected' || status === 'error') {
+            log.warn(`柜体 TCP 连接断开: ${status}`);
+            self.send({ type: 'CONNECTION_LOST', clientId });
+          } else if (status === 'connected') {
+            log.info('柜体 TCP 连接已恢复');
+            self.send({ type: 'CONNECTION_RESTORED', clientId });
+          }
+        }
       };
     }
   ],
@@ -95,41 +87,6 @@ export const monitorMachine = setup({
             const hasChanged = context.aggregator.hasIndexChanged(idx, combinedUpdate);
             log.info(`[TRACE] Control Data. Cancel(${idx}): ${p} -> ${c}. Changed: ${hasChanged}. Raw: ${status.rawHex}`);
           }
-          // 更新心跳时间
-          // const now = Date.now();
-          // if (clientId === 'cabinet') {
-          //   context.lastCabinetHeartbeat = now;
-          //   if (!context.cabinetConnected) {
-          //     context.cabinetConnected = true;
-          //     log.info('柜体连接已恢复');
-          //     enqueue.sendParent({
-          //       type: 'monitor_connection_update',
-          //       priority: EventPriority.P2,
-          //       connections: { cabinet: true, control: context.controlConnected }
-          //     });
-          //   }
-          // } else if (clientId === 'control') {
-          //   context.lastControlHeartbeat = now;
-          //   if (!context.controlConnected) {
-          //     context.controlConnected = true;
-          //     log.info('控制台连接已恢复');
-          //     enqueue.sendParent({
-          //       type: 'monitor_connection_update',
-          //       priority: EventPriority.P2,
-          //       connections: { cabinet: context.cabinetConnected, control: true }
-          //     });
-          //   }
-          // }
-          // if (context.isMonitorAlarming) {
-          //   if (context.cabinetConnected && context.controlConnected) {
-          //     log.info('监控完全恢复，发送 monitor_recover 事件');
-          //     context.isMonitorAlarming = false;
-          //     enqueue.sendParent({
-          //       type: 'monitor_recover',
-          //       priority: EventPriority.P2
-          //     });
-          //   }
-          // }
           // 处理申请逻辑
           if (context.aggregator.hasIndexChanged(config.APPLY_SWITCH_INDEX, combinedUpdate)) {
             const isClosed = combinedUpdate.combinedState[config.APPLY_SWITCH_INDEX];
@@ -241,6 +198,31 @@ export const monitorMachine = setup({
           log.error('在 MonitorMachine 中解析继电器状态失败', err as Error);
         }
       })
+    },
+    CONNECTION_LOST: {
+      actions: enqueueActions(({ context, event, enqueue }) => {
+        if (event.clientId === 'cabinet' && context.cabinetConnected) {
+          context.cabinetConnected = false;
+          log.error('柜体 TCP 连接断开，触发设备连接异常报警');
+          enqueue.sendParent({
+            type: 'monitor_anomaly',
+            priority: EventPriority.P1,
+            reason: 'connection'
+          });
+        }
+      })
+    },
+    CONNECTION_RESTORED: {
+      actions: enqueueActions(({ context, event, enqueue }) => {
+        if (event.clientId === 'cabinet' && !context.cabinetConnected) {
+          context.cabinetConnected = true;
+          log.info('柜体 TCP 连接已恢复，发送 monitor_recover 事件');
+          enqueue.sendParent({
+            type: 'monitor_recover',
+            priority: EventPriority.P2
+          });
+        }
+      })
     }
   },
   states: {
@@ -250,53 +232,8 @@ export const monitorMachine = setup({
       }
     },
     waiting: {
-      invoke: {
-        src: 'heartbeatChecker',
-        id: 'heartbeatChecker'
-      },
       on: {
-        STOP: 'idle',
-        HEARTBEAT_CHECK: {
-          actions: enqueueActions(({ context, enqueue }) => {
-            const now = Date.now();
-            let connectionChanged = false;
-            // 检查柜体心跳
-            // 如果 lastCabinetHeartbeat 为 0，说明还没连上过，或者初始化状态。
-            // 简单起见，如果超过间隔没收到数据，就认为断开
-            if (now - context.lastCabinetHeartbeat > HEARTBEAT_INTERVAL_MS) {
-              if (context.cabinetConnected) {
-                context.cabinetConnected = false;
-                connectionChanged = true;
-                log.warn(`柜体心跳超时，距离上次心跳: ${now - context.lastCabinetHeartbeat}ms`);
-              }
-            }
-            // 检查控制台心跳
-            if (now - context.lastControlHeartbeat > HEARTBEAT_INTERVAL_MS) {
-              if (context.controlConnected) {
-                context.controlConnected = false;
-                connectionChanged = true;
-                log.warn(`控制台心跳超时，距离上次心跳: ${now - context.lastControlHeartbeat}ms`);
-              }
-            }
-            if (connectionChanged) {
-              enqueue.sendParent({
-                type: 'monitor_connection_update',
-                priority: EventPriority.P2,
-                connections: { cabinet: context.cabinetConnected, control: context.controlConnected }
-              });
-              // 如果断开，触发报警
-              if (!context.isMonitorAlarming && (!context.cabinetConnected || !context.controlConnected)) {
-                log.error('心跳检测失败，触发监控报警');
-                context.isMonitorAlarming = true;
-                enqueue.sendParent({
-                  type: 'monitor_anomaly',
-                  priority: EventPriority.P1,
-                  reason: 'heartbeat'
-                });
-              }
-            }
-          })
-        }
+        STOP: 'idle'
       }
     },
     error: {
@@ -312,3 +249,4 @@ export const monitorMachine = setup({
 export function createMonitorActor(hardware: HardwareCommunicationManager) {
   return createActor(monitorMachine, { input: { hardware } });
 }
+

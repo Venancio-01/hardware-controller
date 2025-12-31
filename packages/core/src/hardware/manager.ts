@@ -93,6 +93,12 @@ export class HardwareCommunicationManager {
           this.handleIncomingData('tcp', clientConfig.id, data, remoteAddress || { address: 'unknown', port: 0 });
         });
 
+        // 设置连接状态变化回调
+        tcpClient.onConnectionChange = (status) => {
+          this.log.info(`TCP 客户端 '${clientConfig.id}' 连接状态变化: ${status}`);
+          this.onConnectionChange?.('tcp', clientConfig.id, status);
+        };
+
         initPromises.push(
           tcpClient.connect().catch((error) => {
             this.log.error(`TCP 客户端 '${clientConfig.id}' 启动连接失败，将在后台重连`, error as Error);
@@ -433,5 +439,14 @@ export class HardwareCommunicationManager {
     data: Buffer,
     remote: { address: string; port: number },
     parsedResponse: HardwareResponse
+  ) => void;
+
+  /**
+   * 连接状态变化回调
+   */
+  public onConnectionChange?: (
+    protocol: Protocol,
+    clientId: string,
+    status: 'connected' | 'disconnected' | 'error' | 'connecting'
   ) => void;
 }

@@ -82,7 +82,7 @@ export const applyAmmoMachine = setup({
     broadcastRefused: ({ context }) => {
       // 熄灯
       const command1 = RelayCommandBuilder.open(config.APPLY_LIGHT_RELAY_INDEX as RelayChannel);
-      context.manager?.queueCommand('tcp', command1, 'cabinet', false);
+      context.manager?.queueCommand('serial', command1, 'control', false);
 
       VoiceBroadcast.getInstance().cabinet.broadcast('授权未通过，供弹[=dan4]结束');
       VoiceBroadcast.getInstance().control.broadcast('授权未通过，供弹[=dan4]结束');

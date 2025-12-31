@@ -26,6 +26,10 @@ RUN apt-get update && apt-get install -y \
 # 安装 pnpm
 RUN npm install -g pnpm
 
+# 配置 pnpm 使用 hoisted 模式，将依赖展平到根 node_modules
+# 这确保删除 packages 目录后，依赖仍可通过根 node_modules 解析
+RUN echo "shamefully-hoist=true" >> ~/.npmrc
+
 # 复制 pnpm 配置文件
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 
@@ -74,6 +78,13 @@ RUN CI=true pnpm prune --prod
 
 # 重新安装生产依赖以确保符号链接正确
 RUN pnpm install --prod --frozen-lockfile
+
+# 替换 shared 软链接为实体文件，确保移除 packages 目录后仍能正常工作
+# 注意：packages/shared/dist 已经被移动到了 shared 目录，所以这里从 shared 复制
+RUN rm -rf node_modules/shared \
+    && mkdir -p node_modules/shared \
+    && cp packages/shared/package.json node_modules/shared/ \
+    && cp -r shared node_modules/shared/dist
 
 # 清理不需要的文件
 RUN rm -rf packages tsconfig.json

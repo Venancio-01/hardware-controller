@@ -8,9 +8,22 @@ vi.mock('../../src/hardware/manager.js', () => {
   return {
     HardwareCommunicationManager: class {
       sendCommand = vi.fn(() => Promise.resolve({}));
+      queueCommand = vi.fn(() => Promise.resolve({}));
+      getAllConnectionStatus = vi.fn(() => ({ tcp: { cabinet: 'connected' }, serial: { control: 'connected' } }));
     }
   };
 });
+
+// Mock VoiceBroadcast
+vi.mock('../../src/voice-broadcast/index.js', () => ({
+  VoiceBroadcast: {
+    getInstance: vi.fn(() => ({
+      cabinet: { broadcast: vi.fn() },
+      control: { broadcast: vi.fn() }
+    })),
+    initialize: vi.fn()
+  }
+}));
 
 describe('MainMachine', () => {
   let mockHardware: HardwareCommunicationManager;
@@ -51,7 +64,7 @@ describe('MainMachine', () => {
     actor.start();
     actor.send({ type: 'apply_request', priority: EventPriority.P2 });
     expect(actor.getSnapshot().value).toBe('normal');
-    
+
     actor.send({ type: 'key_detected', priority: EventPriority.P0 });
     expect(actor.getSnapshot().value).toBe('alarm');
   });
@@ -61,7 +74,7 @@ describe('MainMachine', () => {
     actor.start();
     actor.send({ type: 'apply_request', priority: EventPriority.P2 });
     expect(actor.getSnapshot().value).toBe('normal');
-    
+
     actor.send({ type: 'operation_complete', priority: EventPriority.P2 });
     expect(actor.getSnapshot().value).toBe('idle');
   });
@@ -69,7 +82,7 @@ describe('MainMachine', () => {
   it('should spawn monitor actor on start', () => {
     const actor = createMainActor(mockHardware, mockLogger);
     actor.start();
-    
+
     const snapshot = actor.getSnapshot();
     expect(snapshot.children.monitor).toBeDefined();
   });
@@ -85,7 +98,7 @@ describe('MainMachine', () => {
     const actor = createMainActor(mockHardware, mockLogger);
     actor.start();
     actor.send({ type: 'apply_request', priority: EventPriority.P2 });
-    
+
     const snapshot = actor.getSnapshot();
     expect(snapshot.children.applyAmmo).toBeDefined();
   });
@@ -94,7 +107,7 @@ describe('MainMachine', () => {
     const actor = createMainActor(mockHardware, mockLogger);
     actor.start();
     actor.send({ type: 'apply_request', priority: EventPriority.P2 });
-    
+
     const applyAmmoActor = actor.getSnapshot().children.applyAmmo;
     // Simulate finishing the flow
     applyAmmoActor.send({ type: 'FINISHED' });
@@ -106,9 +119,9 @@ describe('MainMachine', () => {
     const actor = createMainActor(mockHardware, mockLogger);
     actor.start();
     actor.send({ type: 'apply_request', priority: EventPriority.P2 });
-    
+
     const applyAmmoActor = actor.getSnapshot().children.applyAmmo;
-    
+
     // Initial state of child - now 'applying' because of auto-trigger in entry
     expect(applyAmmoActor.getSnapshot().value).toBe('applying');
     applyAmmoActor.send({ type: 'AUTHORIZED' });

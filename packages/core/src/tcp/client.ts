@@ -29,6 +29,11 @@ export class TCPClient {
    */
   public onMessage?: (data: Buffer) => void;
 
+  /**
+   * 连接状态变化回调
+   */
+  public onConnectionChange?: (status: ConnectionStatus) => void;
+
   constructor(config: NetworkConfig) {
     const defaults: Partial<NetworkConfig> = {
       timeout: 5000,
@@ -95,6 +100,7 @@ export class TCPClient {
         this.socket.on('connect', () => {
           this.status = 'connected';
           this.isConnecting = false;
+          this.onConnectionChange?.('connected');
 
           // 启用 TCP KeepAlive
           this.socket!.setKeepAlive(true, 30000);
@@ -121,6 +127,7 @@ export class TCPClient {
           this.stats.errors++;
           this.isConnecting = false;
           this.stopHeartbeat();
+          this.onConnectionChange?.('error');
           this.log.error(`连接错误: ${error.message}`);
 
           // 如果应该重连，启动重连机制
@@ -135,6 +142,7 @@ export class TCPClient {
           this.status = 'disconnected';
           this.isConnecting = false;
           this.stopHeartbeat();
+          this.onConnectionChange?.('disconnected');
           this.log.warn('连接已关闭');
 
           // 如果应该重连，启动重连机制

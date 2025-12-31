@@ -15,8 +15,6 @@
 # 使用方法:
 #   ./scripts/build-arm7-plain.sh          # 本地构建（使用 QEMU 模拟）
 #   ./scripts/build-arm7-plain.sh --clean  # 清理并构建
-#   ./scripts/build-arm7-plain.sh --remote # 使用 Docker Context 远程构建
-#   ./scripts/build-arm7-plain.sh --setup-context # 配置 Docker Context
 
 set -e
 
@@ -24,10 +22,6 @@ set -e
 VERSION="1.0.0"
 OUTPUT_DIR="dist/node-switch-v${VERSION}-arm7-plain"
 DOCKER_IMAGE="node-switch:arm7-build-plain"
-
-# Docker Context 配置
-REMOTE_CONTEXT_NAME="orangepi-builder"
-REMOTE_HOST="orangepi@192.168.110.248"
 
 # 颜色输出
 RED='\033[0;31m'
@@ -82,49 +76,6 @@ setup_qemu() {
     else
         log_success "QEMU ARM 平台支持已检测到 (linux/arm)"
     fi
-}
-
-# 配置 Docker Context
-setup_docker_context() {
-    log_info "配置 Docker Context: ${REMOTE_CONTEXT_NAME} -> ${REMOTE_HOST}"
-
-    # 检查 context 是否已存在
-    if docker context ls 2>/dev/null | grep -q "^${REMOTE_CONTEXT_NAME}"; then
-        log_warn "Docker Context '${REMOTE_CONTEXT_NAME}' 已存在"
-        read -p "是否删除并重新创建? (y/N): " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            docker context rm "${REMOTE_CONTEXT_NAME}"
-        else
-            log_info "使用现有的 Docker Context"
-            return 0
-        fi
-    fi
-
-    log_info "创建 Docker Context..."
-    log_info "连接信息: ${REMOTE_HOST}"
-    log_warn "请确保已配置 SSH 免密登录，或首次连接时输入密码"
-
-    # 创建新的 SSH context
-    docker context create "${REMOTE_CONTEXT_NAME}" --docker "host=ssh://${REMOTE_HOST}"
-
-    log_success "Docker Context '${REMOTE_CONTEXT_NAME}' 创建成功"
-    echo ""
-    log_info "使用以下命令切换到此 context:"
-    echo "  docker context use ${REMOTE_CONTEXT_NAME}"
-    log_info "使用以下命令切换回默认 context:"
-    echo "  docker context use default"
-    echo ""
-}
-
-# 检查 Docker Context
-check_docker_context() {
-    if ! docker context ls 2>/dev/null | grep -q "^${REMOTE_CONTEXT_NAME}"; then
-        log_error "Docker Context '${REMOTE_CONTEXT_NAME}' 不存在"
-        log_info "请先运行: $0 --setup-context"
-        exit 1
-    fi
-    log_success "Docker Context '${REMOTE_CONTEXT_NAME}' 已就绪"
 }
 
 # 构建 Docker 镜像
@@ -378,7 +329,6 @@ clean() {
 
 # 主函数
 main() {
-    local BUILD_MODE="local"
     local DO_CLEAN=false
 
     # 解析参数
@@ -388,18 +338,9 @@ main() {
                 DO_CLEAN=true
                 shift
                 ;;
-            --remote)
-                BUILD_MODE="remote"
-                shift
-                ;;
-            --setup-context)
-                check_dependencies
-                setup_docker_context
-                exit 0
-                ;;
             *)
                 log_error "未知参数: $1"
-                echo "用法: $0 [--clean] [--remote] [--setup-context]"
+                echo "用法: $0 [--clean]"
                 exit 1
                 ;;
         esac
@@ -409,11 +350,7 @@ main() {
     echo "================================================"
     echo "  Node Switch ARM v7 构建脚本（无加密版本）"
     echo "  版本: ${VERSION}"
-    if [ "$BUILD_MODE" == "remote" ]; then
-        echo "  模式: 远程构建 (${REMOTE_CONTEXT_NAME})"
-    else
-        echo "  模式: 本地构建 (QEMU)"
-    fi
+    echo "  模式: 本地构建 (QEMU)"
     echo "================================================"
     echo ""
 
@@ -421,43 +358,15 @@ main() {
         clean
     fi
 
-    if [ "$BUILD_MODE" == "remote" ]; then
-        # 远程构建模式
-        check_dependencies
-        check_docker_context
-
-        # 保存当前 context
-        local CURRENT_CONTEXT=$(docker context inspect --format='{{.Name}}' 2>/dev/null || echo "default")
-
-        log_info "切换到 Docker Context: ${REMOTE_CONTEXT_NAME}"
-        docker context use "${REMOTE_CONTEXT_NAME}"
-
-        # 远程构建（不需要 QEMU 和 platform 参数）
-        log_info "在远程设备上构建 Docker 镜像..."
-        docker build -f Dockerfile.build-plain -t "${DOCKER_IMAGE}" .
-
-        log_success "Docker 镜像构建完成（远程）"
-        extract_artifacts
-        create_startup_script
-        create_loader
-        copy_config
-        create_archive
-
-        # 恢复原始 context
-        log_info "恢复 Docker Context: ${CURRENT_CONTEXT}"
-        docker context use "${CURRENT_CONTEXT}"
-
-    else
-        # 本地构建模式
-        check_dependencies
-        setup_qemu
-        build_docker_image
-        extract_artifacts
-        create_startup_script
-        create_loader
-        copy_config
-        create_archive
-    fi
+    # 本地构建模式
+    check_dependencies
+    setup_qemu
+    build_docker_image
+    extract_artifacts
+    create_startup_script
+    create_loader
+    copy_config
+    create_archive
 
     echo ""
     echo "================================================"
@@ -468,7 +377,7 @@ main() {
     echo ""
     echo "部署步骤:"
     echo "  1. 复制到 OrangePi:"
-    echo "     scp dist/node-switch-v${VERSION}-arm7-plain.tar.gz orangepi@192.168.110.248:~/"
+    echo "     scp dist/node-switch-v${VERSION}-arm7-plain.tar.gz orangepi@192.168.110.220:~/"
     echo ""
     echo "  2. 在 OrangePi 上解压并启动:"
     echo "     tar -xzf node-switch-v${VERSION}-arm7-plain.tar.gz"
@@ -481,13 +390,6 @@ main() {
     echo ""
     echo "  注意：此版本使用明文 JavaScript 代码，便于调试"
     echo ""
-    if [ "$BUILD_MODE" == "remote" ]; then
-        echo "  远程构建说明:"
-        echo "  - 镜像直接在 ${REMOTE_HOST} 上构建"
-        echo "  - 构建速度更快（利用原生 ARM 硬件）"
-        echo "  - 需要配置 SSH 连接"
-        echo ""
-    fi
 }
 
 main "$@"
