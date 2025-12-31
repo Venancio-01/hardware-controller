@@ -1,12 +1,14 @@
 ---
-project_name: node-switch
-user_name: 青山
-date: '2025-12-25'
-sections_completed: ['technology_stack', 'language_specific', 'framework_specific', 'testing', 'code_quality', 'workflow', 'critical_dont_miss']
-existing_patterns_found: 25
+project_name: 'hardware-controller'
+user_name: '青山'
+date: '2025-12-31'
+sections_completed: ['technology_stack', 'language_specific', 'framework_specific', 'testing', 'critical_rules']
+status: 'complete'
+rule_count: 45
+optimized_for_llm: true
 ---
 
-# AI 代理的项目上下文
+# Project Context for AI Agents
 
 _本文档包含 AI 代理在此项目中实现代码时必须遵循的关键规则和模式。重点关注代理可能忽略的细节。_
 
@@ -14,162 +16,246 @@ _本文档包含 AI 代理在此项目中实现代码时必须遵循的关键规
 
 ## 技术栈和版本
 
-- **运行时**: Node.js >=22.0.0（如 package.json engines 中指定）
-- **语言**: TypeScript 5.9.3，启用严格模式
-- **状态管理**: XState v5.12.1 用于复杂状态机
-- **验证**: Zod v4.2.1 用于环境变量和数据验证
-- **日志**: Pino v10.1.0，开发时使用 pino-pretty
-- **构建工具**: tsup 用于打包
-- **开发工具**: tsx 用于开发执行
-- **测试**: vitest 作为测试框架
-- **环境管理**: dotenv 用于配置加载
+### 后端
+- **运行时**: Go 1.21+
+- **日志**: `log/slog` (标准库，零依赖)
+- **配置**: JSON5 格式 (`github.com/titanous/json5`)
+- **状态机**: `github.com/looplab/fsm` (成熟 FSM 框架，不要手动实现)
+- **串口**: `go.bug.st/serial`
+- **架构**: 单一进程 + goroutines，Manager-Worker 模式
 
-## 架构原则 (Node Switch 2.0)
+### 前端
+- **框架**: React 19.0.0
+- **路由**: TanStack Router 1.31.15 (文件路由模式)
+- **构建工具**: Vite 5.2.0
+- **状态管理**: TanStack Query 5.28.9
+- **样式**: Tailwind CSS 4.1.17 + Radix UI
+- **验证**: Zod 4.2.1
+- **运行时**: Node.js >=20.0.0
 
-### 进程分离架构
-- **Supervisor/Worker**: Backend (Supervisor) 负责启动和管理 Core (Worker) 子进程。
-- **IPC 通信**: 唯一的通信方式是 Node.js 原生 IPC (`fork`/`send`/`on`)。
-- **状态单一事实来源**: Backend 维护 Core 状态的影子副本，API 仅查询 Backend 状态。
+### 架构原则
+- **后端**: Go 单一进程，使用 goroutines 实现并发（替代 XState + IPC）
+- **状态管理**: 使用成熟 FSM 框架，避免手动实现状态机
+- **配置重载**: 通过 channel 实现 Core Worker 配置热重载（而非重启进程）
+- **前端**: 保持不变，HTTP/WebSocket API 兼容
+- **部署**: Go 后端编译为单一二进制，嵌入前端资源
 
-### 目录结构 (Monorepo)
-- `packages/core`: **[NEW]** 硬件控制服务（原 `src/`），作为独立子进程运行。
-- `packages/backend`: Web API 服务，充当 Supervisor。
-- `packages/shared`: **[Source of Truth]** 包含所有 IPC 协议定义、Zod 验证 Schema 和共享类型。
-- `packages/frontend`: React 客户端。
-
+---
 
 ## 关键实现规则
 
-### 语言特定规则
+### Go 语言特定规则
 
-#### TypeScript 配置
-- 使用严格模式，启用所有严格类型检查标志（strict, alwaysStrict, strictNullChecks, strictFunctionTypes 等）
-- 目标 ES2022，使用 ESNext 模块系统
-- 在导入中使用显式 `.js` 扩展名以兼容 Node.js
-- 启用 experimentalDecorators 和 emitDecoratorMetadata 以支持潜在的装饰器使用
+#### 项目布局
+- `cmd/` - 主程序入口点
+- `internal/` - 私有代码，不可被外部导入（Go 编译器强制）
+- `pkg/` - 公共库，可被外部项目使用
+- **严格边界**: `internal/` 中的代码绝不能被 `pkg/` 导入
 
-#### 导入/导出约定
-- 在导入中使用显式 `.js` 扩展名以兼容 Node.js
-- 对仅类型导入使用 `import type` 以优化包大小
-- 按组组织导入：首先外部库，然后内部模块
-- 为内部导入使用绝对路径（相对于 src/）
+#### Context 使用
+- 所有需要取消或超时的函数必须接受 `context.Context` 作为第一个参数
+- 使用 `context.WithCancel()` 管理 goroutine 生命周期
+- 使用 `context.WithTimeout()` 处理硬件通信超时
+- 永远不要忽略 context 的 Done 信号
 
-#### 错误处理模式
-- 使用 Zod 进行配置验证，采用快速失败原则（验证失败时 process.exit(1)）
-- 为异步操作实现 try-catch 块和适当的错误日志记录
-- 为不同场景使用适当的日志级别（error, warn, info）
-- 通过日志模块集中错误处理模式
+#### 错误处理
+- 使用 `errors.Is()` 和 `errors.As()` 进行错误检查和包装
+- 错误消息使用中文（面向最终用户）或英文（面向开发者）
+- 使用 `fmt.Errorf()` 包装错误上下文
+- 硬件通信错误必须包含操作类型和设备信息
 
-### 框架特定规则
+#### 并发模式
+- 使用 `errgroup` 管理多个 goroutines 的生命周期
+- 使用 `sync.RWMutex` 保护配置读写
+- 使用 `channel` 而非共享内存进行 goroutine 通信
+- 状态机事件通过 buffered channel (buffer=100) 传递
 
-#### XState 状态机模式
-- 使用 XState 5.x setup/createActor 模式定义和实例化状态机
-- 在 `src/state-machines/` 目录中定义状态机，并使用描述性名称
-- 使用类型安全的状态机定义，具有显式的上下文、事件和输入类型
-- 使用 invoke 块实现子状态机，并通过 sendTo 操作进行通信
-- 使用 actor 模型进行复杂状态管理，并建立父子关系
-- 在关闭期间实现状态机 actor 的优雅清理
-- 在管理状态机中的多个事件类型时使用事件优先级
+#### 命名约定
+- 文件名: `lowercase.go` 或 `lowercase_test.go`
+- 接口名: 动词+`er` (如 `Reader`, `Writer`)
+- 常量: `PascalCase` 或 `UPPER_SNAKE_CASE`
+- 私有变量: `camelCase` (小写开头)
+- 导出变量: `PascalCase` (大写开头)
+
+### 前端 (React/TypeScript) 特定规则
+
+#### 文件路由 (TanStack Router)
+- 路由文件放在 `src/routes/` 目录
+- 文件名格式: `_auth.index.tsx` (布局.页面.tsx)
+- 下划线前缀表示布局路由 (如 `_auth.tsx`)
+- 使用 `$` 表示动态参数 (如 `$postId.tsx`)
+
+#### React 19 规范
+- 使用函数组件，禁止类组件
+- 使用 `use` API 处理异步资源（React 19 新特性）
+- Props 接口使用 `PascalCaseProps` 命名
+- 事件处理器使用 `on` + 动作名词 (如 `onSubmit`, `onCancel`)
+
+#### 导入顺序
+```typescript
+// 1. React 核心
+import { useState } from 'react';
+// 2. 第三方库
+import { useQuery } from '@tanstack/react-query';
+// 3. 绝对路径别名 (@/)
+import { Button } from '@/components/ui/button';
+// 4. 相对路径导入
+import { MyComponent } from './MyComponent';
+```
+
+#### 状态管理
+- 服务端状态: TanStack Query (API 数据)
+- 表单状态: React Hook Form + Zod 验证
+- UI 状态: React useState/useReducer
+- 全局状态: React Context (少量使用)
+
+### FSM 状态机框架规则 (looplab/fsm)
+
+#### 状态机定义
+```go
+// 使用 looplab/fsm 定义状态机
+fsm.NewFSM(
+    "idle",  // 初始状态
+    fsm.Events{
+        {Name: "APPLY", Src: []string{"idle"}, Dst: "applying"},
+        {Name: "DOOR_OPEN", Src: []string{"applying"}, Dst: "opened"},
+    },
+    fsm.Callbacks{
+        "enter_state": func(ctx context.Context, e *fsm.Event) {
+            // 状态进入回调
+        },
+    },
+)
+```
+
+#### 关键约束
+- 事件名称使用 `SCREAMING_SNAKE_CASE` (与原 Node.js IPC 命名保持一致)
+- 回调函数必须接受 `context.Context` 作为第一个参数
+- 状态转换失败返回错误，必须被处理
+- 使用 `fsm.Current()` 获取当前状态，不要单独维护状态变量
+
+#### 与 Goroutine 协作
+- 状态机实例不能并发调用，使用 mutex 保护
+- 事件通过 channel 传递到状态机 goroutine
+- 回调中避免阻塞操作
+
+### HTTP/WebSocket API 规则
+
+#### 路由组织
+```go
+// 使用标准库 http.ServeMux
+mux.HandleFunc("/api/status", s.handleStatus)
+mux.HandleFunc("/api/config", s.handleConfig)
+mux.HandleFunc("/ws", s.handleWebSocket)
+```
+
+#### 中间件模式
+- 认证中间件检查请求头中的 token
+- 日志中间件记录所有请求（使用 slog）
+- CORS 中间件支持前端开发服务器
+
+#### WebSocket
+- 使用 `github.com/gorilla/websocket`
+- 心跳间隔: 30秒
+- 消息格式: JSON
 
 ### 测试规则
 
-#### 测试结构和组织
-- 使用 vitest 作为测试框架，使用 "vitest run" 执行
-- 为测试文件使用 .test.ts 或 .spec.ts 扩展名
-- 按与被测试源文件相同的目录结构组织测试
-- 使用描述性测试名称，清楚表明测试内容
+#### Go 测试
 
-#### 测试类别
-- 单元测试：测试单个函数、类和实用方法（隔离）
-- 集成测试：测试模块之间的交互（例如，状态机与硬件管理器）
-- 系统/端到端测试：测试完整工作流程和系统行为
+##### 测试文件组织
+- 测试文件与源文件同目录：`worker.go` → `worker_test.go`
+- 使用标准 `testing` 包
+- 测试函数命名：`TestFunctionName` 或 `TestFunctionName_Scenario`
 
-#### Mock 使用
-- 为外部依赖使用 vitest 的内置模拟功能
-- 为单元测试模拟硬件通信以确保快速执行
-- 创建真实的 mock 实现以测试状态机转换
-- 当测试依赖于日志记录器和配置模块的组件时模拟它们
+##### Mock 硬件依赖
+```go
+// 使用接口定义硬件客户端
+type HardwareClient interface {
+    Send(ctx context.Context, cmd []byte) ([]byte, error)
+}
 
-### 代码质量和样式规则
+// 测试时使用 mock
+type mockHardwareClient struct {
+    sendFunc func(ctx context.Context, cmd []byte) ([]byte, error)
+}
+```
 
-#### 文件和文件夹结构
-- 在 src/ 下按基于功能的目录组织代码（logger, relay, voice-broadcast, hardware, state-machines 等）
-- 将类型定义与实现放在一起或放在集中的 types/ 目录中
-- 使用 index.ts 文件控制模块导出并创建干净的公共 API
-- 在专用文件中分离验证逻辑（例如，validation.ts）
+##### 表驱动测试
+```go
+tests := []struct {
+    name    string
+    input   Config
+    wantErr bool
+}{
+    {"valid config", Config{...}, false},
+    {"invalid port", Config{Port: -1}, true},
+}
+for _, tt := range tests {
+    t.Run(tt.name, func(t *testing.T) {
+        // 测试逻辑
+    })
+}
+```
 
-#### 命名约定
-- 为变量、函数和文件名使用 camelCase
-- 为类型、接口和类名使用 PascalCase
-- 为常量和配置值使用 UPPER_SNAKE_CASE
-- 使用清楚表明目的和功能的描述性名称
-- 状态机文件应使用 `-machine.ts` 后缀以保持一致性
+#### 前端测试
 
-#### 文档和注释
-- 为复杂函数、类和业务逻辑使用 JSDoc 风格的注释
-- 为公共 API 包含参数和返回值描述
-- 为业务逻辑和领域特定注释使用中文（按代码库标准）
-- 为技术变量名和一般实现注释使用英文
-- 为复杂算法和业务规则添加有意义的注释
+##### 测试工具
+- 框架: Vitest
+- 测试库: @testing-library/react
+- 文件位置: `__tests__/` 目录或 `.test.tsx` 后缀
 
-### 开发工作流规则
-
-#### 环境和配置
-- 使用 .env 和 .env.local 文件进行环境变量管理
-- 所有环境变量在启动期间必须通过 Zod 验证
-- 通过 NODE_ENV 支持多种环境（开发、生产、测试）
-- 配置验证遵循快速失败原则（配置无效时应用退出）
-
-#### 构建和执行
-- 使用 tsup 构建 ESM 输出格式
-- 使用 tsx 进行开发执行，并使用监视模式
-- 构建产物生成在 dist/ 目录中
-- 在生产构建中使用 dotenv/config 进行运行时环境加载
-
-#### 部署和运行时
-- 为 SIGINT 和 SIGTERM 信号实现优雅关闭处理程序
-- 在应用启动期间初始化所有硬件通信模块
-- 在启动任何服务之前验证配置有效性
-- 记录启动配置摘要以供调试目的
+##### 测试类型
+- 组件测试: 验证 UI 渲染和交互
+- Hook 测试: @testing-library/react-hooks
+- API 测试: Mock fetch/axios 响应
 
 ### 关键不要遗漏的规则
 
-#### 要避免的反模式
-- 不要绕过 Zod 验证访问环境变量 - 始终使用集中配置模块
-- 不要直接访问硬件接口 - 始终使用 HardwareCommunicationManager 进行硬件通信
-- 不要忽略配置验证失败 - 始终遵循快速失败原则（应用应退出）
-- 不要在关闭期间跳过清理程序 - 确保所有状态机 actor 和硬件连接正确关闭
-- 不要在状态机转换中执行阻塞操作 - 保持它们异步
+#### 硬件通信
+- **超时处理**: 所有硬件操作必须设置 context 超时（默认 5 秒）
+- **重试机制**: UDP/TCP 通信失败时最多重试 3 次，使用指数退避
+- **连接池**: 不要为每个请求创建新连接，复用 UDP/TCP 连接
+- **优雅关闭**: goroutine 退出前必须关闭硬件连接
 
-#### 边界情况和错误处理
-- 为硬件通信实现适当的超时和重试逻辑（使用可配置参数）
-- 处理并发操作期间的状态机事件冲突（使用事件优先级）
-- 验证 UDP/TCP 通信响应以防止处理格式错误的数据
-- 为网络通信故障包含错误恢复机制
+#### 配置管理
+- **JSON5 格式**: 配置文件支持注释和尾随逗号，使用 `github.com/titanous/json5`
+- **验证优先**: 配置加载后立即验证，无效时 panic
+- **原子写入**: 更新配置时先写入临时文件，再重命名
+- **热重载**: 配置变更通过 channel 通知 Core Worker，不要重启进程
 
-#### 安全考虑
-- 不要以纯文本环境变量存储敏感凭据
-- 在处理前验证从硬件通信接收到的所有数据
-- 为包含敏感信息的配置文件使用适当的访问控制
-- 实现硬件通信的速率限制以防止泛洪
+#### 并发安全
+- **状态机保护**: FSM 实例使用 mutex 保护，禁止并发调用 Event()
+- **通道关闭**: 只由发送方关闭 channel，接收方不要关闭
+- **Context 传递**: 所有阻塞操作必须接受 context 并检查 Done()
 
-#### 性能模式遵循
-- 避免在高频事件路径中执行阻塞操作
-- 在状态机中对耗时操作使用异步处理
-- 优化高频路径中的日志频率以防止性能下降
-- 优化高频路径中的日志频率以防止性能下降
-- 在长时间运行的进程中考虑维护状态的内存使用
+#### 日志规范
+- **结构化日志**: 使用 slog，键值对格式
+- **级别选择**: Debug(开发), Info(正常), Warn(可恢复), Error(严重)
+- **中文消息**: 面向最终用户的错误使用中文
+- **无敏感信息**: 日志中不要记录密码、token 等敏感数据
 
-### IPC 与集成规则 (关键)
+#### 部署
+- **单一二进制**: 使用 `go build` 编译，不依赖外部文件（除前端资源）
+- **前端嵌入**: 使用 `//go:embed` 将前端资源嵌入二进制
+- **跨平台编译**: 支持 `GOARCH=arm` 编译到嵌入式设备
 
-#### IPC 模式
-- **事件命名**: 必须使用 `NAMESPACE:ACTION` 格式 (SCREAMING_SNAKE_CASE).
-    - 正确: `CORE:READY`, `CMD:RESTART`
-    - 错误: `coreReady`, `restart-command`
-- **Payload**: 必须遵循 `packages/shared` 中定义的 `IpcPacket` 接口。
-- **异步性**: 不要假设 IPC 消息是同步的；使用通过相关 ID (Correlation ID) 的请求-响应模式（如需要）。
+---
 
-#### 边界控制
-- **配置写入**: 仅允许 `packages/backend` 写入 `config.json`。
-- **配置读取**: `packages/core` 在收到 IPC 更新信号 (`CMD:UPDATE_CONFIG`) 后重新读取配置。
-- **禁止直接引用**: Backend 代码绝不应导入 Core 的运行时代码，仅可导入 Shared 的类型。
+## 使用指南
+
+### 给 AI 代理
+
+- 实现代码前务必阅读本文档
+- 严格按照文档规则执行
+- 有疑问时选择更严格的选项
+- 发现新模式时更新本文档
+
+### 给开发者
+
+- 保持文档精简，专注于代理需求
+- 技术栈变更时更新
+- 每季度审查并移除过时规则
+- 移除已变得显而易见的规则
+
+**最后更新**: 2025-12-31

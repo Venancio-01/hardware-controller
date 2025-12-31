@@ -1,0 +1,32 @@
+{
+  "repository_type": "multi-part",
+  "parts": [
+    {
+      "part_id": "backend",
+      "name": "Go Backend",
+      "root_path": "backend/",
+      "project_type_id": "backend",
+      "technology": "Go 1.21",
+      "description": "Hardware control backend server",
+      "key_files": ["go.mod", "cmd/", "internal/", "pkg/"]
+    },
+    {
+      "part_id": "frontend",
+      "name": "React Frontend",
+      "root_path": "frontend/",
+      "project_type_id": "web",
+      "technology": "React 19, Vite, TypeScript",
+      "description": "Web UI dashboard",
+      "key_files": ["package.json", "vite.config.ts", "src/"]
+    },
+    {
+      "part_id": "reference",
+      "name": "Legacy Reference",
+      "root_path": "reference/",
+      "project_type_id": "backend",
+      "technology": "Node.js/TypeScript",
+      "description": "Original Node.js implementation (reference)",
+      "key_files": ["package.json", "packages/"]
+    }
+  ]
+}
