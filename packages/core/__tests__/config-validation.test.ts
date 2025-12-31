@@ -86,7 +86,7 @@ describe('Config Validation', () => {
       retryCount: 3,
       pollingInterval: 5000,
       DOOR_LOCK_SWITCH_LIGHT_INDEX: 2,
-      RELAY_CABINET_ALARM_INDEX: 8,
+      ALARM_LIGHT_INDEX: 8,
     };
 
     const result = configSchema.safeParse(validConfig);

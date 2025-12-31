@@ -38,7 +38,7 @@ export const applyAmmoMachine = setup({
       void VoiceBroadcast.getInstance().control.broadcast('申请供弹[=dan4]请授权');
     },
     broadcastAuthorized: ({ context }) => {
-      const unlockCommand = RelayCommandBuilder.close(config.DOOR_LOCK_SWITCH_LIGHT_INDEX as RelayChannel);
+      const unlockCommand = RelayCommandBuilder.close(config.DOOR_LOCK_SWITCH_INDEX as RelayChannel);
       context.manager?.queueCommand('tcp', unlockCommand, 'cabinet', false);
 
       VoiceBroadcast.getInstance().control.broadcast('授权通过，已开锁');
@@ -47,6 +47,9 @@ export const applyAmmoMachine = setup({
     broadcastLockOpen: ({ context }) => {
       const command = RelayCommandBuilder.close(config.DOOR_LOCK_SWITCH_LIGHT_INDEX as RelayChannel);
       context.manager?.queueCommand('serial', command, 'control', false);
+
+      VoiceBroadcast.getInstance().cabinet.broadcast('门锁已拧开，请打开柜门');
+      VoiceBroadcast.getInstance().control.broadcast('门锁已拧开');
     },
     broadcastLockClose: ({ context }) => {
       const command = RelayCommandBuilder.open(config.DOOR_LOCK_SWITCH_LIGHT_INDEX as RelayChannel);
@@ -54,7 +57,7 @@ export const applyAmmoMachine = setup({
     },
     broadcastFinished: ({ context }) => {
       // 停止报警
-      const cabinetCommand8 = RelayCommandBuilder.open(config.RELAY_CABINET_ALARM_INDEX as RelayChannel);
+      const cabinetCommand8 = RelayCommandBuilder.open(config.ALARM_LIGHT_INDEX as RelayChannel);
       const controlCommand1 = RelayCommandBuilder.open(config.RELAY_CONTROL_ALARM_INDEX as RelayChannel);
       context.manager?.queueCommand('tcp', cabinetCommand8, 'cabinet', false);
       context.manager?.queueCommand('serial', controlCommand1, 'control', false);
@@ -69,6 +72,10 @@ export const applyAmmoMachine = setup({
 
       VoiceBroadcast.getInstance().cabinet.broadcast('供弹[=dan4]完毕');
       VoiceBroadcast.getInstance().control.broadcast('供弹[=dan4]完毕');
+    },
+    broadcastDoorClosed: ({ context }) => {
+      VoiceBroadcast.getInstance().cabinet.broadcast('柜门已关闭，请拧回门锁开关');
+      VoiceBroadcast.getInstance().control.broadcast('柜门已关闭');
     },
 
     broadcastRefused: ({ context }) => {
@@ -88,7 +95,7 @@ export const applyAmmoMachine = setup({
       context.logger.info('柜门超时未关');
 
       // 开启报警
-      const cabinetCommand8 = RelayCommandBuilder.close(config.RELAY_CABINET_ALARM_INDEX as RelayChannel);
+      const cabinetCommand8 = RelayCommandBuilder.close(config.ALARM_LIGHT_INDEX as RelayChannel);
       const controlCommand1 = RelayCommandBuilder.close(config.RELAY_CONTROL_ALARM_INDEX as RelayChannel);
       context.manager?.queueCommand('tcp', cabinetCommand8, 'cabinet', false);
       context.manager?.queueCommand('serial', controlCommand1, 'control', false);
@@ -98,7 +105,7 @@ export const applyAmmoMachine = setup({
     },
     broadcastAlarmCancelled: ({ context }) => {
       // 停止报警
-      const cabinetCommand8 = RelayCommandBuilder.open(config.RELAY_CABINET_ALARM_INDEX as RelayChannel);
+      const cabinetCommand8 = RelayCommandBuilder.open(config.ALARM_LIGHT_INDEX as RelayChannel);
       const controlCommand1 = RelayCommandBuilder.open(config.RELAY_CONTROL_ALARM_INDEX as RelayChannel);
       context.manager?.queueCommand('tcp', cabinetCommand8, 'cabinet', false);
       context.manager?.queueCommand('serial', controlCommand1, 'control', false);
@@ -166,12 +173,12 @@ export const applyAmmoMachine = setup({
         [config.DOOR_OPEN_TIMEOUT_S * 1000]: { target: 'door_open_timeout', actions: 'broadcastDoorTimeout' }
       },
       on: {
-        DOOR_CLOSE: { target: 'door_closed' }
+        DOOR_CLOSE: { target: 'waiting_lock_reset', actions: 'broadcastDoorClosed' }
       }
     },
     door_open_timeout: {
       on: {
-        DOOR_CLOSE: { target: 'door_closed' },
+        DOOR_CLOSE: { target: 'waiting_lock_reset', actions: 'broadcastDoorClosed' },
         ALARM_CANCEL: {
           target: 'door_open_alarm_cancelled',
           actions: 'broadcastAlarmCancelled'
@@ -183,10 +190,18 @@ export const applyAmmoMachine = setup({
         [config.DOOR_OPEN_TIMEOUT_S * 1000]: { target: 'door_open_timeout', actions: 'broadcastDoorTimeout' }
       },
       on: {
-        DOOR_CLOSE: { target: 'door_closed' }
+        DOOR_CLOSE: { target: 'waiting_lock_reset', actions: 'broadcastDoorClosed' }
       }
     },
-    door_closed: {
+    waiting_lock_reset: {
+      on: {
+        DOOR_LOCK_CLOSE: {
+          target: 'finished',
+          actions: 'broadcastLockClose'
+        }
+      }
+    },
+    finished: {
       always: {
         target: 'idle',
         actions: ['broadcastFinished', sendParent({ type: 'operation_complete', priority: EventPriority.P2 })]

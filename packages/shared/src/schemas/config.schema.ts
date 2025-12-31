@@ -83,7 +83,7 @@ export const envConfigSchema = z.object({
   // 硬件继电器索引配置 (0-31 for relay channel)
   APPLY_LIGHT_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(31, { message: '索引不能大于 31' }).optional().default(0),
   DOOR_LOCK_SWITCH_LIGHT_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(31, { message: '索引不能大于 31' }).optional().default(2),
-  RELAY_CABINET_ALARM_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(31, { message: '索引不能大于 31' }).optional().default(8),
+  ALARM_LIGHT_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(31, { message: '索引不能大于 31' }).optional().default(8),
   RELAY_CONTROL_ALARM_INDEX: z.number().int({ message: '索引必须是整数' }).min(0, { message: '索引不能小于 0' }).max(31, { message: '索引不能大于 31' }).optional().default(1),
 });
 

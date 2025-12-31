@@ -145,7 +145,7 @@ describe('Alarm Integration Test', () => {
     // The previous calls (ON) are still in the mock history, so we expect ANY call with open command
     // But since we use queueCommand, we can check for specific logic.
     // Reset Alarm logic:
-    // const cabinetCommand = RelayCommandBuilder.open(config.RELAY_CABINET_ALARM_INDEX as RelayChannel);
+    // const cabinetCommand = RelayCommandBuilder.open(config.ALARM_LIGHT_INDEX as RelayChannel);
     // context.hardware.queueCommand('tcp', cabinetCommand, 'cabinet', false);
 
     // We can just verify it was called.

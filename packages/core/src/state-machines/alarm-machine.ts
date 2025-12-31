@@ -36,7 +36,7 @@ export const alarmMachine = setup({
       VoiceBroadcast.getInstance().cabinet.broadcast('柜体震动报警');
       VoiceBroadcast.getInstance().control.broadcast('柜体震动报警');
 
-      const cabinetCommand = RelayCommandBuilder.close(config.RELAY_CABINET_ALARM_INDEX as RelayChannel);
+      const cabinetCommand = RelayCommandBuilder.close(config.ALARM_LIGHT_INDEX as RelayChannel);
       context.hardware.queueCommand('tcp', cabinetCommand, 'cabinet', false);
 
       const controlCommand = RelayCommandBuilder.close(config.RELAY_CONTROL_ALARM_INDEX as RelayChannel);
@@ -48,7 +48,7 @@ export const alarmMachine = setup({
       VoiceBroadcast.getInstance().cabinet.broadcast('取消报警');
       VoiceBroadcast.getInstance().control.broadcast('取消报警');
 
-      const cabinetCommand = RelayCommandBuilder.open(config.RELAY_CABINET_ALARM_INDEX as RelayChannel);
+      const cabinetCommand = RelayCommandBuilder.open(config.ALARM_LIGHT_INDEX as RelayChannel);
       context.hardware.queueCommand('tcp', cabinetCommand, 'cabinet', false);
 
       const controlCommand = RelayCommandBuilder.open(config.RELAY_CONTROL_ALARM_INDEX as RelayChannel);
@@ -60,7 +60,7 @@ export const alarmMachine = setup({
       VoiceBroadcast.getInstance().cabinet.broadcast('钥匙开门请核实');
       VoiceBroadcast.getInstance().control.broadcast('钥匙开门请核实');
 
-      const cabinetCommand = RelayCommandBuilder.close(config.RELAY_CABINET_ALARM_INDEX as RelayChannel);
+      const cabinetCommand = RelayCommandBuilder.close(config.ALARM_LIGHT_INDEX as RelayChannel);
       context.hardware.queueCommand('tcp', cabinetCommand, 'cabinet', false);
 
       const controlCommand = RelayCommandBuilder.close(config.RELAY_CONTROL_ALARM_INDEX as RelayChannel);

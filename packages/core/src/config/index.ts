@@ -88,7 +88,7 @@ export function getConfigSummary(): Record<string, unknown> {
       },
       relays: {
         lock: config.DOOR_LOCK_SWITCH_LIGHT_INDEX,
-        cabinetAlarm: config.RELAY_CABINET_ALARM_INDEX,
+        cabinetAlarm: config.ALARM_LIGHT_INDEX,
         controlAlarm: config.RELAY_CONTROL_ALARM_INDEX,
       },
     },

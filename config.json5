@@ -42,30 +42,29 @@
   VIBRATION_THROTTLE_INTERVAL_MS: 5000,
   AUTH_RETRY_INTERVAL_S: 5,  // 授权等待超时重试间隔（秒）
 
-  // ==================== 柜体输入索引 ====================
-  // 柜体继电器板的输入端口索引配置
+  // ==================== 供弹柜输入索引 ====================
   APPLY_INDEX: 0,              // 申请按钮
   CABINET_DOOR_INDEX: 1,       // 柜门状态
   DOOR_LOCK_SWITCH_INDEX: 2,   // 门锁开关
   KEY_SWITCH_INDEX: 3,         // 钥匙开关
   VIBRATION_SWITCH_INDEX: 4,   // 振动开关
 
-  // ==================== 控制端输入索引 ====================
-  // 操作台继电器板的输入端口索引配置
+  // ==================== 控制柜输入索引 ====================
   ALARM_CANCEL_INDEX: 8,      // 报警取消
   AUTH_CANCEL_INDEX: 9,       // 授权取消
   AUTH_PASS_INDEX: 10,         // 授权通过
+
+  // ==================== 供弹柜输出索引 ====================
+  RELAY_CONTROL_ALARM_INDEX: 1,    // 操作台报警器
+  DOOR_LOCK_SWITCH_INDEX: 1,       // 门锁开关
+
+  // ==================== 控制柜输出索引 ====================
+  APPLY_LIGHT_INDEX: 0,            // 供弹申请灯
+  DOOR_LOCK_SWITCH_LIGHT_INDEX: 1, // 门锁开关灯
+  ALARM_LIGHT_INDEX: 3,            // 报警指示灯
 
   // ==================== 传感器状态反转 ====================
   // true: 闭合状态为报警状态，断开状态为正常状态
   // false: 断开状态为报警状态，闭合状态为正常状态
   INVERT_SENSOR_STATE: false,  // 柜门、钥匙、门锁传感器状态反转
-
-  // ==================== 柜体输出索引 ====================
-  APPLY_LIGHT_INDEX: 0,            // 申请灯
-  DOOR_LOCK_SWITCH_LIGHT_INDEX: 1,             // 门锁开关灯
-  RELAY_CABINET_ALARM_INDEX: 4,    // 柜体报警器
-
-  // ==================== 控制端输出索引 ====================
-  RELAY_CONTROL_ALARM_INDEX: 1,    // 操作台报警器
 }

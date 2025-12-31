@@ -87,7 +87,7 @@ describe('ApplyAmmoMachine Enhanced', () => {
     expect(mockControlBroadcast).toHaveBeenCalledWith('授权未通过，供弹[=dan4]结束');
   });
 
-  it('应该支持完整的开门取弹流程 (AUTHORIZED -> DOOR_OPEN -> DOOR_CLOSE -> 自动结束)', () => {
+  it('应该支持完整的开门取弹流程 (AUTHORIZED -> DOOR_OPEN -> DOOR_CLOSE -> DOOR_LOCK_CLOSE -> 自动结束)', () => {
     vi.useFakeTimers();
     const actor = createWrappedActor();
 
@@ -116,14 +116,24 @@ describe('ApplyAmmoMachine Enhanced', () => {
     mockCabinetBroadcast.mockClear();
     mockControlBroadcast.mockClear();
 
-    // 4. 关闭柜门 - 自复位按钮适配：自动进入 idle 状态
+    // 4. 关闭柜门 - 进入 waiting_lock_reset 状态
     actor.send({ type: 'DOOR_CLOSE' });
-    // 由于 always transition，door_closed 会立即转换到 idle
+    expect(actor.getSnapshot().value).toBe('waiting_lock_reset');
+    // 验证播报了"柜门已关闭"
+    expect(mockCabinetBroadcast).toHaveBeenCalledWith('柜门已关闭，请拧回门锁开关');
+    expect(mockControlBroadcast).toHaveBeenCalledWith('柜门已关闭');
+    mockCabinetBroadcast.mockClear();
+    mockControlBroadcast.mockClear();
+
+    // 5. 拧回门锁 - 结束流程
+    actor.send({ type: 'DOOR_LOCK_CLOSE' });
+    // finished -> idle
     expect(actor.getSnapshot().value).toBe('idle');
-    // 验证播报了"供弹完毕"（broadcastDoorClosed 和 broadcastFinished）
+    // 验证播报了"供弹完毕"
     vi.advanceTimersByTime(500);
     expect(mockCabinetBroadcast).toHaveBeenCalledWith('供弹[=dan4]完毕');
     expect(mockControlBroadcast).toHaveBeenCalledWith('供弹[=dan4]完毕');
+
     vi.useRealTimers();
   });
 
@@ -242,7 +252,7 @@ describe('ApplyAmmoMachine Enhanced', () => {
     expect(mockControlBroadcast).not.toHaveBeenCalled();
   });
 
-  it('应该在 door_open_alarm_cancelled 状态下支持 DOOR_CLOSE 自动结束流程', () => {
+  it('应该在 door_open_alarm_cancelled 状态下支持 DOOR_CLOSE 进入 waiting_lock_reset', () => {
     vi.useFakeTimers();
 
     const actor = createWrappedActor();
@@ -261,11 +271,22 @@ describe('ApplyAmmoMachine Enhanced', () => {
     expect(actor.getSnapshot().value).toBe('door_open_alarm_cancelled');
 
     mockBroadcast.mockClear();
+    mockCabinetBroadcast.mockClear();
+    mockControlBroadcast.mockClear();
 
-    // 关闭柜门 - 自复位按钮适配：自动结束流程
+    // 关闭柜门
     actor.send({ type: 'DOOR_CLOSE' });
+    expect(actor.getSnapshot().value).toBe('waiting_lock_reset');
 
-    // 由于 always transition，door_closed 会立即转换到 idle
+    // 验证播报了"柜门已关闭"
+    expect(mockCabinetBroadcast).toHaveBeenCalledWith('柜门已关闭，请拧回门锁开关');
+    expect(mockControlBroadcast).toHaveBeenCalledWith('柜门已关闭');
+
+    mockCabinetBroadcast.mockClear();
+    mockControlBroadcast.mockClear();
+
+    // 拧回门锁
+    actor.send({ type: 'DOOR_LOCK_CLOSE' });
     expect(actor.getSnapshot().value).toBe('idle');
 
     // 等待定时器让 broadcastFinished 的异步播报执行
@@ -316,7 +337,7 @@ describe('ApplyAmmoMachine Enhanced', () => {
     vi.useRealTimers();
   });
 
-  it('应该在 door_open_timeout 且柜门关闭后自动结束流程', () => {
+  it('应该在 door_open_timeout 且柜门关闭后进入 waiting_lock_reset', () => {
     vi.useFakeTimers();
 
     const actor = createWrappedActor();
@@ -334,9 +355,19 @@ describe('ApplyAmmoMachine Enhanced', () => {
     vi.advanceTimersByTime(31000);
     expect(actor.getSnapshot().value).toBe('door_open_timeout');
 
-    // 关闭柜门 - 自复位按钮适配：自动结束流程
+    // 关闭柜门
     actor.send({ type: 'DOOR_CLOSE' });
-    // 由于 always transition，door_closed 会立即转换到 idle
+    expect(actor.getSnapshot().value).toBe('waiting_lock_reset');
+
+    // 验证播报了"柜门已关闭"
+    expect(mockCabinetBroadcast).toHaveBeenCalledWith('柜门已关闭，请拧回门锁开关');
+    expect(mockControlBroadcast).toHaveBeenCalledWith('柜门已关闭');
+
+    mockCabinetBroadcast.mockClear();
+    mockControlBroadcast.mockClear();
+
+    // 拧回门锁
+    actor.send({ type: 'DOOR_LOCK_CLOSE' });
     expect(actor.getSnapshot().value).toBe('idle');
 
     vi.useRealTimers();

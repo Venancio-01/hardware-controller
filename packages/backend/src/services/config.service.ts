@@ -70,7 +70,7 @@ const createDefaultConfig = (): Config => configSchema.parse({
   // ==================== 柜体输出索引 ====================
   APPLY_LIGHT_INDEX: 0,
   DOOR_LOCK_SWITCH_LIGHT_INDEX: 1,
-  RELAY_CABINET_ALARM_INDEX: 4,
+  ALARM_LIGHT_INDEX: 4,
 
   // ==================== 控制端输出索引 ====================
   RELAY_CONTROL_ALARM_INDEX: 1,
