@@ -145,9 +145,13 @@ const FormMessage = React.forwardRef<
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, children, ...props }, ref) => {
   const { error, formMessageId } = useFormField()
+
+  // 优先显示错误信息，如果没有错误则显示 children
   const body = error ? String(error?.message ?? "") : children
 
-  if (!body) {
+  // 只有当有错误或有自定义内容时才渲染
+  // 注意：error 对象存在时即使 message 为空也会渲染，确保 UI 响应
+  if (!error && !body) {
     return null
   }
 
@@ -158,7 +162,7 @@ const FormMessage = React.forwardRef<
       className={cn("text-sm font-medium text-destructive", className)}
       {...props}
     >
-      {body}
+      {body || "验证失败"}
     </p>
   )
 })

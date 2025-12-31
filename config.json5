@@ -40,6 +40,7 @@
   QUERY_INTERVAL: 1000,
   DOOR_OPEN_TIMEOUT_S: 10,
   VIBRATION_THROTTLE_INTERVAL_MS: 5000,
+  AUTH_RETRY_INTERVAL_S: 5,  // 授权等待超时重试间隔（秒）
 
   // ==================== 柜体输入索引 ====================
   // 柜体继电器板的输入端口索引配置
@@ -62,7 +63,7 @@
 
   // ==================== 柜体输出索引 ====================
   APPLY_LIGHT_INDEX: 0,            // 申请灯
-  RELAY_LOCK_INDEX: 1,             // 电磁锁
+  DOOR_LOCK_SWITCH_LIGHT_INDEX: 1,             // 门锁开关灯
   RELAY_CABINET_ALARM_INDEX: 4,    // 柜体报警器
 
   // ==================== 控制端输出索引 ====================

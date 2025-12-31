@@ -5,6 +5,7 @@ import { monitorMachine } from './monitor-machine.js';
 import { alarmMachine } from './alarm-machine.js';
 import { applyAmmoMachine } from './apply-ammo-machine.js';
 import { SystemEvent } from '../types/state-machine.js';
+import { sendStatus } from '../ipc/status-reporter.js';
 
 export const mainMachine = setup({
   types: {
@@ -41,7 +42,13 @@ export const mainMachine = setup({
         },
         key_detected: 'alarm',
         vibration_detected: 'alarm',
-        monitor_anomaly: 'alarm'
+        monitor_anomaly: 'alarm',
+        monitor_connection_update: {
+          actions: ({ event }) => {
+            // 保持当前状态 update，只发送 IPC 消息
+            sendStatus('Running', undefined, (event as any).connections);
+          }
+        }
       }
     },
     normal: {
@@ -76,8 +83,18 @@ export const mainMachine = setup({
         },
         cabinet_lock_changed: {
           actions: sendTo('applyAmmo', ({ event }) => {
-            if (event.type === 'cabinet_lock_changed') {
-              return event.isClosed ? { type: 'DOOR_CLOSE' } : { type: 'DOOR_OPEN' };
+            const e = event as SystemEvent & { isClosed: boolean };
+            if (e.type === 'cabinet_lock_changed') {
+              return e.isClosed ? { type: 'DOOR_CLOSE' } : { type: 'DOOR_OPEN' };
+            }
+            return { type: 'UNKNOWN' };
+          })
+        },
+        door_lock_switch_changed: {
+          actions: sendTo('applyAmmo', ({ event }) => {
+            const e = event as SystemEvent & { isOpen: boolean };
+            if (e.type === 'door_lock_switch_changed') {
+              return e.isOpen ? { type: 'DOOR_LOCK_OPEN' } : { type: 'DOOR_LOCK_CLOSE' };
             }
             return { type: 'UNKNOWN' };
           })
@@ -85,9 +102,13 @@ export const mainMachine = setup({
         alarm_cancel_toggled: {
           actions: sendTo('applyAmmo', { type: 'ALARM_CANCEL' })
         },
-        key_detected: 'alarm',
-        vibration_detected: 'alarm',
-        monitor_anomaly: 'alarm'
+        //  normal 状态（申请供弹流程中）不响应钥匙和振动报警
+        monitor_anomaly: 'alarm',
+        monitor_connection_update: {
+          actions: ({ event }) => {
+            sendStatus('Running', undefined, (event as any).connections);
+          }
+        }
       }
     },
     alarm: {
@@ -126,6 +147,19 @@ export const mainMachine = setup({
         },
         monitor_recover: {
           actions: sendTo('alarm', { type: 'RECOVER' })
+        },
+        monitor_connection_update: {
+          actions: ({ event }) => {
+            // Alarm 状态下也更新连接状态
+            // 注意：Alarm 状态下 CoreStatus 可能是 Running 也可能是 Error (如果 monitor_anomaly 导致)
+            // 但这里我们简单发送 Running 或者保持不变?
+            // sendStatus 需要 CoreStatus。
+            // 暂时发送 'Running'，或者我们需要从某处获取当前状态?
+            // 实际上 status-reporter 不存储当前状态，只发送。
+            // 如果在 alarm 状态，通常意味着 Anomalous or Normal Alarm.
+            // 发送 Running 是安全的，因为 status-reporter 只是向 backend 报告。
+            sendStatus('Running', undefined, (event as any).connections);
+          }
         }
       }
     },

@@ -39,4 +39,9 @@ export interface CoreStatusResponse {
   uptime: number | null;
   /** 最后一个错误信息 */
   lastError: string | null;
+  /** 硬件连接状态 */
+  connections?: {
+    cabinet: boolean;
+    control: boolean;
+  };
 }

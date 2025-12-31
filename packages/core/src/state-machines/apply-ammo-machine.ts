@@ -10,6 +10,8 @@ export type ApplyAmmoEvent =
   | { type: 'APPLY' }
   | { type: 'AUTHORIZED' }
   | { type: 'REFUSE' }
+  | { type: 'DOOR_LOCK_OPEN' }
+  | { type: 'DOOR_LOCK_CLOSE' }
   | { type: 'DOOR_OPEN' }
   | { type: 'DOOR_CLOSE' }
   | { type: 'ALARM_CANCEL' };
@@ -25,17 +27,30 @@ export const applyAmmoMachine = setup({
   actions: {
     broadcastApply: ({ context }) => {
       const command = RelayCommandBuilder.close(config.APPLY_LIGHT_INDEX as RelayChannel);
-      context.manager?.queueCommand('tcp', command, 'cabinet', false)
+      context.manager?.queueCommand('serial', command, 'control', false)
 
       void VoiceBroadcast.getInstance().cabinet.broadcast('已申请，请等待授权');
       void VoiceBroadcast.getInstance().control.broadcast('申请供弹[=dan4]请授权');
     },
+    broadcastRetry: ({ context }) => {
+    // 授权等待超时重试语音
+      void VoiceBroadcast.getInstance().cabinet.broadcast('已申请，请等待授权');
+      void VoiceBroadcast.getInstance().control.broadcast('申请供弹[=dan4]请授权');
+    },
     broadcastAuthorized: ({ context }) => {
-      const unlockCommand = RelayCommandBuilder.close(config.RELAY_LOCK_INDEX as RelayChannel);
+      const unlockCommand = RelayCommandBuilder.close(config.DOOR_LOCK_SWITCH_LIGHT_INDEX as RelayChannel);
       context.manager?.queueCommand('tcp', unlockCommand, 'cabinet', false);
 
       VoiceBroadcast.getInstance().control.broadcast('授权通过，已开锁');
       VoiceBroadcast.getInstance().cabinet.broadcast('授权通过，已开锁请打开柜门');
+    },
+    broadcastLockOpen: ({ context }) => {
+      const command = RelayCommandBuilder.close(config.DOOR_LOCK_SWITCH_LIGHT_INDEX as RelayChannel);
+      context.manager?.queueCommand('serial', command, 'control', false);
+    },
+    broadcastLockClose: ({ context }) => {
+      const command = RelayCommandBuilder.open(config.DOOR_LOCK_SWITCH_LIGHT_INDEX as RelayChannel);
+      context.manager?.queueCommand('serial', command, 'control', false);
     },
     broadcastFinished: ({ context }) => {
       // 停止报警
@@ -46,10 +61,10 @@ export const applyAmmoMachine = setup({
 
       // 熄灯
       const command1 = RelayCommandBuilder.open(config.APPLY_LIGHT_INDEX as RelayChannel);
-      context.manager?.queueCommand('tcp', command1, 'cabinet', false);
+      context.manager?.queueCommand('serial', command1, 'control', false);
 
       // 落锁
-      const command2 = RelayCommandBuilder.open(config.RELAY_LOCK_INDEX as RelayChannel);
+      const command2 = RelayCommandBuilder.open(config.DOOR_LOCK_SWITCH_LIGHT_INDEX as RelayChannel);
       context.manager?.queueCommand('tcp', command2, 'cabinet', false);
 
       VoiceBroadcast.getInstance().cabinet.broadcast('供弹[=dan4]完毕');
@@ -98,7 +113,7 @@ export const applyAmmoMachine = setup({
       }
 
       // 配置索引和继电器通道都是 0-based (0-7)
-      const command = RelayCommandBuilder.open(config.RELAY_LOCK_INDEX as RelayChannel);
+      const command = RelayCommandBuilder.open(config.DOOR_LOCK_SWITCH_LIGHT_INDEX as RelayChannel);
 
       context.manager.sendCommand('serial', command, 'control', false)
     },
@@ -118,6 +133,14 @@ export const applyAmmoMachine = setup({
       }
     },
     applying: {
+      // 授权等待超时重试：每隔 AUTH_RETRY_INTERVAL_S 秒循环播报重试语音
+      after: {
+        [config.AUTH_RETRY_INTERVAL_S * 1000]: {
+          target: 'applying',
+          actions: 'broadcastRetry',
+          reenter: true
+        }
+      },
       on: {
         AUTHORIZED: { target: 'authorized', actions: 'broadcastAuthorized' },
         REFUSE: { target: 'idle', actions: ['broadcastRefused', sendParent({ type: 'operation_complete', priority: EventPriority.P2 })] }
@@ -125,6 +148,16 @@ export const applyAmmoMachine = setup({
     },
     authorized: {
       on: {
+        DOOR_LOCK_OPEN: { target: 'lock_open', actions: 'broadcastLockOpen' },
+        DOOR_OPEN: { target: 'door_open', actions: 'broadcastDoorOpen' }
+      }
+    },
+    lock_open: {
+      on: {
+        DOOR_LOCK_CLOSE: {
+          target: 'authorized',
+          actions: 'broadcastLockClose'
+        },
         DOOR_OPEN: { target: 'door_open', actions: 'broadcastDoorOpen' }
       }
     },

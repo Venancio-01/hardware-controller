@@ -1,14 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, restartCore } from '@/lib/api';
 import { toast } from 'sonner';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { type Config, type ConflictDetectionRequest, type ConflictDetectionResult } from 'shared';
 import { ApiError } from '@/lib/errors';
-
-const RESTART_ALERT_KEY = 'config_needs_restart';
-
-// 导出常量供测试使用
-export { RESTART_ALERT_KEY };
 
 /**
  * 保存前的验证钩子类型
@@ -112,31 +107,9 @@ const defaultConflictDetection: BeforeSaveHook = async (config) => {
 export function useUpdateConfig(beforeSave: BeforeSaveHook = defaultConflictDetection) {
   const queryClient = useQueryClient();
 
-  // 从 localStorage 读取持久化状态（带错误处理）
-  const [needsRestart, setNeedsRestart] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem(RESTART_ALERT_KEY);
-        return saved === 'true';
-      } catch (error) {
-        // localStorage 不可用时降级为 false
-        console.warn('无法访问 localStorage:', error);
-        return false;
-      }
-    }
-    return false;
-  });
-
-  // 同步状态到 localStorage（带错误处理）
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem(RESTART_ALERT_KEY, String(needsRestart));
-      } catch (error) {
-        console.warn('无法写入 localStorage:', error);
-      }
-    }
-  }, [needsRestart]);
+  // 重启确认状态
+  const [showRestartConfirm, setShowRestartConfirm] = useState(false);
+  const [isRestarting, setIsRestarting] = useState(false);
 
   const mutation = useMutation({
     mutationFn: async (values: Config) => {
@@ -164,12 +137,11 @@ export function useUpdateConfig(beforeSave: BeforeSaveHook = defaultConflictDete
         queryClient.invalidateQueries({ queryKey: ['config'] });
       }, 100);
 
-      toast.success("配置已保存", {
-        description: "需要重启系统才能生效",
-      });
-
+      // 配置保存成功后，如果需要重启，显示确认对话框
       if (data.needsRestart) {
-        setNeedsRestart(true);
+        setShowRestartConfirm(true);
+      } else {
+        toast.success("配置已保存");
       }
     },
     onError: (error: unknown) => {
@@ -220,14 +192,30 @@ export function useUpdateConfig(beforeSave: BeforeSaveHook = defaultConflictDete
     }
   });
 
-  // 清除重启提示的方法（供系统重启时调用）
-  const clearNeedsRestart = () => {
-    setNeedsRestart(false);
+  // 确认重启
+  const confirmRestart = async () => {
+    setIsRestarting(true);
+    try {
+      await restartCore();
+      toast.success('重启指令已发送');
+      setShowRestartConfirm(false);
+    } catch (error) {
+      toast.error(`重启失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    } finally {
+      setIsRestarting(false);
+    }
+  };
+
+  // 取消重启
+  const cancelRestart = () => {
+    setShowRestartConfirm(false);
   };
 
   return {
     ...mutation,
-    needsRestart,
-    clearNeedsRestart
+    showRestartConfirm,
+    isRestarting,
+    confirmRestart,
+    cancelRestart,
   };
 }

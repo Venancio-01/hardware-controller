@@ -29,6 +29,11 @@ export interface UseCoreStatusResult {
   connectionStatus: ConnectionStatus;
   /** 是否已连接 */
   isConnected: boolean;
+  /** 硬件连接状态 */
+  connections?: {
+    cabinet: boolean;
+    control: boolean;
+  };
 }
 
 /**
@@ -63,6 +68,8 @@ export function useCoreStatus(): UseCoreStatusResult {
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
 
+  const [connections, setConnections] = useState<{ cabinet: boolean; control: boolean } | undefined>(undefined);
+
   // 使用 ref 保存 socket 实例，避免重复创建
   const socketRef = useRef<Socket | null>(null);
 
@@ -73,6 +80,9 @@ export function useCoreStatus(): UseCoreStatusResult {
     setStatus(payload.status);
     setUptime(payload.uptime);
     setLastError(payload.lastError);
+    if (payload.connections) {
+      setConnections(payload.connections);
+    }
   }, []);
 
   useEffect(() => {
@@ -151,5 +161,6 @@ export function useCoreStatus(): UseCoreStatusResult {
     connectionError,
     connectionStatus,
     isConnected: connectionStatus === 'connected',
+    connections,
   };
 }

@@ -3,11 +3,12 @@ import { apiFetch } from '@/lib/api'
 import type { DeviceStatus } from 'shared'
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Cpu, Timer, AlertCircle, Link2, Link2Off } from "lucide-react"
+import { Loader2, Cpu, Activity, Wifi } from "lucide-react"
 import { useCoreStatus } from '@/hooks/useCoreStatus'
 import { CoreStatusBadge } from '@/components/system/CoreStatusBadge'
 import { formatUptime } from '@/lib/formatters'
 import { RestartCoreButton } from '@/components/system/RestartCoreButton'
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function Sidebar() {
 
@@ -25,56 +26,58 @@ export function Sidebar() {
     lastError: coreLastError,
     connectionStatus,
     connectionError,
+    connections,
   } = useCoreStatus();
 
 
-  // WebSocket 连接状态徽章
-  const getConnectionBadge = () => {
-    switch (connectionStatus) {
-      case 'connected':
-        return (
-          <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600 gap-1">
-            <Link2 className="h-3 w-3" />
-            已连接
-          </Badge>
-        );
-      case 'connecting':
-        return (
-          <Badge variant="secondary" className="gap-1">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            连接中
-          </Badge>
-        );
-      case 'disconnected':
-      case 'error':
-        return (
-          <Badge variant="destructive" className="gap-1">
-            <Link2Off className="h-3 w-3" />
-            已断开
-          </Badge>
-        );
-    }
-  };
+  // 硬件连接状态渲染
+  const renderHardwareConnection = () => {
+    const isCabinetConnected = coreStatus === 'Running' && (connections?.cabinet ?? false);
+    const isControlConnected = coreStatus === 'Running' && (connections?.control ?? false);
+    const bothConnected = isCabinetConnected && isControlConnected;
 
-  if (isLoading) {
     return (
-      <aside className="lg:col-span-1 space-y-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-center space-x-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Loading status...</span>
-            </div>
-          </CardContent>
-        </Card>
-      </aside>
-    )
-  }
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-muted-foreground">
+          {!bothConnected ? (
+            <>
+              <span className={isCabinetConnected ? "" : "text-destructive font-medium"}>供弹柜</span>
+              <span>/</span>
+              <span className={isControlConnected ? "" : "text-destructive font-medium"}>控制柜</span>
+            </>
+          ) : (
+            "供弹柜/控制柜"
+          )}
+        </span>
+        {(() => {
+          if (connectionStatus !== 'connected') {
+            return <Badge variant="outline" className="gap-1">未连接</Badge>;
+          }
+
+          if (bothConnected) {
+            return (
+              <Badge variant="default" className="gap-1">
+                <Activity className="h-3 w-3 animate-pulse" />
+                已连接
+              </Badge>
+            );
+          } else {
+            return (
+              <Badge variant="destructive" className="gap-1">
+                <Activity className="h-3 w-3 animate-pulse" />
+                未连接
+              </Badge>
+            );
+          }
+        })()}
+      </div>
+    );
+  };
 
   return (
     <aside className="lg:col-span-1 space-y-4">
-      {/* Core 进程状态卡片 */}
-      <Card className="transition-all duration-300 hover:shadow-md border-border/50 bg-card/50 backdrop-blur-sm">
+      {/* 程序状态卡片 */}
+      <Card className="transition-all duration-300 hover:shadow-md border-0 shadow-sm bg-card">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-medium flex items-center gap-2">
             <Cpu className="h-4 w-4" />
@@ -82,41 +85,44 @@ export function Sidebar() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {/* WebSocket 连接状态 */}
+          {/* 运行状态 (对应控制核心) */}
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">连接状态</span>
-            {getConnectionBadge()}
+            <span className="text-sm text-muted-foreground">运行状态</span>
+            {isLoading ? (
+              <Skeleton className="h-6 w-20" />
+            ) : (
+              <CoreStatusBadge status={coreStatus} connectionStatus={connectionStatus} showIcon={true} />
+            )}
           </div>
 
-          {/* Core 进程状态 */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">进程状态</span>
-            <CoreStatusBadge status={coreStatus} connectionStatus={connectionStatus} />
-          </div>
-
-          {/* 运行时间 */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground flex items-center gap-1.5">
-              <Timer className="h-3.5 w-3.5" />
-              运行时间
-            </span>
-            <span className="text-sm font-medium">{formatUptime(coreUptime)}</span>
-          </div>
-
-          {/* 错误信息 (仅在有错误时显示) */}
-          {(coreLastError || connectionError) && (
-            <div className="pt-2 border-t">
-              <div className="flex items-start gap-2 text-destructive">
-                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                <p className="text-sm break-words">{connectionError || coreLastError}</p>
-              </div>
+          {/* 硬件连接 (供弹柜/控制柜) */}
+          {isLoading ? (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">供弹柜/控制柜</span>
+              <Skeleton className="h-6 w-20" />
             </div>
+          ) : (
+            renderHardwareConnection()
           )}
 
+          {/* 已运行时长 */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">
+              已运行时长
+            </span>
+            {isLoading ? (
+              <Skeleton className="h-5 w-24" />
+            ) : (
+                <span className="text-sm font-medium">{formatUptime(coreUptime)}</span>
+            )}
+          </div>
 
-          {/* 重启控制 */}
-          <div className="pt-2 border-t flex justify-end">
-            <RestartCoreButton />
+          <div className="pt-2">
+            {isLoading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <RestartCoreButton className="w-full" />
+            )}
           </div>
         </CardContent>
       </Card>

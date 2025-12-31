@@ -13,7 +13,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ExclamationTriangleIcon } from '@radix-ui/react-icons';
 import { useState } from 'react';
@@ -134,22 +133,9 @@ function LoginPage() {
                 </Button>
               </form>
             </Form>
-
-            <p className="px-8 text-center text-sm text-muted-foreground">
-              登录即代表您同意遵守
-              <span className="underline underline-offset-4 hover:text-primary cursor-pointer mx-1">
-                安全操作规范
-              </span>
-              和
-              <span className="underline underline-offset-4 hover:text-primary cursor-pointer mx-1">
-                使用条款
-              </span>
-              。
-            </p>
           </div>
         </div>
 
-        {/* Right Side - Status Panel */}
         <div className="hidden md:block h-full bg-muted/30">
           <LoginStatusPanel />
         </div>

@@ -12,7 +12,7 @@ import { ipv4Schema } from './network.schema.js';
  *
  * 端口号必须在 1-65535 范围内
  */
-export const portSchema = z.number().int().min(1).max(65535, {
+export const portSchema = z.number().int({ message: '端口必须是整数' }).min(1, { message: '端口必须大于 0' }).max(65535, {
   message: '端口号必须在 1-65535 范围内',
 });
 
@@ -40,6 +40,16 @@ export const deviceStatusSchema = z.object({
   ipAddress: ipv4Schema,
 
   /**
+   * 子网掩码
+   */
+  subnetMask: ipv4Schema.optional(),
+
+  /**
+   * 网关地址
+   */
+  gateway: ipv4Schema.optional(),
+
+  /**
    * 设备当前端口号
    */
   port: portSchema,
@@ -52,5 +62,5 @@ export const deviceStatusSchema = z.object({
   /**
    * 系统运行时间（秒）
    */
-  uptime: z.number().min(0),
+  uptime: z.number().min(0, { message: '运行时间不能为负数' }),
 });

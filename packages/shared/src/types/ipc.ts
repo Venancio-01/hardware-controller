@@ -32,6 +32,10 @@ export interface StatusPayload {
   status: CoreStatus;
   uptime?: number; // milliseconds since started
   lastError?: string;
+  connections?: {
+    cabinet: boolean;
+    control: boolean;
+  };
 }
 
 export const IpcMessages = {

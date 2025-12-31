@@ -3,6 +3,7 @@ import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { HeaderActionsContainer } from "@/components/layout/HeaderActions"
+import { Shield } from 'lucide-react'
 
 import { AuthProvider } from '@/contexts/auth.context'
 
@@ -46,7 +47,12 @@ function RootLayout() {
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 font-sans antialiased">
           <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 shadow-sm">
             <div className="container flex h-14 max-w-screen-2xl items-center justify-between">
-              <h1 className="text-xl font-semibold tracking-tight px-4">供弹柜控制系统</h1>
+              <div className="flex items-center gap-3 px-4">
+                <div className="p-2 rounded-full bg-primary/10 ring-1 ring-primary/20">
+                  <Shield className="h-5 w-5 text-primary" />
+                </div>
+                <h1 className="text-xl font-semibold tracking-tight">供弹柜控制系统</h1>
+              </div>
               <div className="flex items-center gap-2 px-4">
                 <HeaderActionsContainer />
               </div>

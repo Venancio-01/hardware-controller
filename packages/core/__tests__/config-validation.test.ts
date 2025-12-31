@@ -85,7 +85,7 @@ describe('Config Validation', () => {
       timeout: 5000,
       retryCount: 3,
       pollingInterval: 5000,
-      RELAY_LOCK_INDEX: 2,
+      DOOR_LOCK_SWITCH_LIGHT_INDEX: 2,
       RELAY_CABINET_ALARM_INDEX: 8,
     };
 
@@ -93,7 +93,66 @@ describe('Config Validation', () => {
     expect(result.success).toBe(true);
 
     if (result.success) {
-      expect(result.data.RELAY_LOCK_INDEX).toBe(2);
+      expect(result.data.DOOR_LOCK_SWITCH_LIGHT_INDEX).toBe(2);
     }
+  });
+
+  it('should validate AUTH_RETRY_INTERVAL_S with valid range', () => {
+    const validConfig = {
+      deviceId: 'device-001',
+      timeout: 5000,
+      retryCount: 3,
+      pollingInterval: 5000,
+      AUTH_RETRY_INTERVAL_S: 30,
+    };
+
+    const result = configSchema.safeParse(validConfig);
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.AUTH_RETRY_INTERVAL_S).toBe(30);
+    }
+  });
+
+  it('should use default value for AUTH_RETRY_INTERVAL_S when missing', () => {
+    const minimalConfig = {
+      deviceId: 'device-001',
+      timeout: 5000,
+      retryCount: 3,
+      pollingInterval: 5000,
+    };
+
+    const result = configSchema.safeParse(minimalConfig);
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.AUTH_RETRY_INTERVAL_S).toBe(30); // Default
+    }
+  });
+
+  it('should fail when AUTH_RETRY_INTERVAL_S is less than 5', () => {
+    const invalidConfig = {
+      deviceId: 'device-001',
+      timeout: 5000,
+      retryCount: 3,
+      pollingInterval: 5000,
+      AUTH_RETRY_INTERVAL_S: 3, // Minimum is 5
+    };
+
+    const result = configSchema.safeParse(invalidConfig);
+    expect(result.success).toBe(false);
+  });
+
+  it('should fail when AUTH_RETRY_INTERVAL_S is greater than 300', () => {
+    const invalidConfig = {
+      deviceId: 'device-001',
+      timeout: 5000,
+      retryCount: 3,
+      pollingInterval: 5000,
+      AUTH_RETRY_INTERVAL_S: 400, // Maximum is 300
+    };
+
+    const result = configSchema.safeParse(invalidConfig);
+    expect(result.success).toBe(false);
   });
 });

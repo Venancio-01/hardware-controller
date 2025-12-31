@@ -26,7 +26,7 @@ import { initializeHardware } from './hardware/initializer.js';
 import { initializeVoiceBroadcast } from './voice-broadcast/initializer.js';
 import { resetAllRelays } from './relay/index.js';
 import { createMainActor } from './state-machines/main-machine.js';
-import { sendReady, sendError } from './ipc/status-reporter.js';
+import { sendReady, sendError, sendStatus } from './ipc/status-reporter.js';
 import { forwardLog } from './ipc/log-forwarder.js';
 
 /**
@@ -62,6 +62,17 @@ export async function startApp() {
 
     // 发送 CORE:READY 消息通知 Backend
     sendReady();
+
+    // 发送初始连接状态
+    const allStatus = manager.getAllConnectionStatus();
+    const cabinetConnected = allStatus.tcp?.['cabinet'] === 'connected';
+    const controlConnected = allStatus.serial?.['control'] === 'connected';
+
+    // 发送 Running 状态以及当前的连接状态
+    // 注意：sendStatus 需要 import ({ sendStatus })
+    sendStatus('Running', undefined, { cabinet: cabinetConnected, control: controlConnected });
+    // 需要检查 import 是否包含 sendStatus
+
     appLogger.info('Core 进程已就绪，已通知 Backend');
 
     // 关闭处理

@@ -16,6 +16,7 @@ import authRoutes from './routes/auth.routes.js';
 import systemRoutes from './routes/system.routes.js';
 import coreStatusRoutes from './routes/core-status.routes.js';
 import conflictDetectionRoutes from './routes/conflict-detection.routes.js';
+import networkRoutes from './routes/network.routes.js';
 import { authMiddleware } from './middleware/auth.middleware.js';
 
 // ES Module __dirname polyfill
@@ -66,6 +67,7 @@ export function createServer(): express.Application {
   app.use('/api/status', statusRoutes);
   app.use('/api/system', systemRoutes);
   app.use('/api/system/core', coreStatusRoutes);
+  app.use('/api/network', networkRoutes);
 
   // 生产环境静态文件服务
   if (process.env.NODE_ENV === 'production') {

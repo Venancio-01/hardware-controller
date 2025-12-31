@@ -3,23 +3,12 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { RESTART_ALERT_KEY } from '@/hooks/useUpdateConfig';
 import { toast } from 'sonner';
-import { ApiError } from '@/lib/errors';
+import { ApiError } from '../../../lib/errors';
 
-// Mock mocks
-vi.mock('@/lib/api', () => ({
+vi.mock('../../../lib/api', () => ({
   apiFetch: vi.fn(),
   restartCore: vi.fn(),
-}));
-
-// Mock RestartCoreButton component
-vi.mock('@/components/system/RestartCoreButton', () => ({
-  RestartCoreButton: ({ disabled, size }: { disabled?: boolean; size?: string }) => (
-    <button type="button" disabled={disabled}>
-      重启程序
-    </button>
-  ),
 }));
 
 vi.mock('sonner', () => ({
@@ -30,8 +19,6 @@ vi.mock('sonner', () => ({
 }));
 
 // Mock useImportExportConfig hook
-// Mock useImportExportConfig hook
-// Mock useImportExportConfig hook
 const mockHandleExport = vi.fn();
 const mockHandleImport = vi.fn();
 const mockConfirmImport = vi.fn();
@@ -40,7 +27,7 @@ const mockCancelImport = vi.fn();
 // Use a getter to allow changing the return value dynamically
 let mockPendingConfig: any = null;
 
-vi.mock('@/hooks/useImportExportConfig', () => ({
+vi.mock('../../../hooks/useImportExportConfig', () => ({
   useImportExportConfig: () => ({
     handleExport: mockHandleExport,
     handleImport: mockHandleImport,
@@ -56,73 +43,27 @@ vi.mock('@/hooks/useImportExportConfig', () => ({
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
-// Mock child components with ability to interact with form
-// @ts-ignore
-vi.mock('../AppConfigCard', () => ({
-  AppConfigCard: ({ form }: { form: any }) => {
-    const { formState } = form;
-    return (
-      <div data-testid="app-config-card">
-        {/* Register app config fields */}
-        <input type="hidden" {...form.register('deviceId')} defaultValue="device-001" />
-        <input type="hidden" {...form.register('timeout', { valueAsNumber: true })} defaultValue={5000} />
-        <input type="hidden" {...form.register('retryCount', { valueAsNumber: true })} defaultValue={3} />
-        <input type="hidden" {...form.register('pollingInterval', { valueAsNumber: true })} defaultValue={5000} />
-        <input type="hidden" {...form.register('port', { valueAsNumber: true })} defaultValue={8080} />
+// Mock Network hooks
+const mockGetNetworkConfig = vi.fn();
+const mockApplyNetwork = vi.fn();
 
-        {/* Display error messages for testing */}
-        {formState.errors.deviceId && (
-          <span data-testid="deviceId-error">{formState.errors.deviceId.message}</span>
-        )}
-        {formState.errors.port && (
-          <span data-testid="port-error">{formState.errors.port.message}</span>
-        )}
-
-        {/* Register ALL other env config fields to ensure they exist */}
-        {[
-          'NODE_ENV', 'PORT', 'HOST', 'LOG_LEVEL', 'LOG_PRETTY',
-          'CABINET_HOST', 'CABINET_PORT',
-          'CONTROL_SERIAL_PATH', 'CONTROL_SERIAL_BAUDRATE', 'CONTROL_SERIAL_DATABITS', 'CONTROL_SERIAL_STOPBITS', 'CONTROL_SERIAL_PARITY',
-          'VOICE_CABINET_VOLUME', 'VOICE_CABINET_SPEED', 'VOICE_CONTROL_VOLUME', 'VOICE_CONTROL_SPEED',
-          'HARDWARE_TIMEOUT', 'HARDWARE_RETRY_ATTEMPTS',
-          'ENABLE_HARDWARE_SIMULATOR', 'ENABLE_METRICS',
-          'UDP_LOCAL_PORT', 'QUERY_INTERVAL', 'DOOR_OPEN_TIMEOUT_S',
-          'APPLY_INDEX', 'CABINET_DOOR_INDEX', 'DOOR_LOCK_SWITCH_INDEX', 'KEY_SWITCH_INDEX', 'VIBRATION_SWITCH_INDEX',
-          'ALARM_CANCEL_INDEX', 'AUTH_CANCEL_INDEX', 'AUTH_PASS_INDEX',
-          'RELAY_LOCK_INDEX', 'RELAY_CABINET_ALARM_INDEX', 'RELAY_CONTROL_ALARM_INDEX'
-        ].map(field => (
-          <input key={field} type="hidden" {...form.register(field)} />
-        ))}
-
-        <button
-          type="button"
-          data-testid="set-dirty-btn"
-          onClick={() => {
-            form.setValue('deviceId', 'new-device-id', { shouldDirty: true, shouldValidate: true });
-          }}
-        >
-          Set Dirty
-        </button>
-      </div>
-    );
-  },
+vi.mock('../../../hooks/useApplyNetwork', () => ({
+  useGetNetworkConfig: () => ({
+    mutate: mockGetNetworkConfig,
+    isPending: false
+  }),
+  useApplyNetwork: () => ({
+    mutate: mockApplyNetwork,
+    mutateAsync: mockApplyNetwork.mockResolvedValue({}),
+    isPending: false
+  })
 }));
 
-// @ts-ignore
-vi.mock('@/components/config/NetworkConfigForm', () => ({
-  NetworkConfigForm: ({ form }: { form: any }) => (
-    <div data-testid="network-config-form">
-      <input type="hidden" {...form.register('ipAddress')} defaultValue="192.168.1.100" />
-      <input type="hidden" {...form.register('subnetMask')} defaultValue="255.255.255.0" />
-      <input type="hidden" {...form.register('gateway')} defaultValue="192.168.1.1" />
-      <input type="hidden" {...form.register('port', { valueAsNumber: true })} defaultValue={8080} />
-    </div>
-  ),
-}));
+// ... (existing helper mocks)
 
 // Import after mocks are set up
 import { ConfigForm, mergeConfigValues } from '../ConfigForm';
-import { apiFetch } from '@/lib/api';
+import { apiFetch } from '../../../lib/api';
 
 // Create a test query client
 const createTestQueryClient = () => new QueryClient({
@@ -184,7 +125,7 @@ describe('ConfigForm Component', () => {
     ALARM_CANCEL_INDEX: 10,
     AUTH_CANCEL_INDEX: 11,
     AUTH_PASS_INDEX: 12,
-    RELAY_LOCK_INDEX: 2,
+    DOOR_LOCK_SWITCH_LIGHT_INDEX: 2,
     RELAY_CABINET_ALARM_INDEX: 8,
     RELAY_CONTROL_ALARM_INDEX: 1
   };
@@ -229,17 +170,15 @@ describe('ConfigForm Component', () => {
     }, { timeout: 1000 });
   });
 
-  it('should render restart alert when needsRestart is true', async () => {
-    // Set localStorage before rendering
-    localStorage.setItem(RESTART_ALERT_KEY, 'true');
+  it('should render form components after loading', async () => {
     vi.mocked(apiFetch).mockResolvedValue(mockConfig);
-
     render(<ConfigForm />, { wrapper });
-
     await waitFor(() => {
-      expect(screen.getByText(/需要重启系统才能生效/)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /重启程序/ })).toBeInTheDocument();
+      expect(screen.getByTestId('app-config-card')).toBeInTheDocument();
     });
+
+    expect(screen.getByRole('button', { name: /重置默认配置/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /保存配置/ })).toBeInTheDocument();
   });
 
   it('should disable button and show loading when saving', async () => {
@@ -253,30 +192,9 @@ describe('ConfigForm Component', () => {
     expect(saveButton).toBeDisabled();
   });
 
-  it('should render form components after loading', async () => {
-    vi.mocked(apiFetch).mockResolvedValue(mockConfig);
-    render(<ConfigForm />, { wrapper });
-    await waitFor(() => {
-      expect(screen.getByTestId('app-config-card')).toBeInTheDocument();
-    });
 
-    expect(screen.getByRole('button', { name: /导出配置/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /导入配置/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /保存配置/ })).toBeInTheDocument();
-  });
 
-  it('should call handleExport when export button is clicked', async () => {
-    vi.mocked(apiFetch).mockResolvedValue(mockConfig);
-    render(<ConfigForm />, { wrapper });
-    await waitFor(() => {
-      expect(screen.getByTestId('app-config-card')).toBeInTheDocument();
-    });
 
-    const exportButton = screen.getByRole('button', { name: /导出配置/ });
-    fireEvent.click(exportButton);
-
-    expect(mockHandleExport).toHaveBeenCalledTimes(1);
-  });
 
   it('should show error alert when API fails', async () => {
     const errorMessage = 'Failed to load config';
@@ -311,18 +229,13 @@ describe('ConfigForm Component', () => {
     // Submit
     fireEvent.click(saveButton);
 
-    // Verify PUT call
+    // 验证成功保存后由 useUpdateConfig hook 处理 toast 和 confirm
+    // 注意：由于使用了 fake confirm，这里不再断言 toast（在 hook 测试中验证）
     await waitFor(() => {
-      // Should call /api/config with PUT
       expect(apiFetch).toHaveBeenCalledWith('/api/config', expect.objectContaining({
         method: 'PUT',
         body: expect.stringContaining('"deviceId":"new-device-id"')
       }));
-    });
-
-    // Verify Toast
-    await waitFor(() => {
-      expect(toast.success).toHaveBeenCalledWith("配置已保存", expect.any(Object));
     });
   });
 

@@ -12,10 +12,68 @@ import { configSchema, type Config, createModuleLogger } from 'shared';
 const logger = createModuleLogger('ConfigService');
 
 const createDefaultConfig = (): Config => configSchema.parse({
-  deviceId: 'device-001',
+  // ==================== 基本设置 ====================
+  deviceId: "device-001",
   timeout: 5000,
   retryCount: 3,
   pollingInterval: 5000,
+
+  // ==================== 运行环境 ====================
+  // NODE_ENV, PORT, HOST Usually from ENV or ignored in config file merge
+
+  // ==================== 日志配置 ====================
+  LOG_LEVEL: "info",
+  LOG_PRETTY: true,
+
+  // ==================== 柜体继电器板配置 ====================
+  CABINET_HOST: "192.168.0.18",
+  CABINET_PORT: 50000,
+
+  // ==================== 操作台继电器板配置 ====================
+  CONTROL_SERIAL_PATH: "/dev/ttyUSB0",
+  CONTROL_SERIAL_BAUDRATE: 9600,
+  CONTROL_SERIAL_DATABITS: 8,
+  CONTROL_SERIAL_STOPBITS: 1,
+  CONTROL_SERIAL_PARITY: "none",
+
+  // ==================== 语音播报配置 ====================
+  VOICE_CABINET_VOLUME: 1,
+  VOICE_CABINET_SPEED: 5,
+  VOICE_CONTROL_VOLUME: 1,
+  VOICE_CONTROL_SPEED: 5,
+
+  // ==================== 硬件通用配置 ====================
+  HARDWARE_TIMEOUT: 5000,
+  HARDWARE_RETRY_ATTEMPTS: 3,
+  ENABLE_HARDWARE_SIMULATOR: false,
+  ENABLE_METRICS: true,
+  UDP_LOCAL_PORT: 8000,
+  QUERY_INTERVAL: 1000,
+  DOOR_OPEN_TIMEOUT_S: 10,
+  VIBRATION_THROTTLE_INTERVAL_MS: 5000,
+
+  // ==================== 柜体输入索引 ====================
+  APPLY_INDEX: 0,
+  CABINET_DOOR_INDEX: 1,
+  DOOR_LOCK_SWITCH_INDEX: 2,
+  KEY_SWITCH_INDEX: 3,
+  VIBRATION_SWITCH_INDEX: 4,
+
+  // ==================== 控制端输入索引 ====================
+  ALARM_CANCEL_INDEX: 8,
+  AUTH_CANCEL_INDEX: 9,
+  AUTH_PASS_INDEX: 10,
+
+  // ==================== 传感器状态反转 ====================
+  INVERT_SENSOR_STATE: false,
+
+  // ==================== 柜体输出索引 ====================
+  APPLY_LIGHT_INDEX: 0,
+  DOOR_LOCK_SWITCH_LIGHT_INDEX: 1,
+  RELAY_CABINET_ALARM_INDEX: 4,
+
+  // ==================== 控制端输出索引 ====================
+  RELAY_CONTROL_ALARM_INDEX: 1,
 });
 
 /**
@@ -76,6 +134,13 @@ export class ConfigService {
       // 重新抛出其他错误
       throw error;
     }
+  }
+
+  /**
+   * 获取默认配置
+   */
+  getDefaultConfig(): Config {
+    return createDefaultConfig();
   }
 
   /**

@@ -1,17 +1,16 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { configSchema, type Config } from "shared";
+import { configSchema, type Config, networkConfigSchema, type NetworkConfig } from "shared";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { AppConfigCard } from "./AppConfigCard";
 import { NetworkConfigForm } from "@/components/config/NetworkConfigForm";
 import { ControlCabinetConfigForm } from "@/components/config/ControlCabinetConfigForm";
 import { AmmoCabinetConfigForm } from "@/components/config/AmmoCabinetConfigForm";
-import { RestartCoreButton } from "@/components/system/RestartCoreButton";
-import { Save, Loader2, Circle, AlertCircle, Download, Upload, AlertTriangle } from "lucide-react";
+import { Save, Loader2, Circle, AlertCircle, AlertTriangle, RotateCcw, RotateCw } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useQuery } from '@tanstack/react-query'
-import { apiFetch } from '@/lib/api'
+import { useQuery } from '@tanstack/react-query';
+import { apiFetch } from '@/lib/api';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -33,11 +32,22 @@ import { HeaderActionsPortal } from "@/components/layout/HeaderActions";
 import { useUpdateConfig } from "@/hooks/useUpdateConfig";
 import { useImportExportConfig } from "@/hooks/useImportExportConfig";
 import { ApiError } from "@/lib/errors";
+import { Card, CardHeader, CardContent } from "../ui/card";
+import { z } from "zod";
+import { useApplyNetwork, useGetNetworkConfig } from "@/hooks/useApplyNetwork";
+import { toast } from "sonner";
+
+// 定义联合 Schema，包含 Config 和 NetworkConfig
+const unifiedSchema = configSchema.and(z.object({
+  network: networkConfigSchema.omit({ port: true }).optional()
+}));
+
+type UnifiedConfig = z.infer<typeof unifiedSchema>;
 
 export const mergeConfigValues = (
   baseConfig: Config | undefined,
-  formData: Config,
-  submittedValues: Config
+  formData: UnifiedConfig,
+  submittedValues: UnifiedConfig
 ) => ({
   ...baseConfig,
   ...formData,
@@ -51,58 +61,84 @@ export function ConfigForm() {
     queryFn: () => apiFetch<Config>('/api/config'),
   });
 
-  // Network configuration warning dialog state
+  const { mutate: getNetworkConfig } = useGetNetworkConfig();
+  const { mutateAsync: applyNetworkAsync, isPending: isApplyingNetwork } = useApplyNetwork();
+
+  // Reset confirmation state
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  // Network warning state
   const [showNetworkWarning, setShowNetworkWarning] = useState(false);
-  const [pendingValues, setPendingValues] = useState<Config | null>(null);
+  const [pendingSaveValues, setPendingSaveValues] = useState<UnifiedConfig | null>(null);
 
   // Track if form has been initialized with server config
   const [initialized, setInitialized] = useState(false);
+  const [networkInitialized, setNetworkInitialized] = useState(false);
 
-  const form = useForm<Config>({
-    resolver: zodResolver(configSchema),
+
+
+  const form = useForm<UnifiedConfig>({
+    resolver: zodResolver(unifiedSchema) as any,
     // 默认值用于表单初始化，确保通过 Zod 验证
     // 实际配置将从服务器加载后覆盖这些值
-    // TODO: deviceId 应该使用唯一 ID 生成或让用户提供，当前使用占位符
     defaultValues: {
-      deviceId: 'device-001', // 占位符，生产环境应使用唯一 ID 或由用户提供
+      deviceId: 'device-001', // 占位符
       timeout: 3000,
       retryCount: 3,
       pollingInterval: 5000,
-      // 网络配置默认值与 schema.default 保持一致
-      // 注意：这些值仅用于初始验证，实际使用时应配置正确的网络参数
-      ipAddress: '127.0.0.1',
-      subnetMask: '255.255.255.0',
-      gateway: '127.0.0.1',
-      port: 80,
-      // 柜体继电器板配置
+      // 文件配置默认值
       CABINET_HOST: '192.168.0.18',
       CABINET_PORT: 50000,
-      // 控制端串口配置
       CONTROL_SERIAL_PATH: '/dev/ttyUSB0',
       CONTROL_SERIAL_BAUDRATE: 9600,
       CONTROL_SERIAL_DATABITS: 8,
       CONTROL_SERIAL_STOPBITS: 1,
-      CONTROL_SERIAL_PARITY: 'none' as const,
-      // 语音播报配置
+      CONTROL_SERIAL_PARITY: 'none',
       VOICE_CABINET_VOLUME: 1,
       VOICE_CABINET_SPEED: 5,
       VOICE_CONTROL_VOLUME: 1,
       VOICE_CONTROL_SPEED: 5,
+      // Network defaults
+      network: {
+        ipAddress: '192.168.1.100',
+        subnetMask: '255.255.255.0',
+        gateway: '192.168.1.1',
+      }
     },
     mode: "onChange",
   });
 
-  // Update form values when config is loaded (only once to prevent race conditions)
+  // Update form values when config is loaded
   useEffect(() => {
     if (config && !initialized) {
-      form.reset(config);
+      // 保留当前的 network 值（如果有的话），避免覆盖
+      const currentNetwork = form.getValues().network;
+      form.reset({ ...config, network: currentNetwork });
       setInitialized(true);
     }
   }, [config, form, initialized]);
 
+  // Load Network Config independently
+  useEffect(() => {
+    if (!networkInitialized) {
+      getNetworkConfig(undefined, {
+        onSuccess: (data) => {
+          const currentValues = form.getValues();
+          // 如果 network 字段尚未被用户修改（dirty check?），则更新
+          // 这里简单起见直接合并更新
+          form.reset({ ...currentValues, network: data });
+          setNetworkInitialized(true);
+        },
+        onError: (e) => {
+          console.error("Failed to load network config", e);
+        }
+      });
+    }
+  }, [networkInitialized, getNetworkConfig, form]);
+
+
   const { isDirty, isValid } = form.formState;
 
-  const { mutate, isPending, needsRestart } = useUpdateConfig();
+  const { mutate, mutateAsync: saveConfigAsync, isPending: isSavingConfig, showRestartConfirm, isRestarting, confirmRestart, cancelRestart } = useUpdateConfig();
 
   // 导入/导出功能
   const {
@@ -114,85 +150,124 @@ export function ConfigForm() {
     isExporting,
     isImporting
   } = useImportExportConfig({
-    form,
+    form: form as any, // Cast to any to bypass strict Config type check
     onConfigUpdate: (newConfig) => {
       // 配置更新后可能需要提示重启
-      // 这里可以添加额外的处理逻辑
     }
   });
 
-  const handleSubmit = (values: Config) => {
-    // 确保使用表单中的所有值（包括可能被 NetworkConfigForm 更新的值）
+  const handleReset = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    try {
+      // 从后端获取系统默认配置
+      const defaults = await apiFetch<Config>('/api/config/defaults');
+      // Reset config but keep network or reset network?
+      // Tech spec says restore system defaults. Assuming network defaults are not in /api/config/defaults
+      // We might need to fetch default network config if API supported calls like that.
+      // For now, reset core config only.
+      const currentNetwork = form.getValues().network;
+      form.reset({ ...defaults, network: currentNetwork });
+      setShowResetConfirm(false);
+    } catch (error) {
+      console.error("Failed to load default config:", error);
+      // Fallback
+      try {
+        const schemaDefaults = configSchema.parse({});
+        const currentNetwork = form.getValues().network;
+        form.reset({ ...schemaDefaults, network: currentNetwork });
+        setShowResetConfirm(false);
+      } catch (e) {
+        console.error("Fallback reset failed:", e);
+      }
+    }
+  };
+
+  const handleSubmit = (values: UnifiedConfig) => {
     const formData = form.getValues();
     const mergedValues = mergeConfigValues(config, formData, values);
 
-    // 检查网络配置是否更改
-    const networkFieldsChanged = (
-      config?.ipAddress !== mergedValues.ipAddress ||
-      config?.subnetMask !== mergedValues.subnetMask ||
-      config?.gateway !== mergedValues.gateway ||
-      config?.port !== mergedValues.port
-    );
+    // Check if network is dirty
+    const dirtyFields = form.formState.dirtyFields;
+    const isNetworkDirty = !!dirtyFields.network;
 
-    // 如果网络配置更改，显示警告对话框
-    if (networkFieldsChanged) {
-      setPendingValues(mergedValues);
+    if (isNetworkDirty) {
+      setPendingSaveValues(mergedValues);
       setShowNetworkWarning(true);
-      return;
+    } else {
+      doSubmit(mergedValues);
     }
-
-    // 否则直接提交
-    doSubmit(mergedValues);
   };
 
-  const doSubmit = (values: Config) => {
-    mutate(values, {
+  const doSubmit = (values: UnifiedConfig) => {
+    // Strip network before saving hardware config
+    const { network, ...hardwareConfig } = values;
+
+    // Save hardware config
+    mutate(hardwareConfig as Config, {
       onSuccess: (data) => {
         // Reset form with new values to clear isDirty state
-        form.reset(values);
+        // 需要把 network 放回去，否则表单里的 network 会丢失
+        form.reset({ ...hardwareConfig as Config, network: values.network });
       },
       onError: (error) => {
-        // 处理 ApiError 中的服务端验证错误
-        if (error instanceof ApiError) {
-          const validationErrors = error.validationErrors;
-          if (validationErrors) {
-            // 遍历验证错误并设置到表单字段
-            Object.entries(validationErrors).forEach(([field, messages]) => {
-              // 字段名可能是嵌套的，如 "network.ipAddress"
-              // react-hook-form 的 setError 支持点表示法
-              const errorMessage = Array.isArray(messages) ? messages[0] : messages;
-              form.setError(field as any, {
-                type: 'server',
-                message: errorMessage,
-              });
-            });
-          }
-        }
-        // 其他错误由 useUpdateConfig 的 onError 处理（Toast 提示）
+        handleSaveError(error);
       }
     });
   };
 
-  const handleConfirmNetworkChange = () => {
-    if (pendingValues) {
-      doSubmit(pendingValues);
-      setShowNetworkWarning(false);
-      setPendingValues(null);
+  const handleConfirmedNetworkSave = async () => {
+    if (!pendingSaveValues || !pendingSaveValues.network) return;
+
+    setShowNetworkWarning(false);
+
+    const { network, ...hardwareConfig } = pendingSaveValues;
+
+    try {
+      // 1. Save Hardware Config
+      // 我们使用 mutateAsync 来确保顺序
+      await saveConfigAsync(hardwareConfig as Config);
+
+      // 2. Apply Network Config
+      await applyNetworkAsync(network as NetworkConfig);
+
+      // 3. Redirect
+      toast.success("网络配置已保存，正在跳转...", { duration: 5000 });
+
+      // 等待一点时间让 toast 显示，然后跳转
+      setTimeout(() => {
+        const newIp = network.ipAddress || 'localhost';
+        window.location.href = `http://${newIp}:3000`;
+      }, 1000);
+
+    } catch (error) {
+      console.error("Save sequence failed", error);
+      handleSaveError(error);
     }
   };
 
-  const handleCancelNetworkChange = () => {
-    setShowNetworkWarning(false);
-    setPendingValues(null);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-[300px] w-full" />
-      </div>
-    )
+  const handleSaveError = (error: unknown) => {
+    if (error instanceof ApiError) {
+      const validationErrors = error.validationErrors;
+      if (validationErrors) {
+        Object.entries(validationErrors).forEach(([field, messages]) => {
+          const errorMessage = Array.isArray(messages) ? messages[0] : messages;
+          form.setError(field as any, {
+            type: 'server',
+            message: errorMessage,
+          });
+        });
+      }
+    }
+    // Toast errors are handled by query mutations (onError) generally,
+    // but inside try/catch of handleConfirmedNetworkSave, we might need manual toast if mutateAsync throws
+    // Actually useUpdateConfig's onError handles Toast. useApplyNetwork's onError logs.
+    // We might want to add Toast to useApplyNetwork or here.
+    if (!(error instanceof ApiError)) {
+      toast.error("保存失败: " + (error instanceof Error ? error.message : "未知错误"));
+    }
   }
+
+  const isPending = isSavingConfig || isApplyingNetwork;
 
   if (error) {
     return (
@@ -208,74 +283,75 @@ export function ConfigForm() {
 
   return (
     <div className="space-y-6">
-      {needsRestart && (
-        <Alert variant="default" className="border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100 flex items-center justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle className="mb-0">配置已保存</AlertTitle>
-            </div>
-            <AlertDescription>
-              需要重启系统才能生效。
-            </AlertDescription>
-          </div>
-          <RestartCoreButton />
-        </Alert>
-      )}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-          {/* 应用程序配置卡片 */}
-          {/* <AppConfigCard form={form} /> */}
+          {/* 控制柜和供弹柜配置卡片 - 响应式水平布局 */}
+          <div className="flex flex-col md:flex-row gap-6 items-stretch">
+            {/* 控制柜配置卡片 */}
+            <div className="flex-1">
+              {isLoading ? (
+                <Card className="h-full border-0 shadow-sm">
+                  <CardHeader className="pb-4">
+                    <Skeleton className="h-6 w-32" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-24 w-full" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <ControlCabinetConfigForm form={form as any} />
+              )}
+            </div>
 
-
-
-          {/* 控制柜配置卡片 */}
-          <ControlCabinetConfigForm form={form} />
-
-          {/* 供弹柜配置卡片 */}
-          <AmmoCabinetConfigForm form={form} />
+            {/* 供弹柜配置卡片 */}
+            <div className="flex-1">
+              {isLoading ? (
+                <Card className="h-full border-0 shadow-sm">
+                  <CardHeader className="pb-4">
+                    <Skeleton className="h-6 w-32" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                      </div>
+                      <Skeleton className="h-24 w-full" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <AmmoCabinetConfigForm form={form as any} />
+              )}
+            </div>
+          </div>
 
           {/* 网络配置卡片 */}
-          <NetworkConfigForm form={form} />
+          {isLoading ? (
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-4">
+                <Skeleton className="h-6 w-32" />
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+              <NetworkConfigForm form={form} />
+          )}
         </form>
       </Form>
 
-      {/* 网络配置更改警告对话框 */}
-      <AlertDialog open={showNetworkWarning} onOpenChange={setShowNetworkWarning}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
-              确认更改网络配置
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <p>
-                更改网络设置可能会中断您的连接。请确保以下配置值正确：
-              </p>
-              {pendingValues && (
-                <ul className="list-disc list-inside text-sm space-y-1 mt-2 p-3 bg-muted rounded-md">
-                  <li>IP 地址: <code className="font-mono">{pendingValues.ipAddress || '未设置'}</code></li>
-                  <li>子网掩码: <code className="font-mono">{pendingValues.subnetMask || '未设置'}</code></li>
-                  <li>网关: <code className="font-mono">{pendingValues.gateway || '未设置'}</code></li>
-                  <li>端口: <code className="font-mono">{pendingValues.port}</code></li>
-                </ul>
-              )}
-              <p className="text-amber-600 dark:text-amber-400 font-medium">
-                ⚠️ 保存后可能需要重新连接到新的网络地址。
-              </p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelNetworkChange}>
-              取消
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmNetworkChange}>
-              确认保存
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* 导入确认对话框 */}
       <AlertDialog open={!!pendingConfig} onOpenChange={(open: boolean) => !open && cancelImport()}>
@@ -292,8 +368,6 @@ export function ConfigForm() {
               {pendingConfig && (
                 <ul className="list-disc list-inside text-sm space-y-1 mt-2 p-3 bg-muted rounded-md">
                   <li>设备 ID: <code className="font-mono">{pendingConfig.deviceId}</code></li>
-                  <li>IP 地址: <code className="font-mono">{pendingConfig.ipAddress || '未设置'}</code></li>
-                  <li>端口: <code className="font-mono">{pendingConfig.port}</code></li>
                 </ul>
               )}
               <p className="text-amber-600 dark:text-amber-400 font-medium">
@@ -312,6 +386,43 @@ export function ConfigForm() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* 网络变更风险警告对话框 */}
+      <AlertDialog open={showNetworkWarning} onOpenChange={setShowNetworkWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              网络配置变更警告
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p className="font-medium text-foreground">
+                检测到您修改了网络配置 (IP/子网/网关)。
+              </p>
+              <p>
+                应用这些更改可能会导致当前连接断开。
+                保存成功后，系统将自动跳转到新的 IP 地址:
+                <br />
+                <code className="bg-muted px-1 py-0.5 rounded text-primary">
+                  http://{pendingSaveValues?.network?.ipAddress || '...'}:3000
+                </code>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                请确保您已记录新的 IP 地址，以防自动跳转失败。
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmedNetworkSave}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              确认修改并跳转
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Header 操作按钮 - 通过 Portal 渲染到页面 header 中 */}
       <HeaderActionsPortal>
         {/* 配置修改状态提示 */}
@@ -322,87 +433,103 @@ export function ConfigForm() {
           </div>
         )}
 
-        {/* 导出配置 */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={handleExport}
-              disabled={isExporting}
-              aria-label="导出配置"
-            >
-              {isExporting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>导出配置</p>
-          </TooltipContent>
-        </Tooltip>
+        {/* 按钮组 */}
+        <div className="flex items-center gap-1">
+          {/* 重置默认配置 */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowResetConfirm(true)}
+                aria-label="重置默认配置"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>重置默认配置</p>
+            </TooltipContent>
+          </Tooltip>
 
-        {/* 导入配置 */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={handleImport}
-              disabled={isImporting}
-              aria-label="导入配置"
-            >
-              {isImporting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4" />
-              )}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>导入配置</p>
-          </TooltipContent>
-        </Tooltip>
-
-        {/* 重启程序 */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span>
-              <RestartCoreButton iconOnly disabled={isPending} />
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>重启程序</p>
-          </TooltipContent>
-        </Tooltip>
-
-        {/* 保存配置 */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              variant={isDirty && isValid ? "default" : "ghost"}
-              size="icon"
-              onClick={() => form.handleSubmit(handleSubmit)()}
-              disabled={isPending || !isValid || !isDirty}
-              aria-label="保存配置"
-            >
-              {isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{isDirty ? "保存配置" : "无需保存"}</p>
-          </TooltipContent>
-        </Tooltip>
+          {/* 保存配置 */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant={isDirty && isValid ? "default" : "ghost"}
+                size="icon"
+                onClick={() => form.handleSubmit(handleSubmit)()}
+                disabled={isPending || !isValid || !isDirty}
+                aria-label="保存配置"
+              >
+                {isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{isDirty ? "保存配置" : "无需保存"}</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
       </HeaderActionsPortal>
+
+      {/* 重置确认对话框 */}
+      <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              确认重置配置
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              此操作将所有配置项恢复为系统默认值。
+              <br />
+              未保存的更改将会丢失。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReset}>
+              确认重置
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 重启确认对话框 */}
+      <AlertDialog open={showRestartConfirm} onOpenChange={(open) => !open && cancelRestart()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <RotateCw className="h-5 w-5 text-blue-500" />
+              配置已保存
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              配置已成功保存，需要重启系统才能生效。
+              <br />
+              是否立即重启？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRestarting}>稍后重启</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRestart} disabled={isRestarting}>
+              {isRestarting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  重启中...
+                </>
+              ) : (
+                '立即重启'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -23,7 +23,7 @@ interface RestartCoreButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>
   iconOnly?: boolean;
 }
 
-export function RestartCoreButton({ size = 'sm', iconOnly = false, ...props }: RestartCoreButtonProps) {
+export function RestartCoreButton({ size = 'default', iconOnly = false, ...props }: RestartCoreButtonProps) {
   const [open, setOpen] = useState(false);
 
   const mutation = useMutation({
@@ -55,14 +55,14 @@ export function RestartCoreButton({ size = 'sm', iconOnly = false, ...props }: R
           ) : (
               <RotateCw className={iconOnly ? "h-4 w-4" : "mr-2 h-4 w-4"} />
           )}
-          {!iconOnly && (mutation.isPending ? '重启中...' : '重启程序')}
+          {!iconOnly && (mutation.isPending ? '重启中...' : '重新启动')}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>确定要重启程序吗？</AlertDialogTitle>
           <AlertDialogDescription>
-            正在执行的任务可能会中断，重启过程需要几秒钟。
+            重启程序可能会导致正在执行的任务中断，重启过程需要几秒钟。
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

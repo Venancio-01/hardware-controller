@@ -16,9 +16,11 @@ type MonitorContext = {
   hardware: HardwareCommunicationManager;
   aggregator: RelayStatusAggregator;
   lastVibrationTime: number;
-  lastHeartbeatTime: number;        // 上次心跳时间（ms）
-  heartbeatFailureCount: number;    // 连续失败次数
-  isMonitorAlarming: boolean;       // 是否正在监控报警中
+  lastCabinetHeartbeat: number;     // 柜体上次心跳时间
+  lastControlHeartbeat: number;     // 控制台上次心跳时间
+  cabinetConnected: boolean;        // 柜体连接状态
+  controlConnected: boolean;        // 控制台连接状态
+  isMonitorAlarming: boolean;       // 是否正在监控报警中 (legacy, might be specific to anomaly)
 };
 
 type MonitorEvent =
@@ -48,14 +50,24 @@ export const monitorMachine = setup({
 }).createMachine({
   id: 'monitor',
   initial: 'idle',
-  context: ({ input }) => ({
-    hardware: input.hardware,
-    aggregator: new RelayStatusAggregator(),
-    lastVibrationTime: 0,
-    lastHeartbeatTime: Date.now(),
-    heartbeatFailureCount: 0,
-    isMonitorAlarming: false
-  }),
+  context: ({ input }) => {
+    const allStatus = input.hardware.getAllConnectionStatus();
+    // 假设 'cabinet' 是 tcp, 'control' 是 serial。根据 initializeHardware 确认。
+    const cabinetConnected = allStatus.tcp?.['cabinet'] === 'connected';
+    const controlConnected = allStatus.serial?.['control'] === 'connected';
+    const now = Date.now();
+
+    return {
+      hardware: input.hardware,
+      aggregator: new RelayStatusAggregator(),
+      lastVibrationTime: 0,
+      lastCabinetHeartbeat: cabinetConnected ? now : 0,
+      lastControlHeartbeat: controlConnected ? now : 0,
+      cabinetConnected,
+      controlConnected,
+      isMonitorAlarming: false
+    };
+  },
   entry: [
     ({ context, self }) => {
       // 监听所有协议的数据（TCP 和 Serial）
@@ -86,18 +98,50 @@ export const monitorMachine = setup({
 
           if (!combinedUpdate) return;
 
-          // 更新心跳时间
-          context.lastHeartbeatTime = Date.now();
-          context.heartbeatFailureCount = 0;
+          if (!combinedUpdate) return;
 
-          // 如果当前正在监控报警中且收到有效帧，发送恢复事件
+          // 更新心跳时间
+          const now = Date.now();
+          if (clientId === 'cabinet') {
+            context.lastCabinetHeartbeat = now;
+            if (!context.cabinetConnected) {
+              context.cabinetConnected = true;
+              log.info('柜体连接已恢复');
+              enqueue.sendParent({
+                type: 'monitor_connection_update',
+                priority: EventPriority.P2,
+                connections: { cabinet: true, control: context.controlConnected }
+              });
+            }
+          } else if (clientId === 'control') {
+            context.lastControlHeartbeat = now;
+            if (!context.controlConnected) {
+              context.controlConnected = true;
+              log.info('控制台连接已恢复');
+              enqueue.sendParent({
+                type: 'monitor_connection_update',
+                priority: EventPriority.P2,
+                connections: { cabinet: context.cabinetConnected, control: true }
+              });
+            }
+          }
+
+          // 如果因为心跳导致的报警正在进行，且两个设备都已连接（或者只配置了一个设备），则恢复
+          // 目前简化处理：只要有数据上来，就恢复 alarmMachine 的 alarm 状态?
+          // 不，之前的逻辑是只要收到有效帧就重置 failure count 并发送 recover
+          // 这里我们保持 connection update 单独发送，原来的 monitor_anomaly 保留用于 heartbeat timeout (如果需要报警)
+          // 但现在 heartbeat 是分开的。
           if (context.isMonitorAlarming) {
-            log.info('监控恢复，发送 monitor_recover 事件');
-            context.isMonitorAlarming = false;
-            enqueue.sendParent({
-              type: 'monitor_recover',
-              priority: EventPriority.P2
-            });
+            // 只有当两个都连接时才完全恢复？或者任何一个连接上？
+            // 假设我们需要两个都正常才算正常。
+            if (context.cabinetConnected && context.controlConnected) {
+              log.info('监控完全恢复，发送 monitor_recover 事件');
+              context.isMonitorAlarming = false;
+              enqueue.sendParent({
+                type: 'monitor_recover',
+                priority: EventPriority.P2
+              });
+            }
           }
 
           // 处理申请逻辑
@@ -154,18 +198,19 @@ export const monitorMachine = setup({
           }
 
           // 处理门锁开关逻辑
-          // INVERT_SENSOR_STATE 为 true 时: 闭合状态为触发状态，断开状态为正常状态
-          // INVERT_SENSOR_STATE 为 false 时: 断开状态为触发状态，闭合状态为正常状态
+          // INVERT_SENSOR_STATE 为 true 时: 闭合状态为触发状态（拧开），断开状态为正常状态（拧回）
+          // INVERT_SENSOR_STATE 为 false 时: 断开状态为触发状态（拧开），闭合状态为正常状态（拧回）
           if (hasEdgeChanged(report, clientId, config.DOOR_LOCK_SWITCH_INDEX)) {
             const rawState = combinedUpdate.combinedState[config.DOOR_LOCK_SWITCH_INDEX]; // true = 闭合，false = 断开
-            // true: 闭合 -> 触发, 断开 -> 未触发
-            // false: 断开 -> 触发, 闭合 -> 未触发
-            const isTriggered = config.INVERT_SENSOR_STATE ? rawState : !rawState;
-            log.info(`DOOR_LOCK_SWITCH_INDEX (门锁开关) 已变化. 原始状态: ${rawState}, 反转: ${config.INVERT_SENSOR_STATE}, 触发: ${isTriggered}`);
+            // isOpen = true 表示门锁已拧开，isOpen = false 表示门锁已拧回
+            // true: 闭合 -> 触发(拧开), 断开 -> 未触发(拧回)
+            // false: 断开 -> 触发(拧开), 闭合 -> 未触发(拧回)
+            const isOpen = config.INVERT_SENSOR_STATE ? rawState : !rawState;
+            log.info(`DOOR_LOCK_SWITCH_INDEX (门锁开关) 已变化. 原始状态: ${rawState}, 反转: ${config.INVERT_SENSOR_STATE}, 拧开: ${isOpen}`);
             enqueue.sendParent({
-              type: 'door_jump_switch_changed',
+              type: 'door_lock_switch_changed',
               priority: EventPriority.P2,
-              isTriggered  // true = 触发，false = 未触发
+              isOpen  // true = 拧开，false = 拧回
             });
           }
 
@@ -249,14 +294,38 @@ export const monitorMachine = setup({
         HEARTBEAT_CHECK: {
           actions: enqueueActions(({ context, enqueue }) => {
             const now = Date.now();
-            const elapsed = now - context.lastHeartbeatTime;
+            let connectionChanged = false;
 
-            if (elapsed > HEARTBEAT_INTERVAL_MS) {
-              context.heartbeatFailureCount++;
-              log.warn(`心跳检测失败 (${context.heartbeatFailureCount}/${HEARTBEAT_FAILURE_THRESHOLD})，距离上次心跳: ${elapsed}ms`);
+            // 检查柜体心跳
+            // 如果 lastCabinetHeartbeat 为 0，说明还没连上过，或者初始化状态。
+            // 简单起见，如果超过间隔没收到数据，就认为断开
+            if (now - context.lastCabinetHeartbeat > HEARTBEAT_INTERVAL_MS) {
+              if (context.cabinetConnected) {
+                context.cabinetConnected = false;
+                connectionChanged = true;
+                log.warn(`柜体心跳超时，距离上次心跳: ${now - context.lastCabinetHeartbeat}ms`);
+              }
+            }
 
-              if (context.heartbeatFailureCount >= HEARTBEAT_FAILURE_THRESHOLD && !context.isMonitorAlarming) {
-                log.error('心跳检测连续失败，触发监控报警');
+            // 检查控制台心跳
+            if (now - context.lastControlHeartbeat > HEARTBEAT_INTERVAL_MS) {
+              if (context.controlConnected) {
+                context.controlConnected = false;
+                connectionChanged = true;
+                log.warn(`控制台心跳超时，距离上次心跳: ${now - context.lastControlHeartbeat}ms`);
+              }
+            }
+
+            if (connectionChanged) {
+              enqueue.sendParent({
+                type: 'monitor_connection_update',
+                priority: EventPriority.P2,
+                connections: { cabinet: context.cabinetConnected, control: context.controlConnected }
+              });
+
+              // 如果断开，触发报警
+              if (!context.isMonitorAlarming && (!context.cabinetConnected || !context.controlConnected)) {
+                log.error('心跳检测失败，触发监控报警');
                 context.isMonitorAlarming = true;
                 enqueue.sendParent({
                   type: 'monitor_anomaly',
@@ -264,8 +333,6 @@ export const monitorMachine = setup({
                   reason: 'heartbeat'
                 });
               }
-            } else {
-              log.debug(`心跳正常，距离上次心跳: ${elapsed}ms`);
             }
           })
         }

@@ -1,61 +1,11 @@
 import { Router } from 'express';
-import rateLimit from 'express-rate-limit';
-import { connectionTestService } from '../services/connection-test.service.js';
 import { RestartService } from '../services/restart.service.js';
 import { CoreProcessManager } from '../services/core-process-manager.js';
-import { createModuleLogger, testConnectionRequestSchema } from 'shared';
+import { createModuleLogger } from 'shared';
 
 const logger = createModuleLogger('SystemRoutes');
 
 const router: Router = Router();
-
-// 连接测试速率限制 - 防止滥用和 DoS 攻击
-const connectionTestLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 分钟
-  max: 10, // 每分钟最多 10 次请求
-  message: {
-    success: false,
-    error: '连接测试请求过于频繁，请稍后再试',
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// 测试连接端点
-router.post('/test-connection', connectionTestLimiter, async (req, res) => {
-  try {
-    // 验证请求体
-    const validationResult = testConnectionRequestSchema.safeParse(req.body);
-
-    if (!validationResult.success) {
-      res.status(400).json({
-        success: false,
-        error: 'Invalid request body',
-        details: validationResult.error.issues,
-      });
-      return;
-    }
-
-    const testRequest = validationResult.data;
-
-    logger.info(`Received connection test request for ${testRequest.ipAddress}:${testRequest.port}`);
-
-    const result = await connectionTestService.testConnection(testRequest);
-
-    logger.info(`Connection test completed for ${testRequest.ipAddress}:${testRequest.port}, success: ${result.success}`);
-
-    res.json({
-      success: true,
-      data: result,
-    });
-  } catch (error) {
-    logger.error('连接测试失败', error as Error);
-    res.status(500).json({
-      success: false,
-      error: '连接测试失败',
-    });
-  }
-});
 
 const restartService = RestartService.getInstance();
 
@@ -70,7 +20,6 @@ router.post('/restart', async (req, res) => {
     const success = await restartService.restartSystem();
 
     if (success) {
-      // 返回成功响应，但实际重启会在稍后发生
       res.status(200).json({
         success: true,
         message: '系统重启已启动'
@@ -92,29 +41,13 @@ router.post('/restart', async (req, res) => {
 
 const coreProcessManager = CoreProcessManager.getInstance();
 
-// Core 重启速率限制 - 防止频繁重启
-const coreRestartLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 分钟
-  max: 3, // 每分钟最多 3 次请求
-  message: {
-    success: false,
-    error: 'Core 重启请求过于频繁，请稍后再试',
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
 /**
- * POST /api/system/core/restart
+ * GET /api/system/core/restart
  * 重启 Core 进程
  */
-router.post('/core/restart', coreRestartLimiter, async (req, res) => {
+router.post('/core/restart', async (req, res) => {
   try {
-    logger.info('Received Core restart request');
-
     await coreProcessManager.restart();
-
-    logger.info('Core restart initiated successfully');
 
     res.status(200).json({
       success: true,
@@ -126,6 +59,43 @@ router.post('/core/restart', coreRestartLimiter, async (req, res) => {
     res.status(500).json({
       success: false,
       error: '重启 Core 进程失败',
+      message: errorMessage,
+    });
+  }
+});
+
+/**
+ * GET /api/system/serial-ports
+ * 获取可用串口列表
+ */
+router.get('/serial-ports', async (req, res) => {
+  try {
+    // 动态导入 serialport 以避免在非 Node 环境下（虽然这里是后端，但为了安全起见或保持习惯）或在不需要时加载
+    const { SerialPort } = await import('serialport');
+    const ports = await SerialPort.list();
+
+    const formattedPorts = ports
+      .filter(port => port.pnpId)
+      .map(port => ({
+        path: port.path,
+        manufacturer: port.manufacturer,
+        serialNumber: port.serialNumber,
+        pnpId: port.pnpId,
+        locationId: port.locationId,
+        productId: port.productId,
+        vendorId: port.vendorId,
+      }));
+
+    res.status(200).json({
+      success: true,
+      data: formattedPorts,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error(`Failed to list serial ports: ${errorMessage}`);
+    res.status(500).json({
+      success: false,
+      error: '获取串口列表失败',
       message: errorMessage,
     });
   }

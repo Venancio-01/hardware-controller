@@ -17,7 +17,6 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Cpu, HardDrive, Volume2 } from 'lucide-react';
-import { getValidationIcon } from '@/components/ui/ValidationIcon';
 
 interface HardwareConfigFormProps {
   form: UseFormReturn<Config>;
@@ -56,11 +55,6 @@ const BAUDRATE_OPTIONS = [
 ] as const;
 
 export function HardwareConfigForm({ form }: HardwareConfigFormProps) {
-  // 验证图标辅助函数
-  const renderValidationIcon = (fieldName: keyof Config) => {
-    return getValidationIcon(form, fieldName);
-  };
-
   return (
     <Card>
       <CardHeader>
@@ -84,12 +78,12 @@ export function HardwareConfigForm({ form }: HardwareConfigFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>机柜 IP 地址</FormLabel>
-                    <div className="relative">
+                    
                       <FormControl>
                         <Input placeholder="192.168.1.101" {...field} />
                       </FormControl>
-                      {renderValidationIcon("CABINET_HOST")}
-                    </div>
+                      
+                    
                     <FormMessage />
                   </FormItem>
                 )}
@@ -101,7 +95,7 @@ export function HardwareConfigForm({ form }: HardwareConfigFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>机柜端口</FormLabel>
-                    <div className="relative">
+                    
                       <FormControl>
                         <Input
                           type="number"
@@ -115,8 +109,8 @@ export function HardwareConfigForm({ form }: HardwareConfigFormProps) {
                           }}
                         />
                       </FormControl>
-                      {renderValidationIcon("CABINET_PORT")}
-                    </div>
+                      
+                    
                     <FormMessage />
                   </FormItem>
                 )}
@@ -137,12 +131,12 @@ export function HardwareConfigForm({ form }: HardwareConfigFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>串口路径</FormLabel>
-                    <div className="relative">
+                    
                       <FormControl>
                         <Input placeholder="/dev/ttyUSB0" {...field} />
                       </FormControl>
-                      {renderValidationIcon("CONTROL_SERIAL_PATH")}
-                    </div>
+                      
+                    
                     <FormMessage />
                   </FormItem>
                 )}
@@ -279,7 +273,7 @@ export function HardwareConfigForm({ form }: HardwareConfigFormProps) {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>音量 (0-10)</FormLabel>
-                        <div className="relative">
+                        
                           <FormControl>
                             <Input
                               type="number"
@@ -292,8 +286,8 @@ export function HardwareConfigForm({ form }: HardwareConfigFormProps) {
                               }}
                             />
                           </FormControl>
-                          {renderValidationIcon("VOICE_CABINET_VOLUME")}
-                        </div>
+                          
+                        
                         <FormMessage />
                       </FormItem>
                     )}
@@ -305,7 +299,7 @@ export function HardwareConfigForm({ form }: HardwareConfigFormProps) {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>语速 (0-10)</FormLabel>
-                        <div className="relative">
+                        
                           <FormControl>
                             <Input
                               type="number"
@@ -318,8 +312,8 @@ export function HardwareConfigForm({ form }: HardwareConfigFormProps) {
                               }}
                             />
                           </FormControl>
-                          {renderValidationIcon("VOICE_CABINET_SPEED")}
-                        </div>
+                          
+                        
                         <FormMessage />
                       </FormItem>
                     )}
@@ -337,7 +331,7 @@ export function HardwareConfigForm({ form }: HardwareConfigFormProps) {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>音量 (0-10)</FormLabel>
-                        <div className="relative">
+                        
                           <FormControl>
                             <Input
                               type="number"
@@ -350,8 +344,8 @@ export function HardwareConfigForm({ form }: HardwareConfigFormProps) {
                               }}
                             />
                           </FormControl>
-                          {renderValidationIcon("VOICE_CONTROL_VOLUME")}
-                        </div>
+                          
+                        
                         <FormMessage />
                       </FormItem>
                     )}
@@ -363,7 +357,7 @@ export function HardwareConfigForm({ form }: HardwareConfigFormProps) {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>语速 (0-10)</FormLabel>
-                        <div className="relative">
+                        
                           <FormControl>
                             <Input
                               type="number"
@@ -376,8 +370,8 @@ export function HardwareConfigForm({ form }: HardwareConfigFormProps) {
                               }}
                             />
                           </FormControl>
-                          {renderValidationIcon("VOICE_CONTROL_SPEED")}
-                        </div>
+                          
+                        
                         <FormMessage />
                       </FormItem>
                     )}

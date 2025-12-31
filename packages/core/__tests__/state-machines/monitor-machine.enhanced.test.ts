@@ -12,6 +12,7 @@ vi.mock('../../src/hardware/manager.js', () => {
       sendCommand = vi.fn(() => Promise.resolve({}));
       queueCommand = vi.fn();
       onIncomingData?: Function;
+      getAllConnectionStatus = vi.fn(() => ({ tcp: {}, serial: {} }));
     }
   };
 });
@@ -366,6 +367,67 @@ describe('MonitorMachine - Enhanced Subscriptions', () => {
     }));
 
     vi.useRealTimers();
+    parentActor.stop();
+  });
+
+  it('should emit monitor_connection_update when connection status changes', async () => {
+    let receivedEvents: any[] = [];
+
+    // Copy helpers
+    const maskFromIndexes = (indexes: Set<number>, offset: number) => 0; // Simplified
+    const buildActiveReport = (inputMask: number, risingMask: number, fallingMask: number) => {
+      return Buffer.from([
+        0xEE, 0xFF, 0xC0, 0x01, 0x00, inputMask & 0xFF, risingMask & 0xFF, fallingMask & 0xFF, 0x00
+      ]);
+    };
+    const sendReport = (clientId: 'cabinet' | 'control') => {
+      // Just valid packet to trigger heartbeat
+      const payload = buildActiveReport(0, 0, 0);
+      mockHardware.onIncomingData?.('tcp', clientId, payload, { address: '127.0.0.1', port: 8000 }, { success: true, timestamp: Date.now() });
+    };
+
+    const parentMachine = setup({
+      actors: { monitor: monitorMachine }
+    }).createMachine({
+      invoke: {
+        src: 'monitor',
+        id: 'monitor',
+        input: { hardware: mockHardware }
+      },
+      on: {
+        '*': {
+          actions: ({ event }) => {
+            if (event.type === 'monitor_connection_update') {
+              receivedEvents.push(event);
+            }
+          }
+        }
+      }
+    });
+
+    const parentActor = createActor(parentMachine);
+    parentActor.start();
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    // 1. Send Cabinet Heartbeat -> Should Connect Cabinet
+    sendReport('cabinet');
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    expect(receivedEvents).toContainEqual(expect.objectContaining({
+      type: 'monitor_connection_update',
+      connections: { cabinet: true, control: false }
+    }));
+
+    // 2. Send Control Heartbeat -> Should Connect Control
+    receivedEvents = [];
+    sendReport('control');
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    expect(receivedEvents).toContainEqual(expect.objectContaining({
+      type: 'monitor_connection_update',
+      connections: { cabinet: true, control: true }
+    }));
+
     parentActor.stop();
   });
 });

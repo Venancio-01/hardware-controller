@@ -24,9 +24,6 @@ export {
 // 认证 schemas
 export { loginRequestSchema, loginResponseSchema } from './schemas/auth.schema.js';
 
-// 测试连接 schemas
-export { testConnectionRequestSchema, testConnectionResultSchema } from './schemas/test-connection.schema.js';
-
 // 冲突检测 schemas
 export {
   conflictDetectionRequestSchema,
@@ -55,9 +52,6 @@ export type { ApiSuccessResponse, ApiErrorResponse, ApiResponse, CoreStatusRespo
 
 // 认证类型
 export type { LoginRequest, LoginResponse } from './schemas/auth.schema.js';
-
-// 测试连接类型
-export type { TestConnectionRequest, TestConnectionResult } from './schemas/test-connection.schema.js';
 
 // 冲突检测类型
 export type {

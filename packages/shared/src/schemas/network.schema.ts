@@ -17,7 +17,7 @@ const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|
  * 使用 Regex 进行基础格式验证
  */
 export const ipv4Schema = z.string().regex(ipv4Regex, {
-  message: 'IP 地址格式无效,请输入如 192.168.1.100 的格式',
+  message: 'IP 地址格式无效，请输入如 192.168.1.100 的格式',
 });
 
 /**
@@ -65,8 +65,8 @@ export const subnetMaskSchema = ipv4Schema.refine(
  * 端口号 Schema
  * 端口号必须在 1-65535 范围内
  */
-export const portSchema = z.number().int().min(1).max(65535, {
-  message: '端口号必须在 1-65535 范围内',
+export const portSchema = z.number().int().min(1, { message: '端口号必须大于 0' }).max(65535, {
+  message: '端口号不能超过 65535',
 });
 
 /**

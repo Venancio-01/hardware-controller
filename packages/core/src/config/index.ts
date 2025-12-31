@@ -75,6 +75,7 @@ export function getConfigSummary(): Record<string, unknown> {
       udpLocalPort: config.UDP_LOCAL_PORT,
       queryInterval: config.QUERY_INTERVAL,
       doorOpenTimeout: config.DOOR_OPEN_TIMEOUT_S,
+      authRetryInterval: config.AUTH_RETRY_INTERVAL_S,
       inputs: {
         apply: config.APPLY_INDEX,
         cabinetDoor: config.CABINET_DOOR_INDEX,
@@ -86,7 +87,7 @@ export function getConfigSummary(): Record<string, unknown> {
         authPass: config.AUTH_PASS_INDEX,
       },
       relays: {
-        lock: config.RELAY_LOCK_INDEX,
+        lock: config.DOOR_LOCK_SWITCH_LIGHT_INDEX,
         cabinetAlarm: config.RELAY_CABINET_ALARM_INDEX,
         controlAlarm: config.RELAY_CONTROL_ALARM_INDEX,
       },

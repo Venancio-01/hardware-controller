@@ -46,6 +46,22 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 });
 
 /**
+ * GET /api/config/defaults
+ * 获取系统默认配置
+ */
+router.get('/defaults', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const defaults = configService.getDefaultConfig();
+    res.json({
+      success: true,
+      data: defaults,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+});
+
+/**
  * PUT /api/config
  * 更新配置
  */

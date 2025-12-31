@@ -9,7 +9,7 @@ import { configSchema } from './config.schema.js';
 import { ConflictCheckType } from '../types/conflict-detection.types.js';
 
 // 冲突检测类型枚举的 Zod 模式
-const conflictCheckTypeSchema = z.enum(['ip', 'port', 'network', 'all']);
+const conflictCheckTypeSchema = z.enum(['ip', 'network', 'all']);
 
 // 冲突检测请求参数模式
 // 注意：允许部分配置，因为冲突检测可能只需要检查特定字段（如 network）

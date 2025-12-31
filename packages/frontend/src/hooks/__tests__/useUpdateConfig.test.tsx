@@ -2,9 +2,9 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useUpdateConfig, RESTART_ALERT_KEY } from '../useUpdateConfig';
+import { useUpdateConfig } from '../useUpdateConfig';
 import { toast } from 'sonner';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, restartCore } from '@/lib/api';
 
 // Mock dependencies
 vi.mock('sonner', () => ({
@@ -16,6 +16,7 @@ vi.mock('sonner', () => ({
 
 vi.mock('@/lib/api', () => ({
   apiFetch: vi.fn(),
+  restartCore: vi.fn(),
 }));
 
 // Mock global fetch for conflict detection
@@ -41,7 +42,7 @@ describe('useUpdateConfig Hook', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
+    vi.useFakeTimers();
 
     // Mock fetch to return successful conflict detection result
     vi.mocked(global.fetch).mockResolvedValue({
@@ -70,8 +71,9 @@ describe('useUpdateConfig Hook', () => {
       pollingInterval: 5000,
     };
 
-    result.current.mutate(mockConfig);
+    result.current.mutate(mockConfig as any);
 
+    await vi.runAllTimersAsync();
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     // 验证冲突检测 fetch 被调用
@@ -94,63 +96,101 @@ describe('useUpdateConfig Hook', () => {
     });
   });
 
-  it('should show success toast and set needsRestart on success', async () => {
+  it('should show restart confirm dialog when needsRestart is true', async () => {
     vi.mocked(apiFetch).mockResolvedValue({ success: true, needsRestart: true });
 
     const { result } = renderHook(() => useUpdateConfig(), { wrapper });
 
-    expect(result.current.needsRestart).toBe(false);
+    expect(result.current.showRestartConfirm).toBe(false);
 
     result.current.mutate({ deviceId: 'test' } as any);
 
+    await vi.runAllTimersAsync();
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(toast.success).toHaveBeenCalledWith("配置已保存", expect.any(Object));
-    expect(result.current.needsRestart).toBe(true);
+    // 验证重启确认对话框状态被设置为 true
+    expect(result.current.showRestartConfirm).toBe(true);
   });
 
-  it('should persist needsRestart state to localStorage', async () => {
+  it('should restart system when confirmRestart is called', async () => {
     vi.mocked(apiFetch).mockResolvedValue({ success: true, needsRestart: true });
-
-    const { result } = renderHook(() => useUpdateConfig(), { wrapper });
-
-    result.current.mutate({ deviceId: 'test' } as any);
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    await waitFor(() => expect(result.current.needsRestart).toBe(true));
-
-    // 验证 localStorage 已更新
-    expect(localStorage.getItem(RESTART_ALERT_KEY)).toBe('true');
-  });
-
-  it('should restore needsRestart state from localStorage on mount', async () => {
-    // 预设 localStorage
-    localStorage.setItem(RESTART_ALERT_KEY, 'true');
-
-    const { result } = renderHook(() => useUpdateConfig(), { wrapper });
-
-    // 验证状态从 localStorage 恢复
-    expect(result.current.needsRestart).toBe(true);
-  });
-
-  it('should clear needsRestart when clearNeedsRestart is called', async () => {
-    vi.mocked(apiFetch).mockResolvedValue({ success: true, needsRestart: true });
+    vi.mocked(restartCore).mockResolvedValue({ success: true, message: '重启指令已发送' });
 
     const { result } = renderHook(() => useUpdateConfig(), { wrapper });
 
     result.current.mutate({ deviceId: 'test' } as any);
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    await waitFor(() => expect(result.current.needsRestart).toBe(true));
+    await vi.runAllTimersAsync();
+    await waitFor(() => expect(result.current.showRestartConfirm).toBe(true));
 
-    // 调用清除方法
-    act(() => {
-      result.current.clearNeedsRestart();
+    // 调用 confirmRestart
+    await act(async () => {
+      await result.current.confirmRestart();
     });
 
-    // 等待状态更新
-    await waitFor(() => expect(result.current.needsRestart).toBe(false));
-    expect(localStorage.getItem(RESTART_ALERT_KEY)).toBe('false');
+    // 验证 restartCore 被调用
+    expect(restartCore).toHaveBeenCalled();
+
+    // 验证成功 toast
+    expect(toast.success).toHaveBeenCalledWith('重启指令已发送');
+
+    // 验证对话框关闭
+    expect(result.current.showRestartConfirm).toBe(false);
+  });
+
+  it('should close dialog when cancelRestart is called', async () => {
+    vi.mocked(apiFetch).mockResolvedValue({ success: true, needsRestart: true });
+
+    const { result } = renderHook(() => useUpdateConfig(), { wrapper });
+
+    result.current.mutate({ deviceId: 'test' } as any);
+
+    await vi.runAllTimersAsync();
+    await waitFor(() => expect(result.current.showRestartConfirm).toBe(true));
+
+    // 调用 cancelRestart
+    act(() => {
+      result.current.cancelRestart();
+    });
+
+    // 验证对话框关闭
+    expect(result.current.showRestartConfirm).toBe(false);
+    // 验证 restartCore 未被调用
+    expect(restartCore).not.toHaveBeenCalled();
+  });
+
+  it('should show error toast when restart fails', async () => {
+    vi.mocked(apiFetch).mockResolvedValue({ success: true, needsRestart: true });
+    vi.mocked(restartCore).mockRejectedValue(new Error('重启服务不可用'));
+
+    const { result } = renderHook(() => useUpdateConfig(), { wrapper });
+
+    result.current.mutate({ deviceId: 'test' } as any);
+
+    await vi.runAllTimersAsync();
+    await waitFor(() => expect(result.current.showRestartConfirm).toBe(true));
+
+    // 调用 confirmRestart
+    await act(async () => {
+      await result.current.confirmRestart();
+    });
+
+    // 验证重启失败 toast
+    expect(toast.error).toHaveBeenCalledWith('重启失败: 重启服务不可用');
+  });
+
+  it('should only show success toast when needsRestart is false', async () => {
+    vi.mocked(apiFetch).mockResolvedValue({ success: true, needsRestart: false });
+
+    const { result } = renderHook(() => useUpdateConfig(), { wrapper });
+
+    result.current.mutate({ deviceId: 'test' } as any);
+
+    await vi.runAllTimersAsync();
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(toast.success).toHaveBeenCalledWith('配置已保存');
+    expect(result.current.showRestartConfirm).toBe(false);
   });
 
   it('should show error toast on general failure', async () => {
@@ -162,6 +202,7 @@ describe('useUpdateConfig Hook', () => {
 
     result.current.mutate({ deviceId: 'test' } as any);
 
+    await vi.runAllTimersAsync();
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     // fetch 错误会被归类为"冲突检测服务不可用"
@@ -171,7 +212,6 @@ describe('useUpdateConfig Hook', () => {
         description: errorMsg,
       })
     );
-    expect(result.current.needsRestart).toBe(false);
   });
 
   it('should handle conflict detection failure', async () => {
@@ -193,6 +233,7 @@ describe('useUpdateConfig Hook', () => {
 
     result.current.mutate({ deviceId: 'test' } as any);
 
+    await vi.runAllTimersAsync();
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(toast.error).toHaveBeenCalledWith(
@@ -201,7 +242,6 @@ describe('useUpdateConfig Hook', () => {
         description: 'IP 地址冲突'
       })
     );
-    expect(result.current.needsRestart).toBe(false);
   });
 
   it('should handle conflict detection service unavailable', async () => {
@@ -212,6 +252,7 @@ describe('useUpdateConfig Hook', () => {
 
     result.current.mutate({ deviceId: 'test' } as any);
 
+    await vi.runAllTimersAsync();
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(toast.error).toHaveBeenCalledWith(
@@ -220,18 +261,5 @@ describe('useUpdateConfig Hook', () => {
         description: 'Network error'
       })
     );
-  });
-
-  it('should not set needsRestart when API returns needsRestart: false', async () => {
-    vi.mocked(apiFetch).mockResolvedValue({ success: true, needsRestart: false });
-
-    const { result } = renderHook(() => useUpdateConfig(), { wrapper });
-
-    result.current.mutate({ deviceId: 'test' } as any);
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-
-    expect(toast.success).toHaveBeenCalledWith("配置已保存", expect.any(Object));
-    expect(result.current.needsRestart).toBe(false);
   });
 });

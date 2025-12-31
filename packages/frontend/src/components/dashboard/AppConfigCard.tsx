@@ -17,19 +17,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { getValidationIcon } from "@/components/ui/ValidationIcon";
 
 interface AppConfigCardProps {
   form: UseFormReturn<Config>;
 }
 
 export function AppConfigCard({ form }: AppConfigCardProps) {
-  // Helper to render validation icon
-  // Helper to render validation icon
-  const renderValidationIcon = (fieldName: keyof Config) => {
-    return getValidationIcon(form, fieldName);
-  };
-
   return (
     <Card>
       <CardHeader>
@@ -46,12 +39,9 @@ export function AppConfigCard({ form }: AppConfigCardProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>设备 ID</FormLabel>
-              <div className="relative">
-                <FormControl>
-                  <Input placeholder="输入设备 ID..." {...field} />
-                </FormControl>
-                {renderValidationIcon("deviceId")}
-              </div>
+              <FormControl>
+                <Input placeholder="输入设备 ID..." {...field} />
+              </FormControl>
               <FormDescription>
                 设备的唯一识别代码
               </FormDescription>
@@ -67,16 +57,13 @@ export function AppConfigCard({ form }: AppConfigCardProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>操作超时</FormLabel>
-              <div className="relative">
-                <FormControl>
-                  <Input
-                    type="number"
-                    {...field}
-                    onChange={e => field.onChange(Number(e.target.value))}
-                  />
-                </FormControl>
-                {renderValidationIcon("timeout")}
-              </div>
+              <FormControl>
+                <Input
+                  type="number"
+                  {...field}
+                  onChange={e => field.onChange(Number(e.target.value))}
+                />
+              </FormControl>
               <FormDescription>
                 单位: 毫秒,必须是整数 (1000 - 30000)
               </FormDescription>
@@ -92,17 +79,14 @@ export function AppConfigCard({ form }: AppConfigCardProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>重试次数</FormLabel>
-              <div className="relative">
-                <FormControl>
-                   <Input
-                    type="number"
-                    {...field}
-                    onChange={e => field.onChange(Number(e.target.value))}
-                  />
-                </FormControl>
-                {renderValidationIcon("retryCount")}
-              </div>
-               <FormDescription>
+              <FormControl>
+                <Input
+                  type="number"
+                  {...field}
+                  onChange={e => field.onChange(Number(e.target.value))}
+                />
+              </FormControl>
+              <FormDescription>
                 失败后的重试次数,必须是整数 (0 - 10)
               </FormDescription>
               <FormMessage />
@@ -117,16 +101,13 @@ export function AppConfigCard({ form }: AppConfigCardProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>轮询间隔</FormLabel>
-              <div className="relative">
-                <FormControl>
-                   <Input
-                    type="number"
-                    {...field}
-                    onChange={e => field.onChange(Number(e.target.value))}
-                  />
-                </FormControl>
-                {renderValidationIcon("pollingInterval")}
-              </div>
+              <FormControl>
+                <Input
+                  type="number"
+                  {...field}
+                  onChange={e => field.onChange(Number(e.target.value))}
+                />
+              </FormControl>
               <FormDescription>
                 单位: 毫秒,必须是整数 (1000 - 60000)
               </FormDescription>

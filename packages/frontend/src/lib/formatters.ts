@@ -28,7 +28,7 @@ export function formatUptime(uptimeMs: number | null): string {
   const days = Math.floor(hours / 24);
 
   if (days > 0) {
-    return `${days}天 ${hours % 24}小时`;
+    return `${days}天 ${hours % 24}小时 ${minutes % 60}分钟`;
   }
   if (hours > 0) {
     return `${hours}小时 ${minutes % 60}分钟`;

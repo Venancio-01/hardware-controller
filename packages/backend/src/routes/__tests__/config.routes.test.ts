@@ -12,6 +12,65 @@ import configRoutes from '../config.routes.js';
 import { ConfigService } from '../../services/config.service.js';
 import { ConfigImportExportService } from '../../services/config-import-export.service.js';
 
+describe('GET /api/config/defaults', () => {
+  let app: express.Application;
+  let getDefaultConfigSpy: any;
+
+  beforeEach(() => {
+    app = express();
+    app.use(express.json());
+    app.use('/api/config', configRoutes);
+
+    // Mock ConfigService.prototype.getDefaultConfig
+    getDefaultConfigSpy = vi.spyOn(ConfigService.prototype, 'getDefaultConfig');
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('应该返回 200 和默认配置数据', async () => {
+    // Arrange: Mock 默认配置
+    const mockDefaults = {
+      deviceId: 'device-001',
+      timeout: 5000,
+    };
+    getDefaultConfigSpy.mockReturnValue(mockDefaults);
+
+    // Act: 发送 GET 请求
+    const response = await request(app).get('/api/config/defaults');
+
+    // Assert: 验证响应
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      success: true,
+      data: mockDefaults,
+    });
+    expect(getDefaultConfigSpy).toHaveBeenCalled();
+  });
+
+  it('应该在发生错误时返回 500', async () => {
+    // Arrange: Mock 错误
+    const error = new Error('Test Error');
+    getDefaultConfigSpy.mockImplementation(() => { throw error; });
+
+    // 需要错误处理中间件
+    const appWithErr = express();
+    appWithErr.use(express.json());
+    appWithErr.use('/api/config', configRoutes);
+    appWithErr.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+      res.status(500).json({ success: false, error: '服务器错误' });
+    });
+
+    // Act: 发送 GET 请求
+    const response = await request(appWithErr).get('/api/config/defaults');
+
+    // Assert: 验证响应
+    expect(response.status).toBe(500);
+  });
+});
+
 describe('GET /api/config', () => {
   let app: express.Application;
   let getConfigSpy: any;

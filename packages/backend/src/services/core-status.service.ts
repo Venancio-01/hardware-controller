@@ -16,6 +16,10 @@ export interface CoreStatusState {
   startTime: number | null;
   lastError: string | null;
   lastUpdated: number;
+  connections?: {
+    cabinet: boolean;
+    control: boolean;
+  };
 }
 
 /**
@@ -64,6 +68,7 @@ class CoreStatusServiceClass extends EventEmitter {
       status: this.state.status,
       uptime: this.getUptime(),
       lastError: this.state.lastError,
+      connections: this.state.connections,
     };
   }
 
@@ -71,11 +76,16 @@ class CoreStatusServiceClass extends EventEmitter {
    * 设置状态
    * @param status 新状态
    * @param error 可选的错误信息
+   * @param connections 可选的连接状态
    */
-  setStatus(status: CoreStatus, error?: string): void {
+  setStatus(status: CoreStatus, error?: string, connections?: { cabinet: boolean; control: boolean }): void {
     const previousStatus = this.state.status;
     this.state.status = status;
     this.state.lastUpdated = Date.now();
+
+    if (connections) {
+      this.state.connections = connections;
+    }
 
     if (status === 'Running' && !this.state.startTime) {
       this.state.startTime = Date.now();
@@ -90,11 +100,10 @@ class CoreStatusServiceClass extends EventEmitter {
       this.state.lastError = null;
     }
 
-    if (previousStatus !== status) {
-      logger.info(`Core 状态变更: ${previousStatus} → ${status}${error ? ` (错误: ${error})` : ''}`);
-      // 发射状态变更事件
-      this.emit('statusChange', this.getStatusResponse());
-    }
+    // 总是发送变更，因为 connections 可能变了但 status 没变
+    logger.info(`Core 状态更新: ${status}${error ? ` (错误: ${error})` : ''} ${connections ? `[Conns: Cab=${connections.cabinet}, Ctrl=${connections.control}]` : ''}`);
+    // 发射状态变更事件
+    this.emit('statusChange', this.getStatusResponse());
   }
 
   /**

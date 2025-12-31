@@ -6,7 +6,6 @@
 
 import { ConflictDetectionRequest, ConflictDetectionResult, ConflictCheckType, createModuleLogger } from 'shared';
 import { ConfigService } from './config.service.js';
-import { connectionTestService } from './connection-test.service.js';
 
 const logger = createModuleLogger('ConflictDetectionService');
 
@@ -27,7 +26,7 @@ export class ConflictDetectionService {
 
     // 确定要执行的检查类型
     const typesToCheck: ConflictCheckType[] =
-      checkTypes.includes('all') ? ['ip', 'port', 'network'] : checkTypes;
+      checkTypes.includes('all') ? ['ip', 'network'] : checkTypes;
 
     const results: ConflictDetectionResult = {
       success: true,
@@ -101,8 +100,6 @@ export class ConflictDetectionService {
     switch (checkType) {
       case 'ip':
         return await this.checkIPConflict(config, timeout);
-      case 'port':
-        return await this.checkPortConflict(config, timeout);
       case 'network':
         return await this.checkNetworkConfigValidity(config);
       default:
@@ -130,41 +127,6 @@ export class ConflictDetectionService {
     return {
       message: `IP 地址 ${ipAddress} 未检测到冲突`,
       pingSuccessful: pingResult.success,
-    };
-  }
-
-  /**
-   * 检测端口占用冲突
-   * 检查指定端口是否已被系统或其他服务占用
-   */
-  private async checkPortConflict(config: any, timeout: number): Promise<Record<string, any>> {
-    const networkConfig = config.network;
-    if (!networkConfig || !networkConfig.port) {
-      return { message: '未提供网络配置或端口，跳过端口冲突检测' };
-    }
-
-    const { port, ipAddress } = networkConfig;
-
-    // 使用目标IP地址而不是localhost来检测端口冲突
-    // 如果配置了IP地址，检查目标IP的端口；否则检查本地端口
-    const targetIP = ipAddress || 'localhost';
-
-    const connectionResult = await connectionTestService.testConnection({
-      ipAddress: targetIP,
-      port,
-      protocol: 'tcp',
-      timeout: Math.min(timeout, 1000), // 端口检测使用较短超时时间
-    });
-
-    if (connectionResult.success) {
-      logger.warn(`端口 ${port} 在 ${targetIP} 上已被占用`);
-      throw new Error(`端口 ${port} 在 ${targetIP} 上已被占用，无法使用`);
-    }
-
-    return {
-      message: `端口 ${port} 在 ${targetIP} 上未检测到冲突`,
-      targetIP,
-      portTestSuccessful: !connectionResult.success,
     };
   }
 

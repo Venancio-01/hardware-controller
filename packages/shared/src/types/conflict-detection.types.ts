@@ -34,7 +34,6 @@ export interface ConflictDetectionRequest {
  */
 export type ConflictCheckType =
   | 'ip'           // IP 地址冲突检测
-  | 'port'         // 端口占用检测
   | 'network'      // 网络配置合理性检查
   | 'all';         // 所有类型的检测
 

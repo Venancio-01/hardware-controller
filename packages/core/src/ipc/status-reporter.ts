@@ -46,13 +46,14 @@ export function sendReady(): boolean {
 /**
  * 发送状态变更消息
  * @param status 当前状态
- * @param lastError 最近的错误信息（可选）
+ * @param connections 硬件连接状态（可选）
  */
-export function sendStatus(status: CoreStatus, lastError?: string): boolean {
+export function sendStatus(status: CoreStatus, lastError?: string, connections?: { cabinet: boolean; control: boolean }): boolean {
   const payload: StatusPayload = {
     status,
     uptime: startTime ? Date.now() - startTime : undefined,
     lastError,
+    connections,
   };
 
   logger.info(`发送状态变更: ${status}`);

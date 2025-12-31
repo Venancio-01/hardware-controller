@@ -388,8 +388,8 @@ export class CoreProcessManager {
   private handleCoreStatusChange(payload: StatusPayload): void {
     if (!payload) return;
 
-    const { status, lastError } = payload;
-    CoreStatusService.setStatus(status, lastError);
+    const { status, lastError, connections } = payload;
+    CoreStatusService.setStatus(status, lastError, connections);
     coreLogger.debug(`Core status changed to: ${status}`);
   }
 }

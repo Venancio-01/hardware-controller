@@ -5,20 +5,16 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { ConflictDetectionService } from '../conflict-detection.service';
 import { ConfigService } from '../config.service';
-import { connectionTestService } from '../connection-test.service';
 
 // Mock 依赖服务
 vi.mock('../config.service');
-vi.mock('../connection-test.service');
 
 describe('ConflictDetectionService', () => {
   let conflictDetectionService: ConflictDetectionService;
   let mockConfigService: ConfigService;
-  let mockConnectionTestService: any;
 
   beforeEach(() => {
     mockConfigService = new ConfigService() as ConfigService;
-    mockConnectionTestService = connectionTestService;
     conflictDetectionService = new ConflictDetectionService(mockConfigService);
   });
 
@@ -34,30 +30,22 @@ describe('ConflictDetectionService', () => {
           ipAddress: '192.168.1.100',
           subnetMask: '255.255.255.0',
           gateway: '192.168.1.1',
-          port: 8080,
         },
       };
 
       // Mock unsuccessful ping (indicating IP is not in use)
       vi.spyOn(conflictDetectionService as any, 'pingIP').mockResolvedValue({ success: false });
 
-      // Mock connection test to return failure (indicating port is not in use)
-      vi.spyOn(mockConnectionTestService, 'testConnection').mockResolvedValue({
-        success: false,  // Port not in use (should pass port check)
-        latency: 10,
-        target: 'localhost:8080',
-      });
-
       const request = {
         config: mockConfig,
-        checkTypes: ['ip', 'port', 'network'] as const,
+        checkTypes: ['ip', 'network'] as const,
         timeout: 5000,
       };
 
       const result = await conflictDetectionService.checkConflict(request);
 
       expect(result.success).toBe(true);
-      expect(result.passedChecks).toEqual(['ip', 'port', 'network']);
+      expect(result.passedChecks).toEqual(['ip', 'network']);
       expect(result.failedChecks).toEqual([]);
     });
 
@@ -68,7 +56,6 @@ describe('ConflictDetectionService', () => {
           ipAddress: '192.168.1.100',
           subnetMask: '255.255.255.0',
           gateway: '192.168.1.1',
-          port: 8080,
         },
       };
 
@@ -90,39 +77,6 @@ describe('ConflictDetectionService', () => {
       ]);
     });
 
-    it('should detect port conflict when connection test passes', async () => {
-      // Mock config data
-      const mockConfig = {
-        network: {
-          ipAddress: '192.168.1.100',
-          subnetMask: '255.255.255.0',
-          gateway: '192.168.1.1',
-          port: 8080,
-        },
-      };
-
-      // Mock connection test service to return success (meaning port is in use)
-      vi.spyOn(mockConnectionTestService, 'testConnection').mockResolvedValue({
-        success: true,
-        latency: 10,
-        target: '192.168.1.100:8080',
-      });
-
-      const request = {
-        config: mockConfig,
-        checkTypes: ['port'],
-        timeout: 5000,
-      };
-
-      const result = await conflictDetectionService.checkConflict(request);
-
-      expect(result.success).toBe(false);
-      expect(result.passedChecks).toEqual([]);
-      expect(result.failedChecks).toEqual([
-        { type: 'port', error: '端口 8080 在 192.168.1.100 上已被占用，无法使用' }
-      ]);
-    });
-
     it('should validate network config and detect invalid IP format', async () => {
       // Mock config data with invalid IP
       const mockConfig = {
@@ -130,7 +84,6 @@ describe('ConflictDetectionService', () => {
           ipAddress: '999.999.999.999', // Invalid IP
           subnetMask: '255.255.255.0',
           gateway: '192.168.1.1',
-          port: 8080,
         },
       };
 
@@ -155,7 +108,6 @@ describe('ConflictDetectionService', () => {
           ipAddress: '192.168.2.100', // Different subnet
           subnetMask: '255.255.255.0',
           gateway: '192.168.1.1', // Different subnet
-          port: 8080,
         },
       };
 
@@ -173,31 +125,12 @@ describe('ConflictDetectionService', () => {
       expect(result.failedChecks![0].error).toContain('不在同一网段');
     });
 
-    it('should skip checks for missing config parts', async () => {
-      // Mock config data with missing network section
-      const mockConfig = {
-        network: {}, // Empty network config
-      };
-
-      const request = {
-        config: mockConfig,
-        checkTypes: ['ip', 'port'],
-        timeout: 5000,
-      };
-
-      const result = await conflictDetectionService.checkConflict(request);
-
-      expect(result.success).toBe(true);
-      expect(result.passedChecks).toEqual(['ip', 'port']);
-    });
-
     it('should handle timeout when IP detection takes too long', async () => {
       const mockConfig = {
         network: {
           ipAddress: '192.168.1.100',
           subnetMask: '255.255.255.0',
           gateway: '192.168.1.1',
-          port: 8080,
         },
       };
 
@@ -217,38 +150,6 @@ describe('ConflictDetectionService', () => {
       expect(result.success).toBe(false);
       expect(result.failedChecks![0].type).toBe('ip');
       expect(result.failedChecks![0].error).toContain('检测超时');
-    });
-
-    it('should use target IP address for port conflict detection', async () => {
-      const mockConfig = {
-        network: {
-          ipAddress: '192.168.1.100',
-          port: 8080,
-        },
-      };
-
-      // Mock connection test to check the target IP
-      vi.spyOn(mockConnectionTestService, 'testConnection').mockResolvedValue({
-        success: false,
-        latency: 10,
-        target: '192.168.1.100:8080',
-      });
-
-      const request = {
-        config: mockConfig,
-        checkTypes: ['port'],
-        timeout: 5000,
-      };
-
-      const result = await conflictDetectionService.checkConflict(request);
-
-      expect(result.success).toBe(true);
-      expect(mockConnectionTestService.testConnection).toHaveBeenCalledWith({
-        ipAddress: '192.168.1.100', // Should use target IP, not localhost
-        port: 8080,
-        protocol: 'tcp',
-        timeout: 1000,
-      });
     });
   });
 
